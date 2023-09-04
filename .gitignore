@@ -1,0 +1,4 @@
+data/*
+work_dirs/*
+ckpt/*
+__pycache__
