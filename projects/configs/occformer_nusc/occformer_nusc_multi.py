@@ -50,7 +50,7 @@ voxel_channels = [128, 256, 512, 1024]
 voxel_num_layer = [2, 2, 2, 2]
 voxel_strides = [1, 2, 2, 2]
 voxel_out_indices = (0, 1, 2, 3)
-voxel_out_channel = 192
+voxel_out_channel = 256
 norm_cfg = dict(type='GN', num_groups=32, requires_grad=True)
 
 empty_idx = 0  # noise 0-->255
@@ -258,7 +258,7 @@ test_config=dict(
 )
 
 data = dict(
-    samples_per_gpu=1,
+    samples_per_gpu=2,
     workers_per_gpu=4,
     train=dict(
         type=dataset_type,
@@ -277,43 +277,29 @@ data = dict(
 )
 
 embed_multi = dict(lr_mult=1.0, decay_mult=0.0)
-# optimizer = dict(
-#     type='AdamW',
-#     lr=0.0001,
-#     weight_decay=0.01,
-#     eps=1e-8,
-#     betas=(0.9, 0.999),
-#     paramwise_cfg=dict(
-#         custom_keys={
-#             'query_embed': embed_multi,
-#             'query_feat': embed_multi,
-#             'level_embed': embed_multi,
-#             'absolute_pos_embed': dict(decay_mult=0.),
-#             'relative_position_bias_table': dict(decay_mult=0.),
-#         },
-#         norm_decay_mult=0.0))
 optimizer = dict(
     type='AdamW',
-    lr=3e-4,
+    lr=0.0001,
+    weight_decay=0.01,
+    eps=1e-8,
+    betas=(0.9, 0.999),
     paramwise_cfg=dict(
         custom_keys={
-            'img_backbone': dict(lr_mult=0.1),
-        }),
-    weight_decay=0.01)
+            'query_embed': embed_multi,
+            'query_feat': embed_multi,
+            'level_embed': embed_multi,
+            'absolute_pos_embed': dict(decay_mult=0.),
+            'relative_position_bias_table': dict(decay_mult=0.),
+        },
+        norm_decay_mult=0.0))
 
 optimizer_config = dict(grad_clip=dict(max_norm=5, norm_type=2))
-lr_config = dict(
-    policy='CosineAnnealing',
-    warmup='linear',
-    warmup_iters=500,
-    warmup_ratio=1.0 / 3,
-    min_lr_ratio=1e-3)
 
 # learning policy
-# lr_config = dict(
-#     policy='step',
-#     step=[20, 23],
-# )
+lr_config = dict(
+    policy='step',
+    step=[20, 23],
+)
 
 checkpoint_config = dict(max_keep_ckpts=1, interval=1)
 runner = dict(type='EpochBasedRunner', max_epochs=24)
@@ -321,6 +307,6 @@ runner = dict(type='EpochBasedRunner', max_epochs=24)
 evaluation = dict(
     interval=1,
     pipeline=test_pipeline,
-    save_best='SSC_mean',
+    save_best='nuScenes_lidarseg_mean',
     rule='greater',
 )

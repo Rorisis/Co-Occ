@@ -162,7 +162,7 @@ class OccHead(nn.Module):
 
         return output
      
-    def forward(self, voxel_feats, img_feats=None, pts_feats=None, transform=None, **kwargs):
+    def forward(self, voxel_feats, img_feats=None, img_metas=None, pts_feats=None, target_points=None, transform=None, **kwargs):
         assert type(voxel_feats) is list and len(voxel_feats) == self.num_level
         
         # forward voxel 
@@ -227,12 +227,23 @@ class OccHead(nn.Module):
                             append_feats.append(sampled_img_feat)  # N C
                             assert torch.isnan(sampled_img_feat).sum().item() == 0
                     output['fine_output'].append(self.fine_mlp(torch.concat(append_feats, dim=1)))
+        if self.training:
+            res = {
+                'output_voxels': output['occ'],
+                'output_voxels_fine': output.get('fine_output', None),
+                'output_coords_fine': output.get('fine_coord', None),
+                'output_points': None,
+            }
+        else:
+            output_points = self.forward_lidarseg(output['occ'][0], target_points, img_metas)
+            res = {
+                'output_voxels': output['occ'],
+                'output_voxels_fine': output.get('fine_output', None),
+                'output_coords_fine': output.get('fine_coord', None),
+                'output_points': output_points,
+            }
 
-        res = {
-            'output_voxels': output['occ'],
-            'output_voxels_fine': output.get('fine_output', None),
-            'output_coords_fine': output.get('fine_coord', None),
-        }
+
         
         return res
 

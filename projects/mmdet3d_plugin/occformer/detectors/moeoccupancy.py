@@ -12,6 +12,7 @@ from .bevdepth import BEVDepth
 import numpy as np
 import time
 import pdb
+import copy
 
 @DETECTORS.register_module()
 class MoEOccpancy(BEVDepth):
@@ -191,6 +192,7 @@ class MoEOccpancy(BEVDepth):
             img_metas=img_metas,
             img_feats=img_feats,
             pts_feats=pts_feats,
+            target_points=points_occ,
             transform=transform,
         )
         
@@ -289,6 +291,7 @@ class MoEOccpancy(BEVDepth):
             img_metas=img_metas,
             img_feats=img_feats,
             pts_feats=pts_feats,
+            target_points=points_occ,
             transform=transform,
         )
 
@@ -308,12 +311,21 @@ class MoEOccpancy(BEVDepth):
                 pred_f = output['output_voxels_fine'][0]
             SC_metric, _ = self.evaluation_semantic(pred_f, gt_occ, eval_type='SC', visible_mask=visible_mask)
             SSC_metric_fine, SSC_occ_metric_fine = self.evaluation_semantic(pred_f, gt_occ, eval_type='SSC', visible_mask=visible_mask)
+        # evaluate nusc lidar-seg
+        if output['output_points'] is not None and points_occ is not None:
+            output['output_points'] = torch.argmax(output['output_points'][:, 1:], dim=1) + 1
+            target_points = torch.cat(points_occ, dim=0)
+            output['evaluation_semantic'] = self.simple_evaluation_semantic(output['output_points'], target_points, img_metas)
+            output['target_points'] = target_points
 
         test_output = {
             'SC_metric': SC_metric,
             'SSC_metric': SSC_metric,
             'pred_c': pred_c,
             'pred_f': pred_f,
+            'output_voxels': pred_c,
+            'target_voxels': gt_occ,
+            'evaluation_semantic': output['evaluation_semantic'],
         }
 
         if SSC_metric_fine is not None:
