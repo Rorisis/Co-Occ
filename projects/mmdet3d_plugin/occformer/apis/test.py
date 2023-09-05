@@ -62,8 +62,10 @@ def custom_single_gpu_test(model, data_loader, show=False, out_dir=None, show_sc
             else:
                 save_nuscenes_lidarseg_submission(result['output_points'], test_save, img_metas)
         else:
-            output_voxels = torch.argmax(result['output_voxels'], dim=1)
             target_voxels = result['target_voxels'].clone()
+            _, H, W, D = target_voxels.shape
+            output_voxels = torch.nn.functional.interpolate(result['output_voxels'], size=[H, W, D], mode='trilinear', align_corners=False).contiguous()
+            output_voxels = torch.argmax(output_voxels, dim=1)
             ssc_metric.update(y_pred=output_voxels,  y_true=target_voxels)
             
             # compute metrics
@@ -166,7 +168,9 @@ def custom_multi_gpu_test(model, data_loader, tmpdir=None, gpu_collect=False, pr
             else:
                 save_nuscenes_lidarseg_submission(result['output_points'], test_save, img_metas)
         else:
-            output_voxels = torch.argmax(result['output_voxels'], dim=1)
+            _, H, W, D = result['target_voxels'].shape
+            output_voxels = torch.nn.functional.interpolate(result['output_voxels'], size=[H, W, D], mode='trilinear', align_corners=False).contiguous()
+            output_voxels = torch.argmax(output_voxels, dim=1)
             
             if result['target_voxels'] is not None:
                 target_voxels = result['target_voxels'].clone()
