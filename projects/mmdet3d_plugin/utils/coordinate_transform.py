@@ -1,4 +1,3 @@
-
 import torch
 
 def coarse_to_fine_coordinates(coarse_cor, ratio, topk=30000):

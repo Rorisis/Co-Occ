@@ -171,7 +171,7 @@ class LoadMultiViewImageFromFiles_OccFormer(object):
         # the RGB uint8 input images, for debug or visualization
         results['canvas'] = np.stack(canvas)
         
-        return imgs, rots, trans, intrins, post_rots, post_trans, gt_depths, sensor2sensors
+        return imgs, rots, trans, intrins, post_rots, post_trans, gt_depths, sensor2sensors, imgs.shape[-2:]
 
     def __call__(self, results):
         results['img_inputs'] = self.get_inputs(results)

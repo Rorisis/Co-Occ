@@ -218,7 +218,7 @@ class OccHead(nn.Module):
                         img_uv, img_mask = project_points_on_img(new_coord, rots=transform[0][b:b+1], trans=transform[1][b:b+1],
                                     intrins=transform[2][b:b+1], post_rots=transform[3][b:b+1],
                                     post_trans=transform[4][b:b+1], bda_mat=transform[5][b:b+1],
-                                    W_img=transform[6][1][b:b+1], H_img=transform[6][0][b:b+1],
+                                    W_img=transform[-1][1][b:b+1], H_img=transform[-1][0][b:b+1],
                                     pts_range=self.point_cloud_range, W_occ=W_new, H_occ=H_new, D_occ=D_new)  # 1 N n_cam 2
                         for img_feat in img_feats:
                             sampled_img_feat = F.grid_sample(img_feat[b].contiguous(), img_uv.contiguous(), align_corners=True, mode='bilinear', padding_mode='zeros')
@@ -227,6 +227,7 @@ class OccHead(nn.Module):
                             append_feats.append(sampled_img_feat)  # N C
                             assert torch.isnan(sampled_img_feat).sum().item() == 0
                     output['fine_output'].append(self.fine_mlp(torch.concat(append_feats, dim=1)))
+                    
         if self.training:
             res = {
                 'output_voxels': output['occ'],
@@ -276,7 +277,8 @@ class OccHead(nn.Module):
         return loss_dict
 
     def loss_point(self, fine_coord, fine_output, target_voxels, tag):
-
+        # print("fine_coord",fine_coord[0,:].max(),fine_coord[1,:].max(),fine_coord[2,:].max())
+        # raise ValueError()
         selected_gt = target_voxels[:, fine_coord[0,:], fine_coord[1,:], fine_coord[2,:]].long()[0]
         assert torch.isnan(selected_gt).sum().item() == 0, torch.isnan(selected_gt).sum().item()
         assert torch.isnan(fine_output).sum().item() == 0, torch.isnan(fine_output).sum().item()
@@ -302,6 +304,7 @@ class OccHead(nn.Module):
             loss_batch_dict = {}
             if self.sample_from_voxel or self.sample_from_img:
                 for index, (fine_coord, fine_output) in enumerate(zip(output_coords_fine, output_voxels_fine)):
+                    # print("fine_coord",fine_coord.shape, "fine_output",fine_output.shape, "target_voxels",target_voxels.shape)
                     this_batch_loss = self.loss_point(fine_coord, fine_output, target_voxels, tag='fine')
                     for k, v in this_batch_loss.items():
                         if k not in loss_batch_dict:

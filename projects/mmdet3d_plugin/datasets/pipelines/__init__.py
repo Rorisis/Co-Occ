@@ -8,3 +8,4 @@ from .loading_nusc_panoptic_occ import LoadNuscPanopticOccupancyAnnotations
 # utils
 from .lidar2depth import CreateDepthFromLiDAR
 from .formating import OccDefaultFormatBundle3D
+from .loading_bevdet import LoadAnnotationsBEVDepth, LoadMultiViewImageFromFiles_BEVDet

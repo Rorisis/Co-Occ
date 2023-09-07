@@ -8,6 +8,10 @@ plugin = True
 plugin_dir = "projects/mmdet3d_plugin/"
 img_norm_cfg = dict(mean=[123.675, 116.28, 103.53], std=[58.395, 57.12, 57.375], to_rgb=True)
 
+# class_names = [
+#     'car', 'truck', 'construction_vehicle', 'bus', 'trailer', 'barrier',
+#     'motorcycle', 'bicycle', 'pedestrian', 'traffic_cone'
+# ]
 class_names = ['empty', 'barrier', 'bicycle', 'bus', 'car', 
     'construction_vehicle', 'motorcycle', 'pedestrian', 
     'traffic_cone', 'trailer', 'truck', 'driveable_surface', 
@@ -29,6 +33,7 @@ data_config={
              'CAM_BACK_LEFT', 'CAM_BACK', 'CAM_BACK_RIGHT'],
     'Ncams': 6,
     'input_size': (256, 704),
+    # 'input_size': (896, 1600),
     'src_size': (900, 1600),
     # image-view augmentation
     'resize': (-0.06, 0.11),
@@ -57,19 +62,14 @@ empty_idx = 0  # noise 0-->255
 num_cls = 17  # 0 free, 1-16 obj
 visible_mask = False
 
-cascade_ratio = 4
-sample_from_voxel = False
-sample_from_img = False
+cascade_ratio = 2
+sample_from_voxel = True
+sample_from_img = True
 
-# settings for mask2former head
-# mask2former_num_queries = 100
-# mask2former_feat_channel = voxel_out_channels
-# mask2former_output_channel = voxel_out_channels
-# mask2former_pos_channel = mask2former_feat_channel / 3 # divided by ndim
-# mask2former_num_heads = voxel_out_channels // 32
 
 model = dict(
     type='MoEOccpancy',
+    loss_norm=True,
     img_backbone=dict(
         pretrained='ckpts/resnet50-0676ba61.pth',
         type='ResNet',
@@ -88,6 +88,7 @@ model = dict(
     img_view_transformer=dict(
         type='ViewTransformerLiftSplatShootVoxel',
         loss_depth_weight=1.0,
+        loss_depth_type='bce',
         grid_config=grid_config,
         data_config=data_config,
         numC_Trans=numC_Trans,
@@ -134,7 +135,7 @@ model = dict(
         sample_from_voxel=sample_from_voxel,
         sample_from_img=sample_from_img,
         final_occ_size=occ_size,
-        fine_topk=15000,
+        fine_topk=10000,
         empty_idx=empty_idx,
         num_level=len(voxel_out_indices),
         in_channels=[voxel_out_channel] * len(voxel_out_indices),
@@ -149,48 +150,6 @@ model = dict(
     ),
     empty_idx=empty_idx,
 )
-#         # loss settings
-#         loss_cls=dict(
-#             type='CrossEntropyLoss',
-#             use_sigmoid=False,
-#             loss_weight=2.0,
-#             reduction='mean',
-#             class_weight=[1.0] * num_class + [0.1]),
-#         loss_mask=dict(
-#             type='CrossEntropyLoss',
-#             use_sigmoid=True,
-#             reduction='mean',
-#             loss_weight=5.0),
-#         loss_dice=dict(
-#             type='DiceLoss',
-#             use_sigmoid=True,
-#             activate=True,
-#             reduction='mean',
-#             naive_dice=True,
-#             eps=1.0,
-#             loss_weight=5.0),
-#         point_cloud_range=point_cloud_range,
-#     ),
-#     train_cfg=dict(
-#         pts=dict(
-#             num_points=12544 * 4,
-#             oversample_ratio=3.0,
-#             importance_sample_ratio=0.75,
-#             assigner=dict(
-#                 type='MaskHungarianAssigner',
-#                 cls_cost=dict(type='ClassificationCost', weight=2.0),
-#                 mask_cost=dict(
-#                     type='CrossEntropyLossCost', weight=5.0, use_sigmoid=True),
-#                 dice_cost=dict(
-#                     type='DiceCost', weight=5.0, pred_act=True, eps=1.0)),
-#             sampler=dict(type='MaskPseudoSampler'),
-#         )),
-#     test_cfg=dict(
-#         pts=dict(
-#             semantic_on=True,
-#             panoptic_on=False,
-#             instance_on=False)),
-# )
 
 dataset_type = 'CustomNuScenesOccLSSDataset'
 data_root = 'data/nuscenes'
@@ -210,7 +169,7 @@ train_pipeline = [
         use_dim=5),
     dict(type='LoadPointsFromMultiSweeps',
         sweeps_num=10),
-    dict(type='LoadMultiViewImageFromFiles_OccFormer', is_train=True, 
+    dict(type='LoadMultiViewImageFromFiles_OccFormer', is_train=False,
             data_config=data_config, img_norm_cfg=img_norm_cfg),
     dict(type='CreateDepthFromLiDAR', dataset='nusc'),
     dict(type='LoadNuscOccupancyAnnotations', is_train=True, grid_size=occ_size, 
@@ -258,7 +217,7 @@ test_config=dict(
 )
 
 data = dict(
-    samples_per_gpu=2,
+    samples_per_gpu=1,
     workers_per_gpu=4,
     train=dict(
         type=dataset_type,

@@ -6,6 +6,7 @@ from mmcv.runner import force_fp32
 from torch.cuda.amp.autocast_mode import autocast
 import torch.nn.functional as F
 import pdb
+from projects.mmdet3d_plugin.utils.gaussian import generate_guassian_depth_target
 
 from .ViewTransformerLSSBEVDepth import *
 
@@ -23,6 +24,7 @@ class ViewTransformerLiftSplatShootVoxel(ViewTransformerLSSBEVDepth):
         self.loss_depth_type = loss_depth_type
         self.cam_depth_range = self.grid_config['dbound']
         self.point_cloud_range = point_cloud_range
+        self.constant_std = 0.5
     
     def get_downsampled_gt_depth(self, gt_depths):
         """
@@ -65,9 +67,27 @@ class ViewTransformerLiftSplatShootVoxel(ViewTransformerLSSBEVDepth):
         return depth_loss
     
     @force_fp32()
+    def get_klv_depth_loss(self, depth_labels, depth_preds):
+        depth_gaussian_labels, depth_values = generate_guassian_depth_target(depth_labels,
+            self.downsample, self.cam_depth_range, constant_std=self.constant_std)
+        
+        depth_values = depth_values.view(-1)
+        fg_mask = (depth_values >= self.cam_depth_range[0]) & (depth_values <= (self.cam_depth_range[1] - self.cam_depth_range[2]))        
+        
+        depth_gaussian_labels = depth_gaussian_labels.view(-1, self.D)[fg_mask]
+        depth_preds = depth_preds.permute(0, 2, 3, 1).contiguous().view(-1, self.D)[fg_mask]
+        
+        depth_loss = F.kl_div(torch.log(depth_preds + 1e-4), depth_gaussian_labels, reduction='batchmean', log_target=False)
+        
+        return depth_loss
+    
+    @force_fp32()
     def get_depth_loss(self, depth_labels, depth_preds):
         if self.loss_depth_type == 'bce':
             depth_loss = self.get_bce_depth_loss(depth_labels, depth_preds)
+        
+        elif self.loss_depth_type == 'kld':
+            depth_loss = self.get_klv_depth_loss(depth_labels, depth_preds)
         
         else:
             pdb.set_trace()

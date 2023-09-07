@@ -53,7 +53,8 @@ class MoEOccpancy(BEVDepth):
         _, output_dim, ouput_H, output_W = x.shape
         x = x.view(B, N, output_dim, ouput_H, output_W)
         
-        return x
+        return {'x':x,
+                'img_feats':[x.clone()]}
     
     @force_fp32()
     def occ_encoder(self, x):
@@ -90,8 +91,9 @@ class MoEOccpancy(BEVDepth):
             torch.cuda.synchronize()
             t0 = time.time()
                 
-        x = self.image_encoder(img[0])
-        img_feats = x.clone()
+        img_enc_feats= self.image_encoder(img[0])
+        x = img_enc_feats['x']
+        img_feats = img_enc_feats['img_feats']
         
         if self.record_time:
             torch.cuda.synchronize()
@@ -239,14 +241,14 @@ class MoEOccpancy(BEVDepth):
             t0 = time.time()
         
         if not self.disable_loss_depth and depth is not None:
-            losses['loss_depth'] = self.img_view_transformer.get_depth_loss(img_inputs[-2], depth)
+            losses['loss_depth'] = self.img_view_transformer.get_depth_loss(img_inputs[-3], depth)
         
         if self.record_time:
             torch.cuda.synchronize()
             t1 = time.time()
             self.time_stats['loss_depth'].append(t1 - t0)
         
-        transform = img_inputs[1:8] if img_inputs is not None else None
+        transform = img_inputs[1:] if img_inputs is not None else None
         losses_occupancy = self.forward_pts_train(voxel_feats, gt_occ,
                         points_occ, img_metas, img_feats=img_feats, pts_feats=pts_feats, transform=transform, 
                         visible_mask=visible_mask)
@@ -284,7 +286,7 @@ class MoEOccpancy(BEVDepth):
         
         voxel_feats, img_feats, pts_feats, depth = self.extract_feat(points, img=img, img_metas=img_metas)
 
-        transform = img[1:8] if img is not None else None
+        transform = img[1:] if img is not None else None
         output = self.pts_bbox_head(
             voxel_feats=voxel_feats,
             points=points_occ,
@@ -388,7 +390,7 @@ class MoEOccpancy(BEVDepth):
 
         voxel_feats, img_feats, pts_feats, depth = self.extract_feat(points, img=img_inputs, img_metas=img_metas)
 
-        transform = img_inputs[1:8] if img_inputs is not None else None
+        transform = img_inputs[1:] if img_inputs is not None else None
         output = self.pts_bbox_head(
             voxel_feats=voxel_feats,
             points=points_occ,
