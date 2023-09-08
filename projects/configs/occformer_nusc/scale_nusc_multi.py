@@ -75,8 +75,8 @@ mask2former_num_heads = voxel_out_channels // 32
 
 
 model = dict(
-    type='MoEOccpancyScale',
-    loss_norm=True,
+    type='MoEOccupancyScale',
+    loss_norm=False,
     img_backbone=dict(
         pretrained='ckpts/resnet50-0676ba61.pth',
         type='ResNet',

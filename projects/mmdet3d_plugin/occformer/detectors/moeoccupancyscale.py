@@ -15,30 +15,15 @@ import pdb
 import copy
 
 @DETECTORS.register_module()
-class MoEOccpancyScale(BEVDepth):
-    def __init__(self, 
-                loss_cfg=None,
-                disable_loss_depth=False,
-                empty_idx=0,
-                occ_fuser=None,
-                occ_encoder_backbone=None,
-                occ_encoder_neck=None,
-                loss_norm=False,
-                **kwargs):
+class MoEOccupancyScale(BEVDepth):
+    def __init__(self, loss_norm=False, occ_fuser=None, disable_loss_depth=False, **kwargs):
         super().__init__(**kwargs)
-        
-
-        self.loss_cfg = loss_cfg
-        self.disable_loss_depth = disable_loss_depth
-        self.loss_norm = loss_norm
         
         self.record_time = False
         self.time_stats = collections.defaultdict(list)
-        self.empty_idx = empty_idx
-        self.occ_encoder_backbone = builder.build_backbone(occ_encoder_backbone)
-        self.occ_encoder_neck = builder.build_neck(occ_encoder_neck)
+        self.disable_loss_depth = disable_loss_depth
         self.occ_fuser = builder.build_fusion_layer(occ_fuser) if occ_fuser is not None else None
-            
+        self.loss_norm = loss_norm
     
     def image_encoder(self, img):
         imgs = img
@@ -53,8 +38,7 @@ class MoEOccpancyScale(BEVDepth):
         _, output_dim, ouput_H, output_W = x.shape
         x = x.view(B, N, output_dim, ouput_H, output_W)
         
-        return {'x':x,
-                'img_feats':[x.clone()]}
+        return x
     
     @force_fp32()
     def occ_encoder(self, x):
@@ -91,9 +75,8 @@ class MoEOccpancyScale(BEVDepth):
             torch.cuda.synchronize()
             t0 = time.time()
                 
-        img_enc_feats= self.image_encoder(img[0])
-        x = img_enc_feats['x']
-        img_feats = img_enc_feats['img_feats']
+        x = self.image_encoder(img[0])
+        img_feats = x.clone()
         
         if self.record_time:
             torch.cuda.synchronize()
@@ -159,6 +142,11 @@ class MoEOccpancyScale(BEVDepth):
             torch.cuda.synchronize()
             t1 = time.time()
             self.time_stats['occ_fuser'].append(t1 - t0)
+
+        voxel_feats = self.bev_encoder(voxel_feats)
+
+        if type(voxel_feats) is not list:
+            voxel_feats = [voxel_feats]
 
         # voxel_feats_enc = self.occ_encoder(voxel_feats)
         # if type(voxel_feats_enc) is not list:

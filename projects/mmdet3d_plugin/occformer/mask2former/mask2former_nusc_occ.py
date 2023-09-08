@@ -609,7 +609,7 @@ class Mask2FormerNuscOccHead(MaskFormerHead):
                 decoder layer. Each with shape (batch_size, num_queries, \
                  X, Y, Z).
         """
-        
+
         batch_size = len(img_metas)
         mask_features = voxel_feats[0]
         multi_scale_memorys = voxel_feats[:0:-1]
