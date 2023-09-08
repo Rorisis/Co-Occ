@@ -19,9 +19,9 @@ class_names = ['empty', 'barrier', 'bicycle', 'bus', 'car',
 num_class = len(class_names)
 
 point_cloud_range = [-51.2, -51.2, -5.0, 51.2, 51.2, 3.0]
-occ_size = [512, 512, 64]
+occ_size = [256, 256, 32]
 # downsample ratio in [x, y, z] when generating 3D volumes in LSS
-lss_downsample = [4, 4, 4]
+lss_downsample = [2, 2, 2]
 
 voxel_x = (point_cloud_range[3] - point_cloud_range[0]) / occ_size[0]
 voxel_y = (point_cloud_range[4] - point_cloud_range[1]) / occ_size[1]
@@ -55,20 +55,27 @@ voxel_channels = [128, 256, 512, 1024]
 voxel_num_layer = [2, 2, 2, 2]
 voxel_strides = [1, 2, 2, 2]
 voxel_out_indices = (0, 1, 2, 3)
-voxel_out_channel = 256
+voxel_out_channels = 192
 norm_cfg = dict(type='GN', num_groups=32, requires_grad=True)
 
 empty_idx = 0  # noise 0-->255
 num_cls = 17  # 0 free, 1-16 obj
 visible_mask = False
 
-cascade_ratio = 4
+cascade_ratio = 2
 sample_from_voxel = True
 sample_from_img = True
 
+# settings for mask2former head
+mask2former_num_queries = 100
+mask2former_feat_channel = voxel_out_channels
+mask2former_output_channel = voxel_out_channels
+mask2former_pos_channel = mask2former_feat_channel / 3 # divided by ndim
+mask2former_num_heads = voxel_out_channels // 32
+
 
 model = dict(
-    type='MoEOccpancy',
+    type='MoEOccpancyScale',
     loss_norm=True,
     img_backbone=dict(
         pretrained='ckpts/resnet50-0676ba61.pth',
@@ -112,43 +119,129 @@ model = dict(
         in_channels=numC_Trans,
         out_channels=numC_Trans,
     ),
-    occ_encoder_backbone=dict(
-        type='CustomResNet3D',
-        depth=18,
-        n_input_channels=numC_Trans,
+     img_bev_encoder_backbone=dict(
+        type='OccupancyEncoder',
+        num_stage=len(voxel_num_layer),
+        in_channels=numC_Trans,
+        block_numbers=voxel_num_layer,
         block_inplanes=voxel_channels,
+        block_strides=voxel_strides,
         out_indices=voxel_out_indices,
-        norm_cfg=dict(type='SyncBN', requires_grad=True),
-    ),
-    occ_encoder_neck=dict(
-        type='FPN3D',
         with_cp=True,
+        norm_cfg=norm_cfg,
+    ),
+    img_bev_encoder_neck=dict(
+        type='MSDeformAttnPixelDecoder3D',
+        strides=[2, 4, 8, 16],
         in_channels=voxel_channels,
-        out_channels=voxel_out_channel,
-        norm_cfg=dict(type='SyncBN', requires_grad=True),
+        feat_channels=voxel_out_channels,
+        out_channels=voxel_out_channels,
+        norm_cfg=norm_cfg,
+        encoder=dict(
+            type='DetrTransformerEncoder',
+            num_layers=6,
+            transformerlayers=dict(
+                type='BaseTransformerLayer',
+                attn_cfgs=dict(
+                    type='MultiScaleDeformableAttention3D',
+                    embed_dims=voxel_out_channels,
+                    num_heads=8,
+                    num_levels=3,
+                    num_points=4,
+                    im2col_step=64,
+                    dropout=0.0,
+                    batch_first=False,
+                    norm_cfg=None,
+                    init_cfg=None),
+                ffn_cfgs=dict(
+                    embed_dims=voxel_out_channels),
+                feedforward_channels=voxel_out_channels * 4,
+                ffn_dropout=0.0,
+                operation_order=('self_attn', 'norm', 'ffn', 'norm')),
+            init_cfg=None),
+        positional_encoding=dict(
+            type='SinePositionalEncoding3D',
+            num_feats=voxel_out_channels // 3,
+            normalize=True),
     ),
     pts_bbox_head=dict(
-        type='OccHead',
-        norm_cfg=dict(type='SyncBN', requires_grad=True),
-        soft_weights=True,
-        cascade_ratio=cascade_ratio,
-        sample_from_voxel=sample_from_voxel,
-        sample_from_img=sample_from_img,
-        final_occ_size=occ_size,
-        fine_topk=10000,
-        empty_idx=empty_idx,
-        num_level=len(voxel_out_indices),
-        in_channels=[voxel_out_channel] * len(voxel_out_indices),
-        out_channel=num_cls,
+        type='Mask2FormerNuscOccHead',
+        feat_channels=mask2former_feat_channel,
+        out_channels=mask2former_output_channel,
+        num_queries=mask2former_num_queries,
+        num_occupancy_classes=num_class,
+        pooling_attn_mask=True,
+        sample_weight_gamma=0.25,
+        # using stand-alone pixel decoder
+        positional_encoding=dict(
+            type='SinePositionalEncoding3D', num_feats=mask2former_pos_channel, normalize=True),
+        # using the original transformer decoder
+        transformer_decoder=dict(
+            type='DetrTransformerDecoder',
+            return_intermediate=True,
+            num_layers=9,
+            transformerlayers=dict(
+                type='DetrTransformerDecoderLayer',
+                attn_cfgs=dict(
+                    type='MultiheadAttention',
+                    embed_dims=mask2former_feat_channel,
+                    num_heads=mask2former_num_heads,
+                    attn_drop=0.0,
+                    proj_drop=0.0,
+                    dropout_layer=None,
+                    batch_first=False),
+                ffn_cfgs=dict(
+                    embed_dims=mask2former_feat_channel,
+                    num_fcs=2,
+                    act_cfg=dict(type='ReLU', inplace=True),
+                    ffn_drop=0.0,
+                    dropout_layer=None,
+                    add_identity=True),
+                feedforward_channels=mask2former_feat_channel * 8,
+                operation_order=('cross_attn', 'norm', 'self_attn', 'norm',
+                                 'ffn', 'norm')),
+            init_cfg=None),
+        # loss settings
+        loss_cls=dict(
+            type='CrossEntropyLoss',
+            use_sigmoid=False,
+            loss_weight=2.0,
+            reduction='mean',
+            class_weight=[1.0] * num_class + [0.1]),
+        loss_mask=dict(
+            type='CrossEntropyLoss',
+            use_sigmoid=True,
+            reduction='mean',
+            loss_weight=5.0),
+        loss_dice=dict(
+            type='DiceLoss',
+            use_sigmoid=True,
+            activate=True,
+            reduction='mean',
+            naive_dice=True,
+            eps=1.0,
+            loss_weight=5.0),
         point_cloud_range=point_cloud_range,
-        loss_weight_cfg=dict(
-            loss_voxel_ce_weight=1.0,
-            loss_voxel_sem_scal_weight=1.0,
-            loss_voxel_geo_scal_weight=1.0,
-            loss_voxel_lovasz_weight=1.0,
-        ),
     ),
-    empty_idx=empty_idx,
+    train_cfg=dict(
+        pts=dict(
+            num_points=12544 * 4,
+            oversample_ratio=3.0,
+            importance_sample_ratio=0.75,
+            assigner=dict(
+                type='MaskHungarianAssigner',
+                cls_cost=dict(type='ClassificationCost', weight=2.0),
+                mask_cost=dict(
+                    type='CrossEntropyLossCost', weight=5.0, use_sigmoid=True),
+                dice_cost=dict(
+                    type='DiceCost', weight=5.0, pred_act=True, eps=1.0)),
+            sampler=dict(type='MaskPseudoSampler'),
+        )),
+    test_cfg=dict(
+        pts=dict(
+            semantic_on=True,
+            panoptic_on=False,
+            instance_on=False)),
 )
 
 dataset_type = 'CustomNuScenesOccLSSDataset'
