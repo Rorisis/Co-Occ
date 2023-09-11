@@ -254,58 +254,36 @@ class MoEOccupancyScale(BEVDepth):
         return self.simple_test(img_metas, img_inputs, **kwargs)
     
     def simple_test(self, img_metas, img=None, points=None, rescale=False, points_occ=None, 
-            gt_occ=None, visible_mask=None):
+            gt_occ=None, visible_mask=None, points_uv=None):
         
-        voxel_feats, img_feats, pts_feats, depth = self.extract_feat(points, img=img, img_metas=img_metas)
-
-        transform = img[1:] if img is not None else None
-        output = self.pts_bbox_head(
+        voxel_feats, img_feats, pts_feats, depth = self.extract_feat(points, img=img, img_metas=img_metas)       
+        output = self.pts_bbox_head.simple_test(
             voxel_feats=voxel_feats,
             points=points_occ,
             img_metas=img_metas,
             img_feats=img_feats,
-            pts_feats=pts_feats,
-            target_points=points_occ,
-            transform=transform,
+            points_uv=points_uv,
         )
-
-        pred_c = output['output_voxels'][0]
-        SC_metric, _ = self.evaluation_semantic(pred_c, gt_occ, eval_type='SC', visible_mask=visible_mask)
-        SSC_metric, SSC_occ_metric = self.evaluation_semantic(pred_c, gt_occ, eval_type='SSC', visible_mask=visible_mask)
-
-        pred_f = None
-        SSC_metric_fine = None
-        if output['output_voxels_fine'] is not None:
-            if output['output_coords_fine'] is not None:
-                fine_pred = output['output_voxels_fine'][0]  # N ncls
-                fine_coord = output['output_coords_fine'][0]  # 3 N
-                pred_f = self.empty_idx * torch.ones_like(gt_occ)[:, None].repeat(1, fine_pred.shape[1], 1, 1, 1).float()
-                pred_f[:, :, fine_coord[0], fine_coord[1], fine_coord[2]] = fine_pred.permute(1, 0)[None]
-            else:
-                pred_f = output['output_voxels_fine'][0]
-            SC_metric, _ = self.evaluation_semantic(pred_f, gt_occ, eval_type='SC', visible_mask=visible_mask)
-            SSC_metric_fine, SSC_occ_metric_fine = self.evaluation_semantic(pred_f, gt_occ, eval_type='SSC', visible_mask=visible_mask)
+        
         # evaluate nusc lidar-seg
         if output['output_points'] is not None and points_occ is not None:
             output['output_points'] = torch.argmax(output['output_points'][:, 1:], dim=1) + 1
             target_points = torch.cat(points_occ, dim=0)
             output['evaluation_semantic'] = self.simple_evaluation_semantic(output['output_points'], target_points, img_metas)
             output['target_points'] = target_points
-
-        test_output = {
-            'SC_metric': SC_metric,
-            'SSC_metric': SSC_metric,
-            'pred_c': pred_c,
-            'pred_f': pred_f,
-            'output_voxels': pred_c,
-            'target_voxels': gt_occ,
-            'evaluation_semantic': output['evaluation_semantic'],
-        }
-
-        if SSC_metric_fine is not None:
-            test_output['SSC_metric_fine'] = SSC_metric_fine
-
-        return test_output
+        
+        # evaluate voxel 
+        output_voxels = output['output_voxels'][0]
+        target_occ_size = img_metas[0]['occ_size']
+        
+        if (output_voxels.shape[-3:] != target_occ_size).any():
+            output_voxels = F.interpolate(output_voxels, size=tuple(target_occ_size), 
+                            mode='trilinear', align_corners=True)
+        
+        output['output_voxels'] = output_voxels
+        output['target_voxels'] = gt_occ
+        
+        return output
 
 
     def evaluation_semantic(self, pred, gt, eval_type, visible_mask=None):

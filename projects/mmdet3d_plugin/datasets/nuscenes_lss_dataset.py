@@ -1,6 +1,7 @@
 import numpy as np
 from mmdet.datasets import DATASETS
 from mmdet3d.datasets import NuScenesDataset
+from projects.mmdet3d_plugin.utils.formating import cm_to_ious, format_SC_results, format_SSC_results
 
 import pdb
 
@@ -138,64 +139,48 @@ class CustomNuScenesOccLSSDataset(NuScenesDataset):
         # though supported, it can only be evaluated by the sparse-LiDAR-generated occupancy in nusc
         
         eval_results = {}
-        if 'ssc_scores' in results:
-            ssc_scores = results['ssc_scores']
-            
-            class_ssc_iou = ssc_scores['iou_ssc'].tolist()
-            res_dic = {
-                "SC_Precision": ssc_scores['precision'].item(),
-                "SC_Recall": ssc_scores['recall'].item(),
-                "SC_IoU": ssc_scores['iou'],
-                "SSC_mIoU": ssc_scores['iou_ssc_mean'],
-            }
-        else:
-            assert 'ssc_results' in results
-            ssc_results = results['ssc_results']
-            completion_tp = sum([x[0] for x in ssc_results])
-            completion_fp = sum([x[1] for x in ssc_results])
-            completion_fn = sum([x[2] for x in ssc_results])
-            
-            tps = sum([x[3] for x in ssc_results])
-            fps = sum([x[4] for x in ssc_results])
-            fns = sum([x[5] for x in ssc_results])
-            
-            precision = completion_tp / (completion_tp + completion_fp)
-            recall = completion_tp / (completion_tp + completion_fn)
-            iou = completion_tp / \
-                    (completion_tp + completion_fp + completion_fn)
-            iou_ssc = tps / (tps + fps + fns + 1e-5)
-            
-            class_ssc_iou = iou_ssc.tolist()
-            res_dic = {
-                "SC_Precision": precision,
-                "SC_Recall": recall,
-                "SC_IoU": iou,
-                "SSC_mIoU": iou_ssc[1:].mean(),
-            }
         
-        class_names = ['empty', 'barrier', 'bicycle', 'bus', 'car', 'construction_vehicle', 'motorcycle', 
-                       'pedestrian',  'traffic_cone', 'trailer', 'truck', 'driveable_surface', 
-                       'other_flat', 'sidewalk', 'terrain', 'manmade', 'vegetation']
-        
-        for name, iou in zip(class_names, class_ssc_iou):
-            res_dic["SSC_{}_IoU".format(name)] = iou
-        
+        ''' evaluate SC '''
+        evaluation_semantic = sum(results['SC_metric'])
+        ious = cm_to_ious(evaluation_semantic)
+        res_table, res_dic = format_SC_results(ious[1:], return_dic=True)
         for key, val in res_dic.items():
-            eval_results['nuScenes_{}'.format(key)] = round(val * 100, 2)
-        
-        # add two main metrics to serve as the sort metric
-        eval_results['nuScenes_combined_IoU'] = eval_results['nuScenes_SC_IoU'] + eval_results['nuScenes_SSC_mIoU']
-        
+            eval_results['SC_{}'.format(key)] = val
         if logger is not None:
-            logger.info('NuScenes SSC Evaluation')
-            logger.info(eval_results)
+            logger.info('SC Evaluation')
+            logger.info(res_table)
+        
+        ''' evaluate SSC '''
+        evaluation_semantic = sum(results['SSC_metric'])
+        ious = cm_to_ious(evaluation_semantic)
+        res_table, res_dic = format_SSC_results(ious, return_dic=True)
+        for key, val in res_dic.items():
+            eval_results['SSC_{}'.format(key)] = val
+        if logger is not None:
+            logger.info('SSC Evaluation')
+            logger.info(res_table)
+        
+        ''' evaluate SSC_fine '''
+        if 'SSC_metric_fine' in results.keys():
+            evaluation_semantic = sum(results['SSC_metric_fine'])
+            ious = cm_to_ious(evaluation_semantic)
+            res_table, res_dic = format_SSC_results(ious, return_dic=True)
+            for key, val in res_dic.items():
+                eval_results['SSC_fine_{}'.format(key)] = val
+            if logger is not None:
+                logger.info('SSC fine Evaluation')
+                logger.info(res_table)
+
+        return eval_results
 
     def evaluate(self, results, logger=None, **kwargs):
         if results is None:
             logger.info('Skip Evaluation')
-        
+        eval_results = {}
         if 'evaluation_semantic' in results:
-            return self.evaluate_lidarseg(results, logger, **kwargs)
+            eval_results.update(self.evaluate_lidarseg(results, logger, **kwargs))
+            eval_results.update(self.evaluate_ssc(results, logger, **kwargs))
+            return eval_results
         else:
             return self.evaluate_ssc(results, logger, **kwargs)
         

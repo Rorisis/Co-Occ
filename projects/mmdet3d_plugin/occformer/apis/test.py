@@ -128,7 +128,10 @@ def custom_multi_gpu_test(model, data_loader, tmpdir=None, gpu_collect=False, pr
     rank, world_size = get_dist_info()
     if rank == 0:
         prog_bar = mmcv.ProgressBar(len(dataset))
-        
+    
+    SC_metric = []
+    SSC_metric = []
+    SSC_metric_fine = []
     ssc_results = []
     ssc_metric = SSCMetrics().cuda()
     is_semkitti = hasattr(dataset, 'camera_used')
@@ -178,6 +181,13 @@ def custom_multi_gpu_test(model, data_loader, tmpdir=None, gpu_collect=False, pr
                     y_pred=output_voxels, y_true=target_voxels)
                 ssc_results.append(ssc_results_i)
             
+            if 'SC_metric' in result.keys():
+                SC_metric.append(result['SC_metric'])
+            if 'SSC_metric' in result.keys():
+                SSC_metric.append(result['SSC_metric'])
+            if 'SSC_metric_fine' in result.keys():
+                SSC_metric_fine.append(result['SSC_metric_fine'])
+            
             if is_val_save_predictins:
                 if is_semkitti:
                     save_output_semantic_kitti(result['output_voxels'][0], pred_save, 
@@ -212,6 +222,22 @@ def custom_multi_gpu_test(model, data_loader, tmpdir=None, gpu_collect=False, pr
         evaluation_semantic = torch.from_numpy(evaluation_semantic).cuda()
         dist.all_reduce(evaluation_semantic, op=dist.ReduceOp.SUM)
         res['evaluation_semantic'] = evaluation_semantic.cpu().numpy()
+
+    if 'SC_metric' in result.keys():
+        SC_metric = [sum(SC_metric)]
+        SC_metric = collect_results_cpu(SC_metric, len(dataset), tmpdir)
+        res['SC_metric'] = SC_metric
+
+    if 'SSC_metric' in result.keys():
+        SSC_metric = [sum(SSC_metric)]
+        SSC_metric = collect_results_cpu(SSC_metric, len(dataset), tmpdir)
+        res['SSC_metric'] = SSC_metric
+
+    if 'SSC_metric_fine' in result.keys():
+        SSC_metric_fine = [sum(SSC_metric_fine)]
+        SSC_metric_fine = collect_results_cpu(SSC_metric_fine, len(dataset), tmpdir)
+        res['SSC_metric_fine'] = SSC_metric_fine
+
     
     return res
 

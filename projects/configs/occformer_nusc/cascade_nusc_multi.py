@@ -19,9 +19,9 @@ class_names = ['empty', 'barrier', 'bicycle', 'bus', 'car',
 num_class = len(class_names)
 
 point_cloud_range = [-51.2, -51.2, -5.0, 51.2, 51.2, 3.0]
-occ_size = [512, 512, 64]
+occ_size = [256, 256, 32]
 # downsample ratio in [x, y, z] when generating 3D volumes in LSS
-lss_downsample = [4, 4, 4]
+lss_downsample = [2, 2, 2]
 
 voxel_x = (point_cloud_range[3] - point_cloud_range[0]) / occ_size[0]
 voxel_y = (point_cloud_range[4] - point_cloud_range[1]) / occ_size[1]
@@ -62,7 +62,7 @@ empty_idx = 0  # noise 0-->255
 num_cls = 17  # 0 free, 1-16 obj
 visible_mask = False
 
-cascade_ratio = 4
+cascade_ratio = 2
 sample_from_voxel = True
 sample_from_img = True
 
