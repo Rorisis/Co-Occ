@@ -78,8 +78,8 @@ class CreateDepthFromLiDAR(object):
             gt_depths.append(gt_depth)
         
         gt_depths = torch.stack(gt_depths)
-        imgs, rots, trans, intrins, post_rots, post_trans, _, sensor2sensors, img_size = results['img_inputs']
-        results['img_inputs'] = imgs, rots, trans, intrins, post_rots, post_trans, gt_depths, sensor2sensors, img_size
+        imgs, rots, trans, intrins, post_rots, post_trans, _, sensor2sensors, intrin_nerf, c2ws, img_size = results['img_inputs']
+        results['img_inputs'] = imgs, rots, trans, intrins, post_rots, post_trans, gt_depths, sensor2sensors, intrin_nerf, c2ws, img_size
         
         # visualize image with overlayed depth
         # self.visualize(results['canvas'], gt_depths)

@@ -4,8 +4,8 @@ from mmdet.datasets.builder import PIPELINES
 import torch
 import mmcv
 from PIL import Image
-import pyquaternion
 import pdb
+import pyquaternion
 
 def rotation_translation_to_pose(r_quat, t_vec):
     """Convert quaternion rotation and translation vectors to 4x4 matrix"""
@@ -22,7 +22,7 @@ def rotation_translation_to_pose(r_quat, t_vec):
     return pose
 
 @PIPELINES.register_module()
-class LoadMultiViewImageFromFiles_OccFormer(object):
+class MultiViewPipeline(object):
     """Load multi channel images from a list of separate channel files.
 
     Expects results['img_filename'] to be a list of filenames.
@@ -36,7 +36,6 @@ class LoadMultiViewImageFromFiles_OccFormer(object):
     def __init__(self, data_config, is_train=False, img_norm_cfg=None):
         self.is_train = is_train
         self.data_config = data_config
-
         self.normalize_img = mmlabNormalize
         self.img_norm_cfg = img_norm_cfg
 
@@ -120,16 +119,35 @@ class LoadMultiViewImageFromFiles_OccFormer(object):
         gt_depths = []
         sensor2sensors = []
         c2ws = []
-        intrin_nerf = []
+        extrins = []
+        lightpos = []
+        raydirs = []
+        gt_imgs = []
         
         canvas = []
         cam_names = self.choose_cams()
         results['cam_names'] = cam_names
+
+        transform1 = np.array(
+            [
+                [0, -1, 0, 0],
+                [0, 0, -1, 0],
+                [1, 0, 0, 0],
+                [0, 0, 0, 1],
+            ]
+        )
+        transform2 = np.array(
+            [
+                [0, 0, 1, 0],
+                [0, 1, 0, 0],
+                [-1, 0, 0, 0],
+                [0, 0, 0, 1],
+            ]
+        )
         
         for cam_name in cam_names:
             cam_data = results['curr']['cams'][cam_name]
             filename = cam_data['data_path']
-            # print("cam_data:", cam_data.keys())
             
             img = mmcv.imread(filename, 'unchanged')
             img = Image.fromarray(img)
@@ -137,7 +155,6 @@ class LoadMultiViewImageFromFiles_OccFormer(object):
             post_rot = torch.eye(2)
             post_tran = torch.zeros(2)
             intrin = torch.Tensor(cam_data['cam_intrinsic'])
-            intrin_nerf_ = torch.Tensor(cam_data['cam_intrinsic'])
 
             sensor2ego_translation=cam_data["sensor2ego_translation"]
             sensor2ego_rotation=cam_data["sensor2ego_rotation"]
@@ -146,14 +163,16 @@ class LoadMultiViewImageFromFiles_OccFormer(object):
 
             cam_pose = rotation_translation_to_pose(sensor2ego_rotation, sensor2ego_translation)
             ego_pose = rotation_translation_to_pose(ego2global_rotation_cam, ego2global_translation_cam)
-            cam2world = torch.Tensor(ego_pose @ cam_pose)
+            cam2world = ego_pose @ cam_pose
             
+
             # from camera to lidar 
             sensor2lidar = torch.tensor(results['lidar2cam_dic'][cam_name]).inverse().float()
             
-            rot = sensor2lidar[:3, :3]
-            tran = sensor2lidar[:3, 3]
+            rot = sensor2lidar[:3, :3] # rotation
+            tran = sensor2lidar[:3, 3] # translation
             # image view augmentation (resize, crop, horizontal flip, rotate)
+
             img_augs = self.sample_augmentation(H=img.height,
                                                 W=img.width,
                                                 flip=flip,
@@ -168,14 +187,21 @@ class LoadMultiViewImageFromFiles_OccFormer(object):
                                    crop=crop,
                                    flip=flip,
                                    rotate=rotate)
+
             post_tran = torch.zeros(3)
             post_rot = torch.eye(3)
             post_tran[:2] = post_tran2
             post_rot[:2, :2] = post_rot2
 
-            intrin_nerf_[:2] = intrin_nerf_[:2] * resize
-            intrin_nerf_[0,2] -= crop[0]
-            intrin_nerf_[1,2] -= crop[1]
+            print("img:", img.shape)
+            directions = get_ray_direction_with_intrinsics(img.shape[0], img.shape[1], intrin)
+            rays_d = np.sum(directions[..., np.newaxis, :] * cam2world[:3,:3], -1)  # dot product, equals to: [c2w.dot(dir) for dir in dirs]
+            # Translate camera frame's origin to the world frame. It is the origin of all rays.
+            rays_o = np.broadcast_to(cam2world[:3, 3], np.shape(rays_d))
+            # viewdirs_ = rays_d_ / rays_d_.norm(dim=-1, keepdim=True)
+            raydirs.append(rays_d)
+            lightpos.append(rays_o)
+            c2ws.append(cam2world)
             # raw images for visualize
             canvas.append(np.array(img))
                         
@@ -188,8 +214,6 @@ class LoadMultiViewImageFromFiles_OccFormer(object):
             gt_depths.append(torch.zeros(1))
             # only placeholder currently, to be used for video-based methods
             sensor2sensors.append(sensor2lidar)
-            c2ws.append(cam2world)
-            intrin_nerf.append(intrin_nerf_)
         
         imgs = torch.stack(imgs)
         rots = torch.stack(rots)
@@ -199,13 +223,14 @@ class LoadMultiViewImageFromFiles_OccFormer(object):
         post_trans = torch.stack(post_trans)
         gt_depths = torch.stack(gt_depths)
         sensor2sensors = torch.stack(sensor2sensors)
+        raydirs = torch.stack(raydirs)
+        lightpos = torch.stack(lightpos)
         c2ws = torch.stack(c2ws)
-        intrin_nerf = torch.stack(intrin_nerf)
         
         # the RGB uint8 input images, for debug or visualization
         results['canvas'] = np.stack(canvas)
         
-        return imgs, rots, trans, intrins, post_rots, post_trans, gt_depths, sensor2sensors, intrin_nerf, c2ws, imgs.shape[-2:]
+        return imgs, rots, trans, intrins, post_rots, post_trans, gt_depths, sensor2sensors, raydirs, lightpos, c2ws, imgs.shape[-2:]
 
     def __call__(self, results):
         results['img_inputs'] = self.get_inputs(results)
@@ -274,3 +299,14 @@ def depth_transform(cam_depth, resize, resize_dims, crop, flip, rotate):
               depth_coords[valid_mask, 0]] = cam_depth[valid_mask, 2]
 
     return torch.Tensor(depth_map)
+
+
+def get_ray_direction_with_intrinsics(h, w, intrin):
+    i, j = np.meshgrid(np.arange(w, dtype=np.float32), np.arange(h, dtype=np.float32), indexing='xy')
+    fx, fy, cx, cy = intrin[0, 0], intrin[1, 1], \
+                    intrin[0, 2], intrin[1, 2]
+    directions_ = np.stack([(i - cx) / fx, (j - cy) / fy, -np.ones_like(i)], -1)
+    # print("directions:",directions.shape)
+    # directions = directions.reshape(1, *directions.shape).repeat(calib_infos['cam_intrinsic'].shape[0], 1, 1, 1)
+    # print(directions.shape)
+    return directions_

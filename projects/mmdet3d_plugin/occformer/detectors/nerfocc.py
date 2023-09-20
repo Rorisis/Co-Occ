@@ -9,21 +9,54 @@ from mmdet3d.models import builder
 from projects.mmdet3d_plugin.utils import fast_hist_crop
 from .bevdepth import BEVDepth
 
+from projects.mmdet3d_plugin.utils import render_rays, sample_along_camera_ray, get_ray_direction_with_intrinsics, get_rays
+from projects.mmdet3d_plugin.utils import VanillaNeRFRadianceField, MLP
+from projects.mmdet3d_plugin.utils import save_rendered_img
+from projects.mmdet3d_plugin.utils.semkitti import geo_scal_loss, sem_scal_loss, CE_ssc_loss
+from ..dense_heads.lovasz_softmax import lovasz_softmax
+from projects.mmdet3d_plugin.utils import per_class_iu, fast_hist_crop
+
 import numpy as np
 import time
 import pdb
 import copy
 
 @DETECTORS.register_module()
-class MoEOccpancy(BEVDepth):
+class NeRFOcc(BEVDepth):
     def __init__(self, 
+                voxel_size,
+                n_voxels,
                 loss_cfg=None,
+                aabb=None,
+                near_far_range=None,
+                N_samples=40,
+                N_rand=4096,
+                depth_supervise=False,
+                use_nerf_mask=True,
+                nerf_sample_view=3,
+                nerf_mode='volume',
+                squeeze_scale=4,
+                rgb_supervise=True,
+                nerf_density=False,
+                rendering_test=False,
                 disable_loss_depth=False,
                 empty_idx=0,
+                white_bkgd=False,
                 occ_fuser=None,
                 occ_encoder_backbone=None,
                 occ_encoder_neck=None,
+                density_encoder=None,
+                color_encoder=None,
+                semantic_encoder=None,
+                density_neck=None, 
+                color_neck=None,
+                semantic_neck=None,
                 loss_norm=False,
+                use_rendering=False,
+                loss_voxel_ce_weight=1.0,
+                loss_voxel_sem_scal_weight=1.0,
+                loss_voxel_geo_scal_weight=1.0,
+                loss_voxel_lovasz_weight=1.0,
                 **kwargs):
         super().__init__(**kwargs)
         
@@ -35,9 +68,57 @@ class MoEOccpancy(BEVDepth):
         self.record_time = False
         self.time_stats = collections.defaultdict(list)
         self.empty_idx = empty_idx
-        self.occ_encoder_backbone = builder.build_backbone(occ_encoder_backbone)
-        self.occ_encoder_neck = builder.build_neck(occ_encoder_neck)
+        # self.occ_encoder_backbone = builder.build_backbone(occ_encoder_backbone)
+        # self.occ_encoder_neck = builder.build_neck(occ_encoder_neck)
         self.occ_fuser = builder.build_fusion_layer(occ_fuser) if occ_fuser is not None else None
+        
+        self.semantic_encoder = builder.build_backbone(semantic_encoder)
+        self.semantic_neck = builder.build_neck(semantic_neck)
+
+        self.voxel_size = voxel_size
+        self.n_voxels = n_voxels
+        self.aabb = aabb
+        self.near_far_range = near_far_range
+        self.N_samples = N_samples
+        self.N_rand = N_rand
+        self.depth_supervise = depth_supervise
+        self.use_nerf_mask = use_nerf_mask
+        self.nerf_sample_view = nerf_sample_view
+        self.nerf_mode = nerf_mode
+        self.squeeze_scale = squeeze_scale
+        self.rgb_supervise = rgb_supervise
+        self.nerf_density = nerf_density
+        self.white_bkgd = white_bkgd
+
+        self.loss_voxel_ce_weight = loss_voxel_ce_weight
+        self.loss_voxel_sem_scal_weight = loss_voxel_sem_scal_weight
+        self.loss_voxel_geo_scal_weight = loss_voxel_geo_scal_weight
+        self.loss_voxel_lovasz_weight = loss_voxel_lovasz_weight
+        
+
+        self.rendering_test = rendering_test
+        self.use_rendering = use_rendering
+
+        nerf_feature_dim = 256
+        if use_rendering:
+            self.density_encoder = builder.build_neck(density_encoder)
+            # self.density_neck = builder.build_neck(density_neck)
+            self.color_encoder = builder.build_neck(color_encoder)
+            # self.color_neck = builder.build_neck(color_neck)
+            self.density_head = torch.nn.Linear(256, 1)
+            self.color_head = MLP(input_dim=256, output_dim=3,net_depth=3,skip_layer=0)
+                                
+        # self.semantic_head = VanillaNeRFRadianceField(
+        #                     net_depth=4,  # The depth of the MLP.
+        #                     net_width=256,  # The width of the MLP.
+        #                     skip_layer=3,  # The layer to add skip layers to.
+        #                     feature_dim=nerf_feature_dim + 6, # + RGB original img
+        #                     net_depth_condition=1,  # The depth of the second part of MLP.
+        #                     net_width_condition=128
+        #                     )
+        
+        coord_x, coord_y, coord_z = torch.meshgrid(torch.arange(self.n_voxels[0]),torch.arange(self.n_voxels[1]), torch.arange(self.n_voxels[2]))
+        self.sample_coordinates = torch.stack([coord_x, coord_y, coord_z], dim=0)
             
     
     def image_encoder(self, img):
@@ -119,6 +200,22 @@ class MoEOccpancy(BEVDepth):
         
         return x, depth, img_feats
 
+    def get_weights(self, sigma, z_vals):
+        sigma = sigma.squeeze(-1)
+        sigma2alpha = lambda sigma, dists: 1. - torch.exp(-sigma)
+
+        dists = z_vals[:, 1:] - z_vals[:, :-1]
+        dists = torch.cat((dists, dists[:, -1:]), dim=-1)  # [N_rays, N_samples]
+
+        alpha = sigma2alpha(sigma, dists)  # [N_rays, N_samples]
+
+        T = torch.cumprod(1. - alpha + 1e-10, dim=-1)[:, :-1]   # [N_rays, N_samples-1]
+        T = torch.cat((torch.ones_like(T[:, 0:1]), T), dim=-1)
+
+        weights = alpha * T 
+
+        return weights
+
     def extract_pts_feat(self, pts):
         if self.record_time:
             torch.cuda.synchronize()
@@ -149,30 +246,30 @@ class MoEOccpancy(BEVDepth):
             torch.cuda.synchronize()
             t0 = time.time()
 
-        print("img_voxels:", img_voxel_feats.shape)
-        print("pts_voxels:", pts_voxel_feats.shape)
+        # print("img_voxels:", img_voxel_feats.shape)
+        # print("pts_voxels:", pts_voxel_feats.shape)
         if self.occ_fuser is not None:
             voxel_feats = self.occ_fuser(img_voxel_feats, pts_voxel_feats)
         else:
             assert (img_voxel_feats is None) or (pts_voxel_feats is None)
             voxel_feats = img_voxel_feats if pts_voxel_feats is None else pts_voxel_feats
-        print("voxel_feat:", voxel_feats.shape)
+        # print("voxel_feat:", voxel_feats.shape)
 
         if self.record_time:
             torch.cuda.synchronize()
             t1 = time.time()
             self.time_stats['occ_fuser'].append(t1 - t0)
 
-        voxel_feats_enc = self.occ_encoder(voxel_feats)
-        if type(voxel_feats_enc) is not list:
-            voxel_feats_enc = [voxel_feats_enc]
+        # voxel_feats_enc = self.occ_encoder(voxel_feats)
+        # if type(voxel_feats_enc) is not list:
+        #     voxel_feats_enc = [voxel_feats_enc]
 
-        if self.record_time:
-            torch.cuda.synchronize()
-            t2 = time.time()
-            self.time_stats['occ_encoder'].append(t2 - t1)
+        # if self.record_time:
+        #     torch.cuda.synchronize()
+        #     t2 = time.time()
+        #     self.time_stats['occ_encoder'].append(t2 - t1)
 
-        return (voxel_feats_enc, img_feats, pts_feats, depth)
+        return (voxel_feats, img_feats, pts_feats, depth)
     
     @force_fp32(apply_to=('voxel_feats'))
     def forward_pts_train(
@@ -222,6 +319,45 @@ class MoEOccpancy(BEVDepth):
         
         return losses
     
+    def forward_lidarseg(self, output_voxels, points, img_metas=None):
+        pc_range = torch.tensor(img_metas[0]['pc_range']).type_as(output_voxels[0])
+        pc_range_min = pc_range[:3]
+        pc_range = pc_range[3:] - pc_range_min
+        
+        voxel_preds = output_voxels
+        # sample the corresponding predictions from the voxel predictions for lidarseg evaluation
+        point_logits = []
+        for batch_index, points_i in enumerate(points):
+            points_i = (points_i[:, :3].float() - pc_range_min) / pc_range
+            points_i = (points_i * 2) - 1
+            points_i = points_i[..., [2, 1, 0]]
+            
+            out_of_range_mask = (points_i < -1) | (points_i > 1)
+            out_of_range_mask = out_of_range_mask.any(dim=1)
+            points_i = points_i.view(1, 1, 1, -1, 3)
+            point_logits_i = F.grid_sample(voxel_preds[batch_index : batch_index + 1], points_i, mode='bilinear', 
+                                    padding_mode=self.padding_mode, align_corners=self.align_corners)
+            point_logits_i = point_logits_i.squeeze().t().contiguous() # [b, n, c]
+            point_logits.append(point_logits_i)
+        
+        point_logits = torch.cat(point_logits, dim=0)
+        
+        if self.training:
+            point_labels = torch.cat([x[:, -1] for x in points]).long()
+            # compute the lidarseg metric
+            output_clses = torch.argmax(point_logits[:, 1:], dim=1) + 1
+            target_points_np = point_labels.cpu().numpy()
+            output_clses_np = output_clses.cpu().numpy()
+            
+            unique_label = np.arange(16)
+            hist = fast_hist_crop(output_clses_np, target_points_np, unique_label)
+            iou = per_class_iu(hist)
+            loss_dict = {}
+            loss_dict['point_mean_iou'] = torch.tensor(np.nanmean(iou)).cuda()
+            return loss_dict
+        else:
+            return torch.softmax(point_logits, dim=1)
+
     def forward_train(self,
             points=None,
             img_metas=None,
@@ -235,6 +371,12 @@ class MoEOccpancy(BEVDepth):
         # extract bird-eye-view features from perspective images
         voxel_feats, img_feats, pts_feats, depth = self.extract_feat(
             points, img=img_inputs, img_metas=img_metas)
+
+        
+        mid_voxel = self.semantic_encoder(voxel_feats)
+
+        semantic_voxel = self.semantic_neck(mid_voxel)
+        
         
         # training losses
         losses = dict()
@@ -244,18 +386,77 @@ class MoEOccpancy(BEVDepth):
             t0 = time.time()
         
         if not self.disable_loss_depth and depth is not None:
-            losses['loss_depth'] = self.img_view_transformer.get_depth_loss(img_inputs[-3], depth)
+            losses['loss_depth'] = self.img_view_transformer.get_depth_loss(img_inputs[-5], depth)
         
         if self.record_time:
             torch.cuda.synchronize()
             t1 = time.time()
             self.time_stats['loss_depth'].append(t1 - t0)
-        
+        # losses["loss_voxel_ce"] = self.loss_voxel_ce_weights * CE_ssc_loss(semantic_preds, gt_occ, self.class_weights.type_as(semantic_preds), ignore_index=255)
+        # losses['loss_voxel_sem'] = self.loss_voxel_sem_scal_weight * sem_scal_loss(semantic_preds, gt_occ, ignore_index=255)
+        # losses['loss_voxel_geo'] = self.loss_voxel_geo_scal_weight * geo_scal_loss(semantic_preds, gt_occ, ignore_index=255, non_empty_idx=self.empty_idx)
+        # losses['loss_voxel'] = self.loss_voxel_lovasz_weight * lovasz_softmax(torch.softmax(semantic_preds, dim=1), gt_occ, ignore=255)
         transform = img_inputs[1:] if img_inputs is not None else None
-        losses_occupancy = self.forward_pts_train(voxel_feats, gt_occ,
+        losses_occupancy = self.forward_pts_train(semantic_voxel, gt_occ,
                         points_occ, img_metas, img_feats=img_feats, pts_feats=pts_feats, transform=transform, 
                         visible_mask=visible_mask)
         losses.update(losses_occupancy)
+        if self.use_rendering:
+            rays_d = []
+            rays_o = []
+            for b in range(img_inputs[0].shape[0]):
+                directions = get_ray_direction_with_intrinsics(img_inputs[0].shape[-2], img_inputs[0].shape[-1], img_inputs[-3][b])
+                rays_d_, rays_o_ = get_rays(directions, img_inputs[-2][b])
+                rays_d.append(rays_d_)
+                rays_o.append(rays_o_)
+            rays_d = torch.stack(rays_d)
+            rays_o = torch.stack(rays_o)
+            rays_d = rays_d.reshape(-1, 3) #N, H, W, 3
+            rays_o = rays_o.reshape(-1, 3)
+
+            # print("rays_o:", rays_o.shape, "rays_d:", rays_d.shape)
+            rand_indices = np.random.choice(range(rays_o.shape[0]), self.N_rand)
+            rays_o, rays_d = rays_o[rand_indices], rays_d[rand_indices]
+            gt_img = img_inputs[0].reshape(-1,3)[rand_indices]
+
+            pts, z_vals = sample_along_camera_ray(ray_o=rays_o,
+                                                  ray_d=rays_d,
+                                                  depth_range=self.near_far_range,
+                                                  N_samples=self.N_samples,
+                                                  inv_uniform=False,
+                                                  det=False)
+
+            density_voxel = self.density_encoder(mid_voxel)
+            color_voxel = self.color_encoder(mid_voxel)
+            
+        #     density_preds = self.density_head(density_voxel[0]) # [H_o, W_o, L_o, 1]
+        #     density_preds = F.relu(density_preds)
+        # # print("density_preds", density_preds.shape)
+            
+            pts = pts.reshape(1, pts.shape[0],pts.shape[1],1,3)
+            # print("pts:", pts.shape)
+            pts = pts * 2 - 1
+            density_feature = F.grid_sample(density_voxel[0], pts, align_corners=True).squeeze(0).squeeze(-1).permute(1,2,0)
+            color_feature = F.grid_sample(color_voxel[0], pts, align_corners=True).squeeze(0).squeeze(-1).permute(1,2,0)
+            # print("density_feature:", density_feature.shape)
+
+            density = F.relu(self.density_head(density_feature))
+            color = torch.sigmoid(self.color_head(color_feature))
+
+            weights = self.get_weights(density, z_vals)
+
+            color_2d = torch.sum(weights.unsqueeze(2) * color)
+            if self.white_bkgd:
+                color_2d = color_2d + (1. - torch.sum(weights, dim=-1, keepdim=True))
+
+            depth_2d = torch.sum(weights * z_vals, dim=-1) / (torch.sum(weights, dim=-1) + 1e-8)
+            depth_2d = torch.clamp(depth_2d, z_vals.min(), z_vals.max())
+            print("depth_2d:", depth_2d.shape)
+            print("color_2d:", color_2d.shape, gt_img.shape)
+
+            losses["loss_color"] = F.mse_loss(color_2d, gt_img)
+            losses["loss_render_depth"] = F.mse_loss(depth_2d, img_inputs[-5].reshape(-1,1)[rand_indices])
+
         if self.loss_norm:
             for loss_key in losses.keys():
                 if loss_key.startswith('loss'):

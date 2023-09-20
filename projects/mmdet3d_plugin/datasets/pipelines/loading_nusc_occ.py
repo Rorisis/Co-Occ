@@ -114,8 +114,8 @@ class LoadNuscOccupancyAnnotations(object):
         # output: bda_mat, point_occ, and voxel_occ
         results['gt_occ'] = torch.from_numpy(processed_label).long()
         results['points_occ'] = torch.from_numpy(lidarseg).float()
-        imgs, rots, trans, intrins, post_rots, post_trans, gt_depths, sensor2sensors, img_size = results['img_inputs']
-        results['img_inputs'] = (imgs, rots, trans, intrins, post_rots, post_trans, bda_rot, gt_depths, sensor2sensors, img_size)
+        imgs, rots, trans, intrins, post_rots, post_trans, gt_depths, sensor2sensors, intrin_nerf, c2ws, img_size = results['img_inputs']
+        results['img_inputs'] = (imgs, rots, trans, intrins, post_rots, post_trans, bda_rot, gt_depths, sensor2sensors, intrin_nerf, c2ws, img_size)
 
         return results
     

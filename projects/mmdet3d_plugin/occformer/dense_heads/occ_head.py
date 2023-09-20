@@ -353,6 +353,7 @@ class OccHead(nn.Module):
             iou = per_class_iu(hist)
             loss_dict = {}
             loss_dict['point_mean_iou'] = torch.tensor(np.nanmean(iou)).cuda()
+            # print("lidarseg:", loss_dict['point_mean_iou'])
             return loss_dict
         else:
             return torch.softmax(point_logits, dim=1)
