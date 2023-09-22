@@ -75,7 +75,7 @@ model = dict(
     voxel_size = voxel_size,
     n_voxels = occ_size,
     aabb=([-51.2, -51.2, -5.0], [51.2, 51.2, 3.0]),
-    near_far_range=[0.2, 50.0],
+    near_far_range=[0.2, 50],
     N_samples=64,
     N_rand=1024,
     depth_supervise=True,
@@ -189,10 +189,10 @@ nusc_class_metas = 'projects/configs/_base_/nuscenes.yaml'
 
 bda_aug_conf = dict(
     rot_lim=(0, 0),
-    scale_lim=(0.95, 1.05),
-    flip_dx_ratio=0.5,
-    flip_dy_ratio=0.5,
-    flip_dz_ratio=0.5,)
+    scale_lim=(1, 1),
+    flip_dx_ratio=0,
+    flip_dy_ratio=0,
+    flip_dz_ratio=0,)
 
 train_pipeline = [
     dict(type='LoadPointsFromFile',

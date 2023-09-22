@@ -7,4 +7,4 @@ from .gaussian import generate_guassian_depth_target
 from .vote_module import VoteModule
 from .nerf_mlp import VanillaNeRFRadianceField, MLP
 from .render_ray import render_rays, sample_along_camera_ray, get_ray_direction_with_intrinsics, get_rays
-from .save_rendered_img import save_rendered_img
+from .save_rendered_img import save_rendered_img, compute_psnr

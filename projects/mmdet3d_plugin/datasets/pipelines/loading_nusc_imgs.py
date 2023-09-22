@@ -39,6 +39,8 @@ class LoadMultiViewImageFromFiles_OccFormer(object):
 
         self.normalize_img = mmlabNormalize
         self.img_norm_cfg = img_norm_cfg
+        self.mean = np.array([123.675, 116.28, 103.53], dtype=np.float32)
+        self.std = np.array([58.395, 57.12, 57.375], dtype=np.float32)
 
     def get_rot(self,h):
         return torch.Tensor([
@@ -121,6 +123,7 @@ class LoadMultiViewImageFromFiles_OccFormer(object):
         sensor2sensors = []
         c2ws = []
         intrin_nerf = []
+        denorm_imgs = []
         
         canvas = []
         cam_names = self.choose_cams()
@@ -132,7 +135,9 @@ class LoadMultiViewImageFromFiles_OccFormer(object):
             # print("cam_data:", cam_data.keys())
             
             img = mmcv.imread(filename, 'unchanged')
+
             img = Image.fromarray(img)
+            
             
             post_rot = torch.eye(2)
             post_tran = torch.zeros(2)
@@ -147,6 +152,7 @@ class LoadMultiViewImageFromFiles_OccFormer(object):
             cam_pose = rotation_translation_to_pose(sensor2ego_rotation, sensor2ego_translation)
             ego_pose = rotation_translation_to_pose(ego2global_rotation_cam, ego2global_translation_cam)
             cam2world = torch.Tensor(ego_pose @ cam_pose)
+
             
             # from camera to lidar 
             sensor2lidar = torch.tensor(results['lidar2cam_dic'][cam_name]).inverse().float()
@@ -176,6 +182,7 @@ class LoadMultiViewImageFromFiles_OccFormer(object):
             intrin_nerf_[:2] = intrin_nerf_[:2] * resize
             intrin_nerf_[0,2] -= crop[0]
             intrin_nerf_[1,2] -= crop[1]
+            # denorm_img = mmcv.imdenormalize(np.array(img.copy()).astype(np.float32), self.mean, self.std, to_bgr=True).astype(np.uint8)
             # raw images for visualize
             canvas.append(np.array(img))
                         
@@ -190,6 +197,7 @@ class LoadMultiViewImageFromFiles_OccFormer(object):
             sensor2sensors.append(sensor2lidar)
             c2ws.append(cam2world)
             intrin_nerf.append(intrin_nerf_)
+            denorm_imgs.append(torch.Tensor(np.array(img.copy())).float().permute(2,0,1))
         
         imgs = torch.stack(imgs)
         rots = torch.stack(rots)
@@ -201,11 +209,12 @@ class LoadMultiViewImageFromFiles_OccFormer(object):
         sensor2sensors = torch.stack(sensor2sensors)
         c2ws = torch.stack(c2ws)
         intrin_nerf = torch.stack(intrin_nerf)
+        denorm_imgs = torch.stack(denorm_imgs)
         
         # the RGB uint8 input images, for debug or visualization
         results['canvas'] = np.stack(canvas)
         
-        return imgs, rots, trans, intrins, post_rots, post_trans, gt_depths, sensor2sensors, intrin_nerf, c2ws, imgs.shape[-2:]
+        return imgs, rots, trans, intrins, post_rots, post_trans, gt_depths, sensor2sensors, denorm_imgs, intrin_nerf, c2ws, imgs.shape[-2:]
 
     def __call__(self, results):
         results['img_inputs'] = self.get_inputs(results)

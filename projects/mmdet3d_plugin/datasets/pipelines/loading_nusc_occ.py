@@ -8,6 +8,8 @@ import numba as nb
 from PIL import Image
 from mmdet.datasets.builder import PIPELINES
 
+from pyquaternion import Quaternion
+
 import pdb
 
 @PIPELINES.register_module()
@@ -80,6 +82,19 @@ class LoadNuscOccupancyAnnotations(object):
         points = np.fromfile(pts_filename, dtype=np.float32, count=-1).reshape(-1, 5)[..., :3]
         lidarseg = np.concatenate([points, points_label], axis=-1)
         
+        pointsT = points.copy().T
+
+        pointsT = np.array(Quaternion(results['lidar2ego_rotation']).rotation_matrix) @ pointsT
+        pointsT = pointsT + np.array(results['lidar2ego_translation'])[:, np.newaxis]
+
+        pointsT = np.array(Quaternion(results['ego2global_rotation']).rotation_matrix) @ pointsT
+        pointsT = pointsT + np.array(results['ego2global_translation'])[:, np.newaxis]
+        pointsT = pointsT.T
+
+        aabb_min = torch.Tensor([pointsT[:, 0].min(), pointsT[:, 1].min(), pointsT[:, 2].min()])
+        aabb_max = torch.Tensor([pointsT[:, 0].max(), pointsT[:, 1].max(), pointsT[:, 2].max()])
+        aabb = torch.stack([aabb_min, aabb_max])
+
         ''' create multi-view projections '''
         ''' apply 3D augmentation for lidar_points (and the later generated occupancy) '''
         if self.is_train:
@@ -114,8 +129,9 @@ class LoadNuscOccupancyAnnotations(object):
         # output: bda_mat, point_occ, and voxel_occ
         results['gt_occ'] = torch.from_numpy(processed_label).long()
         results['points_occ'] = torch.from_numpy(lidarseg).float()
-        imgs, rots, trans, intrins, post_rots, post_trans, gt_depths, sensor2sensors, intrin_nerf, c2ws, img_size = results['img_inputs']
-        results['img_inputs'] = (imgs, rots, trans, intrins, post_rots, post_trans, bda_rot, gt_depths, sensor2sensors, intrin_nerf, c2ws, img_size)
+
+        imgs, rots, trans, intrins, post_rots, post_trans, gt_depths, sensor2sensors, denorm_imgs, intrin_nerf, c2ws, img_size = results['img_inputs']
+        results['img_inputs'] = (imgs, rots, trans, intrins, post_rots, post_trans, bda_rot, gt_depths, sensor2sensors, denorm_imgs, aabb, intrin_nerf, c2ws, img_size)
 
         return results
     
