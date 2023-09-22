@@ -197,7 +197,7 @@ class LoadMultiViewImageFromFiles_OccFormer(object):
             sensor2sensors.append(sensor2lidar)
             c2ws.append(cam2world)
             intrin_nerf.append(intrin_nerf_)
-            denorm_imgs.append(torch.Tensor(np.array(img.copy())).float().permute(2,0,1))
+            denorm_imgs.append(torch.Tensor(np.array(img.copy())).float().permute(2,0,1)/255.)
         
         imgs = torch.stack(imgs)
         rots = torch.stack(rots)

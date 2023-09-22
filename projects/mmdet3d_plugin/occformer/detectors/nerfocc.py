@@ -60,6 +60,7 @@ class NeRFOcc(BEVDepth):
                 loss_voxel_sem_scal_weight=1.0,
                 loss_voxel_geo_scal_weight=1.0,
                 loss_voxel_lovasz_weight=1.0,
+                test_rendering=False,
                 **kwargs):
         super().__init__(**kwargs)
         
@@ -101,6 +102,7 @@ class NeRFOcc(BEVDepth):
 
         self.rendering_test = rendering_test
         self.use_rendering = use_rendering
+        self.test_rendering = test_rendering
 
         nerf_feature_dim = 256
         if use_rendering:
@@ -565,7 +567,7 @@ class NeRFOcc(BEVDepth):
             output['evaluation_semantic'] = self.simple_evaluation_semantic(output['output_points'], target_points, img_metas)
             output['target_points'] = target_points
 
-        if self.use_rendering:
+        if self.use_rendering and self.test_rendering:
             rays_d = []
             rays_o = []
             for b in range(img[0].shape[0]):
@@ -623,7 +625,7 @@ class NeRFOcc(BEVDepth):
             for v in range(rgbs.shape[0]):
                 img_to_save = torch.cat([rgbs[v], img[-5][0][v].permute(1,2,0)], dim=1)
                 img_to_save = np.uint8(img_to_save.cpu().numpy())
-                psnr = compute_psnr(rgbs[v], img[-5][0][v].permute(1,2,0), mask=None)
+                psnr = compute_psnr(rgbs[v], img[-5][0][v].permute(1,2,0)/255., mask=None)
                 psnr_total += psnr
                 cv2.imwrite("./img_"+str(v)+'.png', img_to_save)
             print("psnr:", psnr_total/rgbs.shape[0])
