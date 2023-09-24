@@ -4,3 +4,8 @@ ckpt/*
 __pycache__
 *.png
 *.pyc
+visual/*
+data
+visual
+demo
+demo/*

@@ -71,6 +71,7 @@ def draw_nusc_occupancy(
 	cam_positions=None,
 	focal_positions=None,
 ):
+	
 	w, h, z = voxels.shape
 	grid = grid.astype(np.int32)
 	

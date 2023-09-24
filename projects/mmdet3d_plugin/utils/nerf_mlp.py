@@ -25,7 +25,7 @@ class MLP(nn.Module):
         bias_init: Callable = nn.init.zeros_,
     ):
         super().__init__()
-        self.input_dim = input_dim
+        self.input_dim = input_dim 
         self.output_dim = output_dim
         self.net_depth = net_depth
         self.net_width = net_width
@@ -39,7 +39,10 @@ class MLP(nn.Module):
         self.bias_init = bias_init
 
         self.hidden_layers = nn.ModuleList()
+        self.posi_encoder = SinusoidalEncoder(3, 0, 10, True)
+
         in_features = self.input_dim
+        
         for i in range(self.net_depth):
             self.hidden_layers.append(
                 nn.Linear(in_features, self.net_width, bias=bias_enabled)
@@ -77,8 +80,17 @@ class MLP(nn.Module):
 
             self.output_layer.apply(init_func_output)
 
+    def positional_encoding(self, positions, freqs):
+        freq_bands = (2 ** torch.arange(freqs).float()).to(positions.device)
+        pts = (positions[..., None] * freq_bands).reshape(positions.shape[:-1] + (freqs * positions.shape[-1],))
+        pts = torch.cat([torch.sin(pts), torch.cos(pts)], dim=-1)
+        return pts
+
     def forward(self, x):
         inputs = x
+        # pe = [x]
+        # pe += [self.positional_encoding(x, 2)]
+        # x = torch.cat(pe, dim=-1)
         for i in range(self.net_depth):
             x = self.hidden_layers[i](x)
             x = self.hidden_activation(x)

@@ -15,6 +15,7 @@ def compute_psnr(pred, target, mask=None):
     if mask is not None:
         pred, target = pred[mask], target[mask]
     mse = ((pred - target) ** 2).mean()
+    # print("mse:", mse)
     # import pdb; pdb.set_trace()
     return compute_psnr_from_mse(mse).cpu().numpy()
 
