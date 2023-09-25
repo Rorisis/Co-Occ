@@ -25,7 +25,7 @@ import cv2
 import copy
 
 @DETECTORS.register_module()
-class NeRFOcc(BEVDepth):
+class NeRFOcc_Triplane(BEVDepth):
     def __init__(self, 
                 voxel_size,
                 n_voxels,
@@ -244,7 +244,7 @@ class NeRFOcc(BEVDepth):
         # print("img_voxels:", img_voxel_feats.shape)
         # print("pts_voxels:", pts_voxel_feats.shape)
         if self.occ_fuser is not None:
-            voxel_feats = self.occ_fuser(img_voxel_feats, pts_voxel_feats)
+            plane_xy, plane_yz, plane_xz, voxel_x, voxel_y, voxel_z = self.occ_fuser(img_voxel_feats, pts_voxel_feats)
         else:
             assert (img_voxel_feats is None) or (pts_voxel_feats is None)
             voxel_feats = img_voxel_feats if pts_voxel_feats is None else pts_voxel_feats
@@ -264,7 +264,7 @@ class NeRFOcc(BEVDepth):
         #     t2 = time.time()
         #     self.time_stats['occ_encoder'].append(t2 - t1)
 
-        return (voxel_feats, img_feats, pts_feats, depth)
+        return (plane_xy, plane_yz, plane_xz, voxel_x, voxel_y, voxel_z, img_feats, pts_feats, depth)
     
     @force_fp32(apply_to=('voxel_feats'))
     def forward_pts_train(
@@ -314,44 +314,17 @@ class NeRFOcc(BEVDepth):
         
         return losses
     
-    def forward_lidarseg(self, output_voxels, points, img_metas=None):
-        pc_range = torch.tensor(img_metas[0]['pc_range']).type_as(output_voxels[0])
-        pc_range_min = pc_range[:3]
-        pc_range = pc_range[3:] - pc_range_min
-        
-        voxel_preds = output_voxels
-        # sample the corresponding predictions from the voxel predictions for lidarseg evaluation
-        point_logits = []
-        for batch_index, points_i in enumerate(points):
-            points_i = (points_i[:, :3].float() - pc_range_min) / pc_range
-            points_i = (points_i * 2) - 1
-            points_i = points_i[..., [2, 1, 0]]
-            
-            out_of_range_mask = (points_i < -1) | (points_i > 1)
-            out_of_range_mask = out_of_range_mask.any(dim=1)
-            points_i = points_i.view(1, 1, 1, -1, 3)
-            point_logits_i = F.grid_sample(voxel_preds[batch_index : batch_index + 1], points_i, mode='bilinear', 
-                                    padding_mode=self.padding_mode, align_corners=self.align_corners)
-            point_logits_i = point_logits_i.squeeze().t().contiguous() # [b, n, c]
-            point_logits.append(point_logits_i)
-        
-        point_logits = torch.cat(point_logits, dim=0)
-        
-        if self.training:
-            point_labels = torch.cat([x[:, -1] for x in points]).long()
-            # compute the lidarseg metric
-            output_clses = torch.argmax(point_logits[:, 1:], dim=1) + 1
-            target_points_np = point_labels.cpu().numpy()
-            output_clses_np = output_clses.cpu().numpy()
-            
-            unique_label = np.arange(16)
-            hist = fast_hist_crop(output_clses_np, target_points_np, unique_label)
-            iou = per_class_iu(hist)
-            loss_dict = {}
-            loss_dict['point_mean_iou'] = torch.tensor(np.nanmean(iou)).cuda()
-            return loss_dict
-        else:
-            return torch.softmax(point_logits, dim=1)
+    def aggregator(self, plane_xy, plane_yz, plane_xz, voxel_x, voxel_y, voxel_z):
+        semantic_voxel = []
+        for i in range(len(plane_xy)):
+            plane_xy_ = plane_xy[i].unsqueeze(-1).expand(-1,-1,-1,-1,plane_xz[i].shape[-1])
+            plane_yz_= plane_yz[i].unsqueeze(-3).expand(-1,-1,plane_xy[i].shape[-2],-1,-1)
+            plane_xz_ = plane_xz[i].unsqueeze(-2).expand(-1,-1,-1,plane_xy[i].shape[-1],-1)
+            # print("plane_xy", plane_xy_.shape, "plane_yz", plane_yz_.shape, "plane_xz", plane_xz_.shape)
+            fused = plane_xy_ + plane_yz_ + plane_xz_
+            # print("fused:", fused.shape)
+            semantic_voxel.append(fused)
+        return semantic_voxel
 
     def forward_train(self,
             points=None,
@@ -364,14 +337,19 @@ class NeRFOcc(BEVDepth):
         ):
 
         # extract bird-eye-view features from perspective images
-        voxel_feats, img_feats, pts_feats, depth = self.extract_feat(
+        plane_xy, plane_yz, plane_xz, voxel_x, voxel_y, voxel_z, img_feats, pts_feats, depth = self.extract_feat(
             points, img=img_inputs, img_metas=img_metas)
 
         
-        mid_voxel = self.semantic_encoder(voxel_feats)
+        mid_plane_xy = self.semantic_encoder(plane_xy)
+        mid_plane_yz = self.semantic_encoder(plane_yz)
+        mid_plane_xz = self.semantic_encoder(plane_xz)
 
-        semantic_voxel = self.semantic_neck(mid_voxel)
-        
+        semantic_plane_xy = self.semantic_neck(mid_plane_xy)
+        semantic_plane_yz = self.semantic_neck(mid_plane_yz)
+        semantic_plane_xz = self.semantic_neck(mid_plane_xz)
+      
+        semantic_voxel = self.aggregator(semantic_plane_xy, semantic_plane_yz, semantic_plane_xz, voxel_x, voxel_y, voxel_z)
         
         # training losses
         losses = dict()
@@ -403,8 +381,14 @@ class NeRFOcc(BEVDepth):
             depths = []
             gt_imgs = []
             gt_depths = []
-            density_voxel = self.density_encoder(mid_voxel)
-            color_voxel = self.color_encoder(mid_voxel)
+            density_plane_xy = self.density_encoder(mid_plane_xy)
+            density_plane_yz = self.density_encoder(mid_plane_yz)
+            density_plane_xz = self.density_encoder(mid_plane_xz)
+            color_plane_xy = self.color_encoder(mid_plane_xy)
+            color_plane_yz = self.color_encoder(mid_plane_yz)
+            color_plane_xz = self.color_encoder(mid_plane_xz)
+            # print("density_plane_xy:", density_plane_xy.shape, "density_plane_xy:", density_plane_yz.shape, "density_plane_xy:", density_plane_xz.shape)
+
             for b in range(img_inputs[0].shape[0]):
                 cam_intrin = img_inputs[-3][b]
                 c2w = img_inputs[-2][b]
@@ -454,7 +438,7 @@ class NeRFOcc(BEVDepth):
                 # plt.show()
 
 
-                pts = pts.reshape(1, pts.shape[0],pts.shape[1],1,3)
+                pts = pts.reshape(1, pts.shape[0],pts.shape[1],3)
                 # print("pts:", pts.shape)
 
                 aabbSize = aabb[1] - aabb[0]
@@ -468,9 +452,17 @@ class NeRFOcc(BEVDepth):
                 # print("norm_0",norm_pts[:, 0].min(), norm_pts[:, 0].max())
                 # print("norm_1",norm_pts[:, 1].min(), norm_pts[:, 1].max())
                 # print("norm_2",norm_pts[:, 2].min(), norm_pts[:, 2].max())
-                density_feature = F.grid_sample(density_voxel[0][b].unsqueeze(0).permute(0,1,4,3,2), norm_pts, mode='bilinear', padding_mode='zeros', align_corners=False).squeeze(0).squeeze(-1).permute(1,2,0)
-                color_feature = F.grid_sample(color_voxel[0][b].unsqueeze(0).permute(0,1,4,3,2), norm_pts, mode='bilinear', padding_mode='zeros', align_corners=False).squeeze(0).squeeze(-1).permute(1,2,0)
-
+                
+                density_feature_xy = F.grid_sample(density_plane_xy, norm_pts[...,[0,1]], mode='bilinear', padding_mode='zeros', align_corners=False).squeeze(0).permute(1,2,0)
+                density_feature_yz = F.grid_sample(density_plane_yz, norm_pts[...,[1,2]], mode='bilinear', padding_mode='zeros', align_corners=False).squeeze(0).permute(1,2,0)
+                density_feature_xz = F.grid_sample(density_plane_xz, norm_pts[...,[0,2]], mode='bilinear', padding_mode='zeros', align_corners=False).squeeze(0).permute(1,2,0)
+                color_feature_xy = F.grid_sample(color_plane_xy, norm_pts[...,[0,1]], mode='bilinear', padding_mode='zeros', align_corners=False).squeeze(0).permute(1,2,0)
+                color_feature_yz = F.grid_sample(color_plane_yz, norm_pts[...,[1,2]], mode='bilinear', padding_mode='zeros', align_corners=False).squeeze(0).permute(1,2,0)
+                color_feature_xz = F.grid_sample(color_plane_xz, norm_pts[...,[0,2]], mode='bilinear', padding_mode='zeros', align_corners=False).squeeze(0).permute(1,2,0)
+                
+                density_feature = torch.mean(torch.stack([density_feature_xy, density_feature_yz, density_feature_xz]), dim=0)
+                color_feature = torch.mean(torch.stack([color_feature_xy, color_feature_yz, color_feature_xz]), dim=0)
+                # print(density_feature.shape)
                 density = F.relu(self.density_head(density_feature))
                 color = torch.sigmoid(self.color_head(color_feature))
                 
@@ -492,10 +484,10 @@ class NeRFOcc(BEVDepth):
             gt_depths = torch.stack(gt_depths)
     
             losses["loss_color"] = F.mse_loss(rgbs, gt_imgs)
-            # fg_mask = torch.max(gt_depths, dim=1).values > 0.0
-            # gt_depths = gt_depths[fg_mask]
-            # depths = depths[fg_mask]
-            # losses["loss_render_depth"] = F.smooth_l1_loss(depths, gt_depths, reduction='mean')
+            fg_mask = torch.max(gt_depths, dim=1).values > 0.0
+            gt_depths = gt_depths[fg_mask]
+            depths = depths[fg_mask]
+            losses["loss_render_depth"] = F.smooth_l1_loss(depths, gt_depths, reduction='mean')
 
             # print(losses["loss_color"], losses["loss_render_depth"] )
 
@@ -632,7 +624,7 @@ class NeRFOcc(BEVDepth):
                 psnr = compute_psnr(rgbs[v], img[-5][0][v].permute(1,2,0), mask=None)
                 psnr_total += psnr
                 cv2.imwrite("./img_"+str(v)+'.png', img_to_save)
-            print("psnr:", psnr_total/rgbs.shape[0])
+            # print("psnr:", psnr_total/rgbs.shape[0])
 
         test_output = {
             'SC_metric': SC_metric,
