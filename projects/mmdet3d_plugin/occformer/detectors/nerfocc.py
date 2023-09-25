@@ -369,8 +369,12 @@ class NeRFOcc(BEVDepth):
 
         
         mid_voxel = self.semantic_encoder(voxel_feats)
-
+        for i in range(len(mid_voxel)):
+            print("mid_voxel:", mid_voxel[i].shape)
+        
         semantic_voxel = self.semantic_neck(mid_voxel)
+        for i in range(len(semantic_voxel)):
+            print("semantic_voxel:", semantic_voxel[i].shape)
         
         
         # training losses

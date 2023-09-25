@@ -314,7 +314,7 @@ class NeRFOcc_Triplane(BEVDepth):
         
         return losses
     
-    def aggregator(self, plane_xy, plane_yz, plane_xz, voxel_x, voxel_y, voxel_z):
+    def aggregator(self, plane_xy, plane_yz, plane_xz):
         semantic_voxel = []
         for i in range(len(plane_xy)):
             plane_xy_ = plane_xy[i].unsqueeze(-1).expand(-1,-1,-1,-1,plane_xz[i].shape[-1])
@@ -340,17 +340,19 @@ class NeRFOcc_Triplane(BEVDepth):
         plane_xy, plane_yz, plane_xz, voxel_x, voxel_y, voxel_z, img_feats, pts_feats, depth = self.extract_feat(
             points, img=img_inputs, img_metas=img_metas)
 
-        
         mid_plane_xy = self.semantic_encoder(plane_xy)
         mid_plane_yz = self.semantic_encoder(plane_yz)
         mid_plane_xz = self.semantic_encoder(plane_xz)
 
+        # for i in range(len(mid_plane_xy)):
+        #     print("mid:", mid_plane_xy[i].shape)
         semantic_plane_xy = self.semantic_neck(mid_plane_xy)
         semantic_plane_yz = self.semantic_neck(mid_plane_yz)
         semantic_plane_xz = self.semantic_neck(mid_plane_xz)
       
-        semantic_voxel = self.aggregator(semantic_plane_xy, semantic_plane_yz, semantic_plane_xz, voxel_x, voxel_y, voxel_z)
-        
+        semantic_voxel = self.aggregator(semantic_plane_xy, semantic_plane_yz, semantic_plane_xz)
+        # for i in range(len(semantic_voxel)):
+        #     print("semantic_voxel:", semantic_voxel[i].shape)
         # training losses
         losses = dict()
         
@@ -423,14 +425,14 @@ class NeRFOcc_Triplane(BEVDepth):
                 # print("cor", rays_o[10], rays_d[10], pts[10])
                 # fig = plt.figure()
                 # ax = fig.add_subplot()
-                # pts_ = pts.cpu().numpy()
-                # # rect = pch.Rectangle(xy=(aabb[0,0], aabb[0,1]), width=aabb[1,0]-aabb[0,0], height=aabb[1,1]-aabb[0,1], fill=False, color='y')
+                # pts_ = pts[...,[1,2]].cpu().numpy()
+                # rect = pch.Rectangle(xy=(aabb[0,0], aabb[0,1]), width=aabb[1,0]-aabb[0,0], height=aabb[1,1]-aabb[0,1], fill=False, color='y')
                 # rect = pch.Rectangle(xy=(aabb[0,1], aabb[0,2]), width=aabb[1,1]-aabb[0,1], height=aabb[1,2]-aabb[0,2], fill=False, color='y')
                 # ax.add_patch(rect)
                 # for i in range(20):
                 #     j=np.random.randint(pts.shape[0])
                 # # print(pts_[0,:,0], pts_[0,:,1], pts_[0,:,2])
-                #     ax.scatter(pts_[j,:,1], pts_[j,:,2], color='b')
+                #     ax.scatter(pts_[j,:,0], pts_[j,:,1], color='b')
                 # # ax.scatter(x, y, z, color='r')
                 # plt.title('sample pts')
                 # plt.draw()
@@ -452,7 +454,6 @@ class NeRFOcc_Triplane(BEVDepth):
                 # print("norm_0",norm_pts[:, 0].min(), norm_pts[:, 0].max())
                 # print("norm_1",norm_pts[:, 1].min(), norm_pts[:, 1].max())
                 # print("norm_2",norm_pts[:, 2].min(), norm_pts[:, 2].max())
-                
                 density_feature_xy = F.grid_sample(density_plane_xy, norm_pts[...,[0,1]], mode='bilinear', padding_mode='zeros', align_corners=False).squeeze(0).permute(1,2,0)
                 density_feature_yz = F.grid_sample(density_plane_yz, norm_pts[...,[1,2]], mode='bilinear', padding_mode='zeros', align_corners=False).squeeze(0).permute(1,2,0)
                 density_feature_xz = F.grid_sample(density_plane_xz, norm_pts[...,[0,2]], mode='bilinear', padding_mode='zeros', align_corners=False).squeeze(0).permute(1,2,0)
@@ -462,7 +463,7 @@ class NeRFOcc_Triplane(BEVDepth):
                 
                 density_feature = torch.mean(torch.stack([density_feature_xy, density_feature_yz, density_feature_xz]), dim=0)
                 color_feature = torch.mean(torch.stack([color_feature_xy, color_feature_yz, color_feature_xz]), dim=0)
-                # print(density_feature.shape)
+
                 density = F.relu(self.density_head(density_feature))
                 color = torch.sigmoid(self.color_head(color_feature))
                 
