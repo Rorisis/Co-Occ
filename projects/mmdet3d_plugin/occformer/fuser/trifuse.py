@@ -41,7 +41,6 @@ class TriFuser(nn.Module):
 
     def forward(self, img_voxel_feats, pts_voxel_feats):
         # print("img_voxel_feats",img_voxel_feats.shape)
-        voxel_x, voxel_y, voxel_z = img_voxel_feats.shape[-3:]
         img_plane_xy = torch.mean(img_voxel_feats, dim=-1)
         img_plane_yz = torch.mean(img_voxel_feats, dim=-3)
         img_plane_xz = torch.mean(img_voxel_feats, dim=-2)
@@ -65,4 +64,4 @@ class TriFuser(nn.Module):
         plane_yz = vis_weight_yz * img_plane_yz + (1 - vis_weight_yz) * pts_plane_yz
         plane_xz = vis_weight_xz * img_plane_xz + (1 - vis_weight_xz) * pts_plane_xz
 
-        return plane_xy, plane_yz, plane_xz, voxel_x, voxel_y, voxel_z
+        return plane_xy, plane_yz, plane_xz

@@ -44,7 +44,7 @@ class NeRFOcc_Triplane(BEVDepth):
                 rendering_test=False,
                 disable_loss_depth=False,
                 empty_idx=0,
-                white_bkgd=True,
+                white_bkgd=False,
                 occ_fuser=None,
                 occ_encoder_backbone=None,
                 occ_encoder_neck=None,
@@ -244,7 +244,7 @@ class NeRFOcc_Triplane(BEVDepth):
         # print("img_voxels:", img_voxel_feats.shape)
         # print("pts_voxels:", pts_voxel_feats.shape)
         if self.occ_fuser is not None:
-            plane_xy, plane_yz, plane_xz, voxel_x, voxel_y, voxel_z = self.occ_fuser(img_voxel_feats, pts_voxel_feats)
+            plane_xy, plane_yz, plane_xz= self.occ_fuser(img_voxel_feats, pts_voxel_feats)
         else:
             assert (img_voxel_feats is None) or (pts_voxel_feats is None)
             voxel_feats = img_voxel_feats if pts_voxel_feats is None else pts_voxel_feats
@@ -264,7 +264,7 @@ class NeRFOcc_Triplane(BEVDepth):
         #     t2 = time.time()
         #     self.time_stats['occ_encoder'].append(t2 - t1)
 
-        return (plane_xy, plane_yz, plane_xz, voxel_x, voxel_y, voxel_z, img_feats, pts_feats, depth)
+        return (plane_xy, plane_yz, plane_xz, img_feats, pts_feats, depth)
     
     @force_fp32(apply_to=('voxel_feats'))
     def forward_pts_train(
@@ -337,7 +337,7 @@ class NeRFOcc_Triplane(BEVDepth):
         ):
 
         # extract bird-eye-view features from perspective images
-        plane_xy, plane_yz, plane_xz, voxel_x, voxel_y, voxel_z, img_feats, pts_feats, depth = self.extract_feat(
+        plane_xy, plane_yz, plane_xz, img_feats, pts_feats, depth = self.extract_feat(
             points, img=img_inputs, img_metas=img_metas)
 
         mid_plane_xy = self.semantic_encoder(plane_xy)
@@ -523,10 +523,19 @@ class NeRFOcc_Triplane(BEVDepth):
     def simple_test(self, img_metas, img=None, points=None, rescale=False, points_occ=None, 
             gt_occ=None, visible_mask=None):
         
-        voxel_feats, img_feats, pts_feats, depth = self.extract_feat(points, img=img, img_metas=img_metas)
+        plane_xy, plane_yz, plane_xz, img_feats, pts_feats, depth = self.extract_feat(points, img=img, img_metas=img_metas)
 
-        mid_voxel = self.semantic_encoder(voxel_feats)
-        semantic_voxel = self.semantic_neck(mid_voxel)
+        mid_plane_xy = self.semantic_encoder(plane_xy)
+        mid_plane_yz = self.semantic_encoder(plane_yz)
+        mid_plane_xz = self.semantic_encoder(plane_xz)
+
+        # for i in range(len(mid_plane_xy)):
+        #     print("mid:", mid_plane_xy[i].shape)
+        semantic_plane_xy = self.semantic_neck(mid_plane_xy)
+        semantic_plane_yz = self.semantic_neck(mid_plane_yz)
+        semantic_plane_xz = self.semantic_neck(mid_plane_xz)
+      
+        semantic_voxel = self.aggregator(semantic_plane_xy, semantic_plane_yz, semantic_plane_xz)
 
         transform = img[1:] if img is not None else None
         output = self.pts_bbox_head(
@@ -593,17 +602,28 @@ class NeRFOcc_Triplane(BEVDepth):
                                                   inv_uniform=False,
                                                   det=False)
 
-                density_voxel = self.density_encoder(mid_voxel)
-                color_voxel = self.color_encoder(mid_voxel)
+                density_plane_xy = self.density_encoder(mid_plane_xy)
+                density_plane_yz = self.density_encoder(mid_plane_yz)
+                density_plane_xz = self.density_encoder(mid_plane_xz)
+                color_plane_xy = self.color_encoder(mid_plane_xy)
+                color_plane_yz = self.color_encoder(mid_plane_yz)
+                color_plane_xz = self.color_encoder(mid_plane_xz)
+                
                 aabb = img[-4][0] # batch size
                 pts = pts.reshape(1, pts.shape[0],pts.shape[1],1,3)
                 aabbSize = aabb[1] - aabb[0]
                 invgridSize = 1.0/aabbSize * 2
                 norm_pts = (pts-aabb[0]) * invgridSize - 1
           
-                density_feature = F.grid_sample(density_voxel[0].permute(0,1,4,3,2), norm_pts, mode='bilinear', padding_mode='zeros', align_corners=False).squeeze(0).squeeze(-1).permute(1,2,0)
-                color_feature = F.grid_sample(color_voxel[0].permute(0,1,4,3,2), norm_pts, mode='bilinear', padding_mode='zeros', align_corners=False).squeeze(0).squeeze(-1).permute(1,2,0)
-                # print("density_feature:", density_feature.shape)
+                density_feature_xy = F.grid_sample(density_plane_xy, norm_pts[...,[0,1]], mode='bilinear', padding_mode='zeros', align_corners=False).squeeze(0).permute(1,2,0)
+                density_feature_yz = F.grid_sample(density_plane_yz, norm_pts[...,[1,2]], mode='bilinear', padding_mode='zeros', align_corners=False).squeeze(0).permute(1,2,0)
+                density_feature_xz = F.grid_sample(density_plane_xz, norm_pts[...,[0,2]], mode='bilinear', padding_mode='zeros', align_corners=False).squeeze(0).permute(1,2,0)
+                color_feature_xy = F.grid_sample(color_plane_xy, norm_pts[...,[0,1]], mode='bilinear', padding_mode='zeros', align_corners=False).squeeze(0).permute(1,2,0)
+                color_feature_yz = F.grid_sample(color_plane_yz, norm_pts[...,[1,2]], mode='bilinear', padding_mode='zeros', align_corners=False).squeeze(0).permute(1,2,0)
+                color_feature_xz = F.grid_sample(color_plane_xz, norm_pts[...,[0,2]], mode='bilinear', padding_mode='zeros', align_corners=False).squeeze(0).permute(1,2,0)
+                
+                density_feature = torch.mean(torch.stack([density_feature_xy, density_feature_yz, density_feature_xz]), dim=0)
+                color_feature = torch.mean(torch.stack([color_feature_xy, color_feature_yz, color_feature_xz]), dim=0)
 
                 density = F.relu(self.density_head(density_feature))
                 color = torch.sigmoid(self.color_head(color_feature))
