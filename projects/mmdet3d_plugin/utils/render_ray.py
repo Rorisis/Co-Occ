@@ -17,6 +17,8 @@ import torch
 import torch.nn.functional as F
 from collections import OrderedDict
 import numpy as np
+from einops import rearrange, repeat
+
 rng = np.random.RandomState(234)
 # from tqdm import tqdm
 
@@ -545,3 +547,92 @@ def get_rays(directions, c2ws):
     rays_o = torch.stack(rays_o)
     rays_d = torch.stack(rays_d)
     return rays_d, rays_o
+
+def sample_along_rays(batch_size, num_samples, randomized=False):
+    """
+    Sample disparity for frustum
+    """
+    # near > far in disparity
+    # assert near > far
+    t_vals = torch.linspace(0, 1., num_samples + 1, dtype=torch.float32)
+
+    if randomized:
+        mids = 0.5 * (t_vals[..., 1:] + t_vals[..., :-1])
+        upper = torch.cat([mids, t_vals[..., -1:]], -1)
+        lower = torch.cat([t_vals[..., :1], mids], -1)
+        t_rand = torch.rand(batch_size, num_samples + 1)
+        t_vals = lower + (upper - lower) * t_rand
+    else:
+        # Broadcast t_vals to make the returned shape consistent.
+        t_vals = torch.broadcast_to(t_vals, [batch_size, num_samples + 1])
+
+    return t_vals
+
+
+def grid_generation(h, w):
+    us = torch.linspace(0, w - 1, w, dtype=torch.float32)
+    vs = torch.linspace(0, h - 1, h, dtype=torch.float32)
+    vs, us = torch.meshgrid(vs, us)
+    ones = torch.ones_like(vs)
+    twos = 2 * ones
+    # coord_2d = torch.stack([us, vs], dim=-1)
+    norm_coord_2d = torch.stack([us / w, vs / h], dim=-1) * 2 - 1.
+    coord_3d_depth1 = torch.stack([us, vs, ones], dim=-1)
+    coord_3d_depth2 = torch.stack([us, vs, twos], dim=-1)
+    coord_3d_depth = torch.cat((coord_3d_depth1[:, :, None, :], coord_3d_depth2[:, :, None, :]), dim=-2)
+    return norm_coord_2d.float(), coord_3d_depth.float()
+
+def compute_alpha_weights(density, sdist, dirs, s_to_t):
+    '''
+    :param density: # b c d h w
+    :param sdist:
+    :param dirs:
+    :param s_to_t:
+    :return:
+    '''
+    tdist = s_to_t(sdist).to(dirs.device)
+    t_delta = tdist[..., 1:] - tdist[..., :-1]
+
+    delta = t_delta[:, None, None, :] * torch.linalg.norm(dirs[..., None, :], dim=-1)
+    density_delta = density.squeeze(-1) * rearrange(delta, 'b h w d -> b d h w')
+
+    alpha = 1 - torch.exp(-density_delta)
+    trans = torch.exp(-torch.cat(
+        [torch.zeros_like(density_delta[:, :1, :, :]), torch.cumsum(density_delta[:, :-1, :, :], dim=1)],
+        dim=1))
+    weights = alpha * trans
+
+    return weights, tdist
+
+def unproject_image_to_rect(pts_image, P):
+    pts_3d = torch.cat([pts_image[..., :2], torch.ones_like(pts_image[..., 2:3])], -1)
+    pts_3d = pts_3d * pts_image[..., 2:3]
+    pts_3d = torch.cat([pts_3d, torch.ones_like(pts_3d[..., 2:3])], -1)
+    P4x4 = torch.eye(4, dtype=P.dtype, device=P.device)
+    P4x4[:3, :] = P
+    invP = torch.inverse(P4x4)
+    pts_3d = torch.matmul(pts_3d.to(invP.device), torch.transpose(invP, 0, 1))
+    return pts_3d[..., :3]
+
+def construct_ray_warps(t_near=2, t_far=1e6, uniform=False):
+    """Construct a bijection between metric distances and normalized distances.
+        See the text around Equation 11 in https://arxiv.org/abs/2111.12077 for a
+        detailed explanation.
+        Args:
+        t_near: a tensor of near-plane distances.
+        t_far: a tensor of far-plane distances.
+        Returns:
+        t_to_s: a function that maps distances to normalized distances in [0, 1].
+        s_to_t: the inverse of t_to_s.
+    """
+    eps = 1e-6
+    fn_fwd = lambda x: 1. / (x + eps)
+    fn_inv = lambda x: 1. / (x + eps)
+    s_near, s_far = [fn_fwd(x) for x in (t_near, t_far)]
+    if uniform:
+        t_to_s = lambda t: (t - t_near) / (t_far - t_near)
+        s_to_t = lambda s: t_near + (t_far - t_near) * s
+    else:
+        t_to_s = lambda t: (fn_fwd(t) - s_near) / (s_far - s_near)
+        s_to_t = lambda s: fn_inv(s * s_far + (1 - s) * s_near)
+    return t_to_s, s_to_t

@@ -39,8 +39,6 @@ class LoadMultiViewImageFromFiles_OccFormer(object):
 
         self.normalize_img = mmlabNormalize
         self.img_norm_cfg = img_norm_cfg
-        self.mean = np.array([123.675, 116.28, 103.53], dtype=np.float32)
-        self.std = np.array([58.395, 57.12, 57.375], dtype=np.float32)
 
     def get_rot(self,h):
         return torch.Tensor([
@@ -186,7 +184,8 @@ class LoadMultiViewImageFromFiles_OccFormer(object):
             # raw images for visualize
             canvas.append(np.array(img))
                         
-            imgs.append(self.normalize_img(img, img_norm_cfg=self.img_norm_cfg))
+            # imgs.append(self.normalize_img(img, img_norm_cfg=self.img_norm_cfg))
+            imgs.append(torch.tensor(np.array(img)).float().permute(2, 0, 1).contiguous()/255.)
             intrins.append(intrin)
             rots.append(rot)
             trans.append(tran)

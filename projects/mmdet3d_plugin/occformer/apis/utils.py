@@ -178,6 +178,6 @@ def collect_results_cpu(result_part, size, tmpdir=None, type='list'):
         raise NotImplementedError
     
     # remove tmp dir
-    shutil.rmtree(tmpdir)
+    shutil.rmtree(tmpdir, ignore_errors=True)
     
     return ordered_results

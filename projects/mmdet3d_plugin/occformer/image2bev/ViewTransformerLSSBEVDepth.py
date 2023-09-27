@@ -109,7 +109,7 @@ class ViewTransformerLiftSplatShoot(BaseModule):
         D, _, _ = ds.shape
         xs = torch.linspace(0, ogfW - 1, fW, dtype=torch.float).view(1, 1, fW).expand(D, fH, fW)
         ys = torch.linspace(0, ogfH - 1, fH, dtype=torch.float).view(1, fH, 1).expand(D, fH, fW)
-
+        
         # D x H x W x 3
         frustum = torch.stack((xs, ys, ds), -1)
         return nn.Parameter(frustum, requires_grad=False)

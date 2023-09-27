@@ -398,14 +398,22 @@ class NeRFOcc_Triplane(BEVDepth):
                 rays_d, rays_o = get_rays(directions, c2w)
             # rays_d = torch.stack(rays_d)
             # rays_o = torch.stack(rays_o)
-                rays_d = rays_d.reshape(-1, 3) #N, H, W, 3
-                rays_o = rays_o.reshape(-1, 3)
+                rays_d = rays_d.view(-1, 3) #N, H, W, 3
+                rays_o = rays_o.view(-1, 3)
 
                 # print("rays_o:", rays_o.shape, "rays_d:", rays_d.shape)
-                rand_indices = np.random.choice(range(rays_o.shape[0]), self.N_rand)
+                gt_depth = img_inputs[-7][b].view(-1,1)
+                gt_img = img_inputs[-5][b].view(-1,3)
+                non_zero_depth = (gt_depth > 0).squeeze(-1)
+                rays_o = rays_o[non_zero_depth]
+                rays_d = rays_d[non_zero_depth]
+                gt_depth = gt_depth[non_zero_depth]
+                gt_img = gt_img[non_zero_depth]
+
+                rand_indices = np.random.choice(rays_o.shape[0], self.N_rand)
                 rays_o, rays_d = rays_o[rand_indices], rays_d[rand_indices]
-                gt_img = img_inputs[-5][b].reshape(-1,3)[rand_indices]
-                gt_depth = img_inputs[-7][b].reshape(-1)[rand_indices]
+                gt_img = gt_img[rand_indices]
+                gt_depth = gt_depth[rand_indices]
                 gt_imgs.append(gt_img)
                 gt_depths.append(gt_depth)
 
@@ -485,10 +493,10 @@ class NeRFOcc_Triplane(BEVDepth):
             gt_depths = torch.stack(gt_depths)
     
             losses["loss_color"] = F.mse_loss(rgbs, gt_imgs)
-            fg_mask = torch.max(gt_depths, dim=1).values > 0.0
-            gt_depths = gt_depths[fg_mask]
-            depths = depths[fg_mask]
-            losses["loss_render_depth"] = F.smooth_l1_loss(depths, gt_depths, reduction='mean')
+            # fg_mask = torch.max(gt_depths, dim=1).values > 0.0
+            # gt_depths = gt_depths[fg_mask]
+            # depths = depths[fg_mask]
+            # losses["loss_render_depth"] = F.smooth_l1_loss(depths, gt_depths, reduction='none').mean()
 
             # print(losses["loss_color"], losses["loss_render_depth"] )
 
@@ -608,9 +616,9 @@ class NeRFOcc_Triplane(BEVDepth):
                 color_plane_xy = self.color_encoder(mid_plane_xy)
                 color_plane_yz = self.color_encoder(mid_plane_yz)
                 color_plane_xz = self.color_encoder(mid_plane_xz)
-                
+
                 aabb = img[-4][0] # batch size
-                pts = pts.reshape(1, pts.shape[0],pts.shape[1],1,3)
+                pts = pts.reshape(1, pts.shape[0],pts.shape[1],3)
                 aabbSize = aabb[1] - aabb[0]
                 invgridSize = 1.0/aabbSize * 2
                 norm_pts = (pts-aabb[0]) * invgridSize - 1
@@ -645,7 +653,7 @@ class NeRFOcc_Triplane(BEVDepth):
                 psnr = compute_psnr(rgbs[v], img[-5][0][v].permute(1,2,0), mask=None)
                 psnr_total += psnr
                 cv2.imwrite("./img_"+str(v)+'.png', img_to_save)
-            # print("psnr:", psnr_total/rgbs.shape[0])
+            print("psnr:", psnr_total/rgbs.shape[0])
 
         test_output = {
             'SC_metric': SC_metric,
