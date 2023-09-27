@@ -560,7 +560,7 @@ class NeRFOcc(BEVDepth):
     def simple_test(self, img_metas, img=None, points=None, rescale=False, points_occ=None, 
             gt_occ=None, visible_mask=None):
         
-        voxel_feats, img_feats, pts_feats, depth = self.extract_feat(points, img=img, img_metas=img_metas)
+        voxel_feats, img_feats, pts_feats, depth, gemo = self.extract_feat(points, img=img, img_metas=img_metas)
 
         mid_voxel = self.semantic_encoder(voxel_feats)
         semantic_voxel = self.semantic_neck(mid_voxel)

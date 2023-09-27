@@ -7,11 +7,13 @@ import matplotlib.patches as pch
 from mmdet.models import DETECTORS
 from mmcv.runner import force_fp32
 from mmdet3d.models import builder
+from einops import rearrange
 
 from projects.mmdet3d_plugin.utils import fast_hist_crop
 from .bevdepth import BEVDepth
 
-from projects.mmdet3d_plugin.utils import render_rays, sample_along_camera_ray, get_ray_direction_with_intrinsics, get_rays
+from projects.mmdet3d_plugin.utils import render_rays, sample_along_camera_ray, get_ray_direction_with_intrinsics, get_rays, sample_along_rays, \
+    grid_generation, unproject_image_to_rect, compute_alpha_weights, construct_ray_warps
 from projects.mmdet3d_plugin.utils import VanillaNeRFRadianceField, MLP
 from projects.mmdet3d_plugin.utils import save_rendered_img, compute_psnr
 from projects.mmdet3d_plugin.utils.semkitti import geo_scal_loss, sem_scal_loss, CE_ssc_loss
@@ -182,7 +184,7 @@ class NeRFOcc_Triplane(BEVDepth):
         mlp_input = self.img_view_transformer.get_mlp_input(rots, trans, intrins, post_rots, post_trans, bda)
         geo_inputs = [rots, trans, intrins, post_rots, post_trans, bda, mlp_input]
         
-        x, depth = self.img_view_transformer([x] + geo_inputs)
+        x, depth, gemo = self.img_view_transformer([x] + geo_inputs)
 
         if self.record_time:
             torch.cuda.synchronize()
@@ -193,7 +195,7 @@ class NeRFOcc_Triplane(BEVDepth):
         # if type(x) is not list:
         #     x = [x]
         
-        return x, depth, img_feats
+        return x, depth, img_feats, gemo
 
     def get_weights(self, sigma, z_vals):
         sigma = sigma.squeeze(-1)
@@ -231,9 +233,9 @@ class NeRFOcc_Triplane(BEVDepth):
         """Extract features from images and points."""
         img_voxel_feats = None
         pts_voxel_feats, pts_feats = None, None
-        depth, img_feats = None, None
+        depth, img_feats, gemo = None, None, None
         if img is not None:
-            img_voxel_feats, depth, img_feats = self.extract_img_feat(img, img_metas)
+            img_voxel_feats, depth, img_feats, gemo = self.extract_img_feat(img, img_metas)
         if points is not None:
             pts_voxel_feats, pts_feats = self.extract_pts_feat(points)
 
@@ -264,7 +266,7 @@ class NeRFOcc_Triplane(BEVDepth):
         #     t2 = time.time()
         #     self.time_stats['occ_encoder'].append(t2 - t1)
 
-        return (plane_xy, plane_yz, plane_xz, img_feats, pts_feats, depth)
+        return (plane_xy, plane_yz, plane_xz, img_feats, pts_feats, depth, gemo)
     
     @force_fp32(apply_to=('voxel_feats'))
     def forward_pts_train(
@@ -337,7 +339,7 @@ class NeRFOcc_Triplane(BEVDepth):
         ):
 
         # extract bird-eye-view features from perspective images
-        plane_xy, plane_yz, plane_xz, img_feats, pts_feats, depth = self.extract_feat(
+        plane_xy, plane_yz, plane_xz, img_feats, pts_feats, depth, gemo = self.extract_feat(
             points, img=img_inputs, img_metas=img_metas)
 
         mid_plane_xy = self.semantic_encoder(plane_xy)
@@ -361,7 +363,7 @@ class NeRFOcc_Triplane(BEVDepth):
             t0 = time.time()
         
         if not self.disable_loss_depth and depth is not None:
-            losses['loss_depth'] = self.img_view_transformer.get_depth_loss(img_inputs[-7], depth)
+            losses['loss_depth'] = self.img_view_transformer.get_depth_loss(img_inputs[7], depth)
         
         if self.record_time:
             torch.cuda.synchronize()
@@ -390,109 +392,182 @@ class NeRFOcc_Triplane(BEVDepth):
             color_plane_yz = self.color_encoder(mid_plane_yz)
             color_plane_xz = self.color_encoder(mid_plane_xz)
             # print("density_plane_xy:", density_plane_xy.shape, "density_plane_xy:", density_plane_yz.shape, "density_plane_xy:", density_plane_xz.shape)
+           
+            t_to_s, s_to_t = construct_ray_warps(self.near_far_range[0], self.near_far_range[1], uniform=True)
+            B,N,D,H,W,_ = gemo.shape
+            gemo = gemo.reshape(B*N, D, H, W, 3)
 
-            for b in range(img_inputs[0].shape[0]):
-                cam_intrin = img_inputs[-3][b]
-                c2w = img_inputs[-2][b]
-                directions = get_ray_direction_with_intrinsics(img_inputs[0].shape[-2], img_inputs[0].shape[-1], cam_intrin)
-                rays_d, rays_o = get_rays(directions, c2w)
-            # rays_d = torch.stack(rays_d)
-            # rays_o = torch.stack(rays_o)
-                rays_d = rays_d.view(-1, 3) #N, H, W, 3
-                rays_o = rays_o.view(-1, 3)
+            s_vals = sample_along_rays(gemo.shape[0], self.N_samples, randomized=self.training)
 
-                # print("rays_o:", rays_o.shape, "rays_d:", rays_d.shape)
-                gt_depth = img_inputs[-7][b].view(-1,1)
-                gt_img = img_inputs[-5][b].view(-1,3)
-                non_zero_depth = (gt_depth > 0).squeeze(-1)
-                rays_o = rays_o[non_zero_depth]
-                rays_d = rays_d[non_zero_depth]
-                gt_depth = gt_depth[non_zero_depth]
-                gt_img = gt_img[non_zero_depth]
+            norm_coord_2d, dir_coord_2d = grid_generation(gemo.shape[-3], gemo.shape[-2])
+            # print("norm_coord_2d:", norm_coord_2d.shape)
+            norm_coord_2d = norm_coord_2d[None, :, :, None, :].repeat(gemo.shape[0], 1, 1, self.N_samples, 1)  # (b, h, w, d, 2)
+            sampled_disparity = s_vals[:, :-1][:, None, None, :, None].repeat(1, gemo.shape[-3],
+                                                                            gemo.shape[-2], 1, 1)
+            norm_coord_frustum = torch.cat([norm_coord_2d, sampled_disparity], dim=-1).cuda()  # (b, h, w, d, 3)
+            # print("norm_coord_frustum:", norm_coord_frustum.max(), norm_coord_frustum.min())
 
-                rand_indices = np.random.choice(rays_o.shape[0], self.N_rand)
-                rays_o, rays_d = rays_o[rand_indices], rays_d[rand_indices]
-                gt_img = gt_img[rand_indices]
-                gt_depth = gt_depth[rand_indices]
-                gt_imgs.append(gt_img)
-                gt_depths.append(gt_depth)
-
-                pts, z_vals = sample_along_camera_ray(ray_o=rays_o,   
-                                                    ray_d=rays_d,
-                                                    depth_range=self.near_far_range,
-                                                    N_samples=self.N_samples,
-                                                    inv_uniform=False,
-                                                    det=False)
-
-
-                aabb = img_inputs[-4][b] # batch size
-                
-            #     density_preds = self.density_head(density_voxel[0]) # [H_o, W_o, L_o, 1]
-            #     density_preds = F.relu(density_preds)
-            # # print("density_preds", density_preds.shape)
-                # print("cor", rays_o[10], rays_d[10], pts[10])
-                # fig = plt.figure()
-                # ax = fig.add_subplot()
-                # pts_ = pts[...,[1,2]].cpu().numpy()
-                # rect = pch.Rectangle(xy=(aabb[0,0], aabb[0,1]), width=aabb[1,0]-aabb[0,0], height=aabb[1,1]-aabb[0,1], fill=False, color='y')
-                # rect = pch.Rectangle(xy=(aabb[0,1], aabb[0,2]), width=aabb[1,1]-aabb[0,1], height=aabb[1,2]-aabb[0,2], fill=False, color='y')
-                # ax.add_patch(rect)
-                # for i in range(20):
-                #     j=np.random.randint(pts.shape[0])
-                # # print(pts_[0,:,0], pts_[0,:,1], pts_[0,:,2])
-                #     ax.scatter(pts_[j,:,0], pts_[j,:,1], color='b')
-                # # ax.scatter(x, y, z, color='r')
-                # plt.title('sample pts')
-                # plt.draw()
-                # plt.savefig('./pts.png')
-                # plt.show()
-
-
-                pts = pts.reshape(1, pts.shape[0],pts.shape[1],3)
-                # print("pts:", pts.shape)
-
-                aabbSize = aabb[1] - aabb[0]
-                invgridSize = 1.0/aabbSize * 2
-                norm_pts = (pts-aabb[0]) * invgridSize - 1
-                # fig = plt.figure()
-                # ax = fig.add_subplot(111, projection='3d')
-                # norm_pts_ = norm_pts.clone().cpu().numpy()
-                # ax.scatter(norm_pts_[:,0], norm_pts_[:,1], norm_pts_[:,2])
-                # plt.savefig('./norm.png')
-                # print("norm_0",norm_pts[:, 0].min(), norm_pts[:, 0].max())
-                # print("norm_1",norm_pts[:, 1].min(), norm_pts[:, 1].max())
-                # print("norm_2",norm_pts[:, 2].min(), norm_pts[:, 2].max())
-                density_feature_xy = F.grid_sample(density_plane_xy, norm_pts[...,[0,1]], mode='bilinear', padding_mode='zeros', align_corners=False).squeeze(0).permute(1,2,0)
-                density_feature_yz = F.grid_sample(density_plane_yz, norm_pts[...,[1,2]], mode='bilinear', padding_mode='zeros', align_corners=False).squeeze(0).permute(1,2,0)
-                density_feature_xz = F.grid_sample(density_plane_xz, norm_pts[...,[0,2]], mode='bilinear', padding_mode='zeros', align_corners=False).squeeze(0).permute(1,2,0)
-                color_feature_xy = F.grid_sample(color_plane_xy, norm_pts[...,[0,1]], mode='bilinear', padding_mode='zeros', align_corners=False).squeeze(0).permute(1,2,0)
-                color_feature_yz = F.grid_sample(color_plane_yz, norm_pts[...,[1,2]], mode='bilinear', padding_mode='zeros', align_corners=False).squeeze(0).permute(1,2,0)
-                color_feature_xz = F.grid_sample(color_plane_xz, norm_pts[...,[0,2]], mode='bilinear', padding_mode='zeros', align_corners=False).squeeze(0).permute(1,2,0)
-                
+            density_features = []
+            color_features = []
+            
+            for i in range(norm_coord_frustum.shape[0]):
+                density_feature_xy = F.grid_sample(density_plane_xy, norm_coord_frustum[i][...,[0,1]], mode='bilinear', padding_mode='zeros', align_corners=False).squeeze(0).permute(1,2,0)
+                density_feature_yz = F.grid_sample(density_plane_yz, norm_coord_frustum[i][...,[1,2]], mode='bilinear', padding_mode='zeros', align_corners=False).squeeze(0).permute(1,2,0)
+                density_feature_xz = F.grid_sample(density_plane_xz, norm_coord_frustum[i][...,[0,2]], mode='bilinear', padding_mode='zeros', align_corners=False).squeeze(0).permute(1,2,0)
+                color_feature_xy = F.grid_sample(color_plane_xy, norm_coord_frustum[i][...,[0,1]], mode='bilinear', padding_mode='zeros', align_corners=False).squeeze(0).permute(1,2,0)
+                color_feature_yz = F.grid_sample(color_plane_yz, norm_coord_frustum[i][...,[1,2]], mode='bilinear', padding_mode='zeros', align_corners=False).squeeze(0).permute(1,2,0)
+                color_feature_xz = F.grid_sample(color_plane_xz, norm_coord_frustum[i][...,[0,2]], mode='bilinear', padding_mode='zeros', align_corners=False).squeeze(0).permute(1,2,0)
+            
                 density_feature = torch.mean(torch.stack([density_feature_xy, density_feature_yz, density_feature_xz]), dim=0)
                 color_feature = torch.mean(torch.stack([color_feature_xy, color_feature_yz, color_feature_xz]), dim=0)
+                density_features.append(density_feature)
+                color_features.append(color_feature)
+            
+            density_features = torch.cat(density_features, dim=0)
+            color_features = torch.cat(color_features, dim=0)
 
-                density = F.relu(self.density_head(density_feature))
-                color = torch.sigmoid(self.color_head(color_feature))
-                
-                weights = self.get_weights(density, z_vals)
+            density = F.relu(self.density_head(density_features))
+            rgb = torch.sigmoid(self.color_head(color_features))
+            
+            directions = []
+            cam_intrins = img_inputs[3][0]
+            
+            for i in range(gemo.shape[0]):
+                dir_coord_2d = dir_coord_2d * img_inputs[0].shape[-1] // gemo.shape[-2] #img: b, n, c, h, w gemo: b, d, h, w, c
+                dir_coord_3d = unproject_image_to_rect(dir_coord_2d, torch.cat((cam_intrins[i], torch.zeros(3, 1).to(cam_intrins.device)), dim=1).float())
+                direction = dir_coord_3d[:, :, 1, :] - dir_coord_3d[:, :, 0, :]
+                direction /= img_inputs[0].shape[-1] // gemo.shape[-2]
+                directions.append(direction)
 
-                color_2d = torch.sum(weights.unsqueeze(2) * color, dim=1)
+            directions = torch.stack(directions, dim=0)
+            weights, tdist = compute_alpha_weights(density, s_vals, directions, s_to_t)
+            acc = weights.sum(dim=1)
 
-                if self.white_bkgd:
-                    color_2d = color_2d + (1. - torch.sum(weights, dim=-1, keepdim=True))
-
-                depth_2d = torch.sum(weights * z_vals, dim=-1) / (torch.sum(weights, dim=-1) + 1e-8)
-                depth_2d = torch.clamp(depth_2d, z_vals.min(), z_vals.max())
-            # print("depth_2d:", depth_2d.shape)
-                rgbs.append(color_2d)
-                depths.append(depth_2d)
-            rgbs = torch.stack(rgbs)
-            depths = torch.stack(depths)
-            gt_imgs = torch.stack(gt_imgs)
-            gt_depths = torch.stack(gt_depths)
+            # reconstruct depth and rgb image
+            t_mids = 0.5 * (tdist[..., :-1] + tdist[..., 1:])
+            background_rgb = rearrange((1 - acc)[..., None] * torch.tensor([1.0, 1.0, 1.0]).float().cuda(),
+                                       'b h w c -> b c h w')
+            # print("weights:", weights.shape, "rgb:", rgb.shape, "background_rgb", background_rgb.shape)
+            rgb_values = torch.sum(weights.unsqueeze(1) * rgb.permute(0,-1,1,2,3), dim=2) + background_rgb
+            background_depth = (1 - acc) * torch.tensor([1.0]).float().cuda() * self.near_far_range[1]
+            depth_values = (weights * t_mids[..., None, None]).sum(dim=1) + background_depth
+            depth_values = depth_values.unsqueeze(1)
     
-            losses["loss_color"] = F.mse_loss(rgbs, gt_imgs)
+            rgb_values = F.interpolate(rgb_values, scale_factor=16)
+            depth_values = F.interpolate(depth_values, scale_factor=16).squeeze(1)
+            # depth_values = self.upsample(depth_values)
+            # print("color:", rgb_values.shape, "depth:", depth_values.shape)
+            # print(img_inputs[0][0].shape, img_inputs[-7][0].shape)
+            gt_depths = img_inputs[7][0]
+            gt_imgs = img_inputs[0][0]
+
+            losses["loss_color"] = F.mse_loss(rgb_values, gt_imgs)
+            fg_mask = torch.max(gt_depths.reshape(gt_depths.shape[0], -1), dim=1).values > 0.0
+            gt_depths = gt_depths[fg_mask]
+            depth_values = depth_values[fg_mask]
+            losses["loss_render_depth"] = F.smooth_l1_loss(depth_values, gt_depths, reduction='none').mean()
+            # for b in range(img_inputs[0].shape[0]):
+            #     cam_intrin = img_inputs[-3][b]
+            #     c2w = img_inputs[-2][b]
+            #     directions = get_ray_direction_with_intrinsics(img_inputs[0].shape[-2], img_inputs[0].shape[-1], cam_intrin)
+            #     rays_d, rays_o = get_rays(directions, c2w)
+            # # rays_d = torch.stack(rays_d)
+            # # rays_o = torch.stack(rays_o)
+            #     rays_d = rays_d.view(-1, 3) #N, H, W, 3
+            #     rays_o = rays_o.view(-1, 3)
+
+            #     # print("rays_o:", rays_o.shape, "rays_d:", rays_d.shape)
+            #     gt_depth = img_inputs[-7][b].view(-1,1)
+            #     gt_img = img_inputs[-5][b].view(-1,3)
+            #     non_zero_depth = (gt_depth > 0).squeeze(-1)
+            #     rays_o = rays_o[non_zero_depth]
+            #     rays_d = rays_d[non_zero_depth]
+            #     gt_depth = gt_depth[non_zero_depth]
+            #     gt_img = gt_img[non_zero_depth]
+
+            #     rand_indices = np.random.choice(rays_o.shape[0], self.N_rand)
+            #     rays_o, rays_d = rays_o[rand_indices], rays_d[rand_indices]
+            #     gt_img = gt_img[rand_indices]
+            #     gt_depth = gt_depth[rand_indices]
+            #     gt_imgs.append(gt_img)
+            #     gt_depths.append(gt_depth)
+
+            #     pts, z_vals = sample_along_camera_ray(ray_o=rays_o,   
+            #                                         ray_d=rays_d,
+            #                                         depth_range=self.near_far_range,
+            #                                         N_samples=self.N_samples,
+            #                                         inv_uniform=False,
+            #                                         det=False)
+
+
+            #     aabb = img_inputs[-4][b] # batch size
+                
+            # #     density_preds = self.density_head(density_voxel[0]) # [H_o, W_o, L_o, 1]
+            # #     density_preds = F.relu(density_preds)
+            # # # print("density_preds", density_preds.shape)
+            #     # print("cor", rays_o[10], rays_d[10], pts[10])
+            #     # fig = plt.figure()
+            #     # ax = fig.add_subplot()
+            #     # pts_ = pts[...,[1,2]].cpu().numpy()
+            #     # rect = pch.Rectangle(xy=(aabb[0,0], aabb[0,1]), width=aabb[1,0]-aabb[0,0], height=aabb[1,1]-aabb[0,1], fill=False, color='y')
+            #     # rect = pch.Rectangle(xy=(aabb[0,1], aabb[0,2]), width=aabb[1,1]-aabb[0,1], height=aabb[1,2]-aabb[0,2], fill=False, color='y')
+            #     # ax.add_patch(rect)
+            #     # for i in range(20):
+            #     #     j=np.random.randint(pts.shape[0])
+            #     # # print(pts_[0,:,0], pts_[0,:,1], pts_[0,:,2])
+            #     #     ax.scatter(pts_[j,:,0], pts_[j,:,1], color='b')
+            #     # # ax.scatter(x, y, z, color='r')
+            #     # plt.title('sample pts')
+            #     # plt.draw()
+            #     # plt.savefig('./pts.png')
+            #     # plt.show()
+
+
+            #     pts = pts.reshape(1, pts.shape[0],pts.shape[1],3)
+            #     # print("pts:", pts.shape)
+
+            #     aabbSize = aabb[1] - aabb[0]
+            #     invgridSize = 1.0/aabbSize * 2
+            #     norm_pts = (pts-aabb[0]) * invgridSize - 1
+            #     # fig = plt.figure()
+            #     # ax = fig.add_subplot(111, projection='3d')
+            #     # norm_pts_ = norm_pts.clone().cpu().numpy()
+            #     # ax.scatter(norm_pts_[:,0], norm_pts_[:,1], norm_pts_[:,2])
+            #     # plt.savefig('./norm.png')
+            #     # print("norm_0",norm_pts[:, 0].min(), norm_pts[:, 0].max())
+            #     # print("norm_1",norm_pts[:, 1].min(), norm_pts[:, 1].max())
+            #     # print("norm_2",norm_pts[:, 2].min(), norm_pts[:, 2].max())
+            #     density_feature_xy = F.grid_sample(density_plane_xy, norm_pts[...,[0,1]], mode='bilinear', padding_mode='zeros', align_corners=False).squeeze(0).permute(1,2,0)
+            #     density_feature_yz = F.grid_sample(density_plane_yz, norm_pts[...,[1,2]], mode='bilinear', padding_mode='zeros', align_corners=False).squeeze(0).permute(1,2,0)
+            #     density_feature_xz = F.grid_sample(density_plane_xz, norm_pts[...,[0,2]], mode='bilinear', padding_mode='zeros', align_corners=False).squeeze(0).permute(1,2,0)
+            #     color_feature_xy = F.grid_sample(color_plane_xy, norm_pts[...,[0,1]], mode='bilinear', padding_mode='zeros', align_corners=False).squeeze(0).permute(1,2,0)
+            #     color_feature_yz = F.grid_sample(color_plane_yz, norm_pts[...,[1,2]], mode='bilinear', padding_mode='zeros', align_corners=False).squeeze(0).permute(1,2,0)
+            #     color_feature_xz = F.grid_sample(color_plane_xz, norm_pts[...,[0,2]], mode='bilinear', padding_mode='zeros', align_corners=False).squeeze(0).permute(1,2,0)
+                
+            #     density_feature = torch.mean(torch.stack([density_feature_xy, density_feature_yz, density_feature_xz]), dim=0)
+            #     color_feature = torch.mean(torch.stack([color_feature_xy, color_feature_yz, color_feature_xz]), dim=0)
+
+            #     density = F.relu(self.density_head(density_feature))
+            #     color = torch.sigmoid(self.color_head(color_feature))
+                
+            #     weights = self.get_weights(density, z_vals)
+
+            #     color_2d = torch.sum(weights.unsqueeze(2) * color, dim=1)
+
+            #     if self.white_bkgd:
+            #         color_2d = color_2d + (1. - torch.sum(weights, dim=-1, keepdim=True))
+
+            #     depth_2d = torch.sum(weights * z_vals, dim=-1) / (torch.sum(weights, dim=-1) + 1e-8)
+            #     depth_2d = torch.clamp(depth_2d, z_vals.min(), z_vals.max())
+            # # print("depth_2d:", depth_2d.shape)
+            #     rgbs.append(color_2d)
+            #     depths.append(depth_2d)
+            # rgbs = torch.stack(rgbs)
+            # depths = torch.stack(depths)
+            # gt_imgs = torch.stack(gt_imgs)
+            # gt_depths = torch.stack(gt_depths)
+    
+            # losses["loss_color"] = F.mse_loss(rgbs, gt_imgs)
             # fg_mask = torch.max(gt_depths, dim=1).values > 0.0
             # gt_depths = gt_depths[fg_mask]
             # depths = depths[fg_mask]
@@ -531,7 +606,7 @@ class NeRFOcc_Triplane(BEVDepth):
     def simple_test(self, img_metas, img=None, points=None, rescale=False, points_occ=None, 
             gt_occ=None, visible_mask=None):
         
-        plane_xy, plane_yz, plane_xz, img_feats, pts_feats, depth = self.extract_feat(points, img=img, img_metas=img_metas)
+        plane_xy, plane_yz, plane_xz, img_feats, pts_feats, depth, geom = self.extract_feat(points, img=img, img_metas=img_metas)
 
         mid_plane_xy = self.semantic_encoder(plane_xy)
         mid_plane_yz = self.semantic_encoder(plane_yz)
