@@ -426,8 +426,8 @@ class NeRFOcc(BEVDepth):
             depth_values = (weights * t_mids[..., None, None]).sum(dim=1) + background_depth
             depth_values = depth_values.unsqueeze(1)
     
-            rgb_values = F.interpolate(rgb_values, scale_factor=16)
-            depth_values = F.interpolate(depth_values, scale_factor=16).squeeze(1)
+            rgb_values = F.interpolate(rgb_values, scale_factor=4)
+            depth_values = F.interpolate(depth_values, scale_factor=4).squeeze(1)
             # depth_values = self.upsample(depth_values)
             # print("color:", rgb_values.shape, "depth:", depth_values.shape)
             # print(img_inputs[0][0].shape, img_inputs[-7][0].shape)
@@ -654,21 +654,21 @@ class NeRFOcc(BEVDepth):
             depth_values = (weights * t_mids[..., None, None]).sum(dim=1) + background_depth
             depth_values = depth_values.unsqueeze(1)
     
-            rgb_values = F.interpolate(rgb_values, scale_factor=16)
-            depth_values = F.interpolate(depth_values, scale_factor=16).squeeze(1)
+            gt_imgs = F.interpolate(img[-5][0], scale_factor=0.0625)
             # depth_values = self.upsample(depth_values)
             # print("color:", rgb_values.shape, "depth:", depth_values.shape)
             # print(img_inputs[0][0].shape, img_inputs[-7][0].shape)
-            gt_depths = img[7][0]
-            gt_imgs = img[0][0]
+            # gt_depths = img[7][0]
+            # gt_imgs = img[0][0]
 
             psnr_total = 0
             for v in range(rgb_values.shape[0]):
                 # print("pred:", rgbs[v].var(), "gt:", img[-5][0][v].var())
-                depth_ = ((depth_values[v]-depth_values[v].min()) / (depth_values[v].max() - depth_values[v].min()+1e-8)).repeat(1, 1, 3)
-                img_to_save = torch.cat([rgb_values[v], img[-5][0][v].permute(1,2,0), depth_], dim=1).clip(0, 1)
+                # depth_ = ((depth_values[v].unsqueeze(-1)-depth_values[v].unsqueeze(-1).min()) / (depth_values[v].unsqueeze(-1).max() - depth_values[v].unsqueeze(-1).min()+1e-8)).repeat(1, 1, 3)
+                
+                img_to_save = torch.cat([rgb_values[v].permute(1,2,0), gt_imgs[v].permute(1,2,0)], dim=1).clip(0, 1)
                 img_to_save = np.uint8(img_to_save.cpu().numpy()* 255.0)
-                psnr = compute_psnr(rgb_values[v].permute(1,2,0), img[-5][0][v].permute(1,2,0), mask=None)
+                psnr = compute_psnr(rgb_values[v].permute(1,2,0), gt_imgs[v].permute(1,2,0), mask=None)
                 psnr_total += psnr
                 cv2.imwrite("./img_"+str(v)+'.png', img_to_save)
             print("psnr:", psnr_total/rgb_values.shape[0])

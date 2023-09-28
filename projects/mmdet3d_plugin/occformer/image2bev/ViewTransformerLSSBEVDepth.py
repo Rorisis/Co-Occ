@@ -125,7 +125,6 @@ class ViewTransformerLiftSplatShoot(BaseModule):
         # B x N x D x H x W x 3
         points = self.frustum - post_trans.view(B, N, 1, 1, 1, 3)
         points = torch.inverse(post_rots).view(B, N, 1, 1, 1, 3, 3).matmul(points.unsqueeze(-1))
-
         # cam_to_ego
         points = torch.cat((points[:, :, :, :, :, :2] * points[:, :, :, :, :, 2:3],
                             points[:, :, :, :, :, 2:3]
@@ -139,6 +138,52 @@ class ViewTransformerLiftSplatShoot(BaseModule):
         combine = rots.matmul(torch.inverse(intrins))
         points = combine.view(B, N, 1, 1, 1, 3, 3).matmul(points).squeeze(-1)
         points += trans.view(B, N, 1, 1, 1, 3)
+        
+        
+        if bda.shape[-1] == 4:
+            points = torch.cat((points, torch.ones(*points.shape[:-1], 1).type_as(points)), dim=-1)
+            points = bda.view(B, 1, 1, 1, 1, 4, 4).matmul(points.unsqueeze(-1)).squeeze(-1)
+            points = points[..., :3]
+        else:
+            points = bda.view(B, 1, 1, 1, 1, 3, 3).matmul(points.unsqueeze(-1)).squeeze(-1)
+        
+        return points
+
+    def get_frustum(self, rots, trans, intrins, post_rots, post_trans, bda):
+        """Determine the (x,y,z) locations (in the ego frame)
+        of the points in the point cloud.
+        Returns B x N x D x H/downsample x W/downsample x 3
+        """
+        B, N, _ = trans.shape
+        ogfH, ogfW = self.data_config['input_size']
+        fH, fW = ogfH // 4, ogfW // 4
+        ds = torch.arange(*self.grid_config['dbound'], dtype=torch.float).view(-1, 1, 1).expand(-1, fH, fW)
+        D, _, _ = ds.shape
+        xs = torch.linspace(0, ogfW - 1, fW, dtype=torch.float).view(1, 1, fW).expand(D, fH, fW)
+        ys = torch.linspace(0, ogfH - 1, fH, dtype=torch.float).view(1, fH, 1).expand(D, fH, fW)
+        
+        # D x H x W x 3
+        frustum = torch.stack((xs, ys, ds), -1)
+        frustum =  nn.Parameter(frustum, requires_grad=False).to(post_trans.device)
+
+        # undo post-transformation
+        # B x N x D x H x W x 3
+        points = frustum - post_trans.view(B, N, 1, 1, 1, 3)
+        points = torch.inverse(post_rots).view(B, N, 1, 1, 1, 3, 3).matmul(points.unsqueeze(-1))
+        # cam_to_ego
+        points = torch.cat((points[:, :, :, :, :, :2] * points[:, :, :, :, :, 2:3],
+                            points[:, :, :, :, :, 2:3]
+                            ), 5)
+        
+        if intrins.shape[3] == 4: # for KITTI
+            shift = intrins[:, :, :3, 3]
+            points = points - shift.view(B, N, 1, 1, 1, 3, 1)
+            intrins = intrins[:, :, :3, :3]
+        
+        combine = rots.matmul(torch.inverse(intrins))
+        points = combine.view(B, N, 1, 1, 1, 3, 3).matmul(points).squeeze(-1)
+        points += trans.view(B, N, 1, 1, 1, 3)
+        
         
         if bda.shape[-1] == 4:
             points = torch.cat((points, torch.ones(*points.shape[:-1], 1).type_as(points)), dim=-1)
