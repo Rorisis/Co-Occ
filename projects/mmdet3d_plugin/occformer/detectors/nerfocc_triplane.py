@@ -404,28 +404,30 @@ class NeRFOcc_Triplane(BEVDepth):
             norm_coord_2d = norm_coord_2d[None, :, :, None, :].repeat(gemo.shape[0], 1, 1, self.N_samples, 1)  # (b, h, w, d, 2)
             sampled_disparity = s_vals[:, :-1][:, None, None, :, None].repeat(1, gemo.shape[-3],
                                                                             gemo.shape[-2], 1, 1)
+            
             norm_coord_frustum = torch.cat([norm_coord_2d, sampled_disparity], dim=-1).cuda()  # (b, h, w, d, 3)
-            # print("norm_coord_frustum:", norm_coord_frustum.max(), norm_coord_frustum.min())
+            b, h, w, d, _ = norm_coord_frustum.shape
+            norm_coord_frustum = norm_coord_frustum.reshape(b, -1, d, 3)
 
             density_features = []
             color_features = []
             
             for i in range(norm_coord_frustum.shape[0]):
-                density_feature_xy = F.grid_sample(density_plane_xy, norm_coord_frustum[i][...,[0,1]], mode='bilinear', padding_mode='zeros', align_corners=False).squeeze(0).permute(1,2,0)
-                density_feature_yz = F.grid_sample(density_plane_yz, norm_coord_frustum[i][...,[1,2]], mode='bilinear', padding_mode='zeros', align_corners=False).squeeze(0).permute(1,2,0)
-                density_feature_xz = F.grid_sample(density_plane_xz, norm_coord_frustum[i][...,[0,2]], mode='bilinear', padding_mode='zeros', align_corners=False).squeeze(0).permute(1,2,0)
-                color_feature_xy = F.grid_sample(color_plane_xy, norm_coord_frustum[i][...,[0,1]], mode='bilinear', padding_mode='zeros', align_corners=False).squeeze(0).permute(1,2,0)
-                color_feature_yz = F.grid_sample(color_plane_yz, norm_coord_frustum[i][...,[1,2]], mode='bilinear', padding_mode='zeros', align_corners=False).squeeze(0).permute(1,2,0)
-                color_feature_xz = F.grid_sample(color_plane_xz, norm_coord_frustum[i][...,[0,2]], mode='bilinear', padding_mode='zeros', align_corners=False).squeeze(0).permute(1,2,0)
-            
+                density_feature_xy = F.grid_sample(density_plane_xy, norm_coord_frustum[i][...,[0,1]].unsqueeze(0), mode='bilinear', padding_mode='zeros', align_corners=False).squeeze(0).reshape(d,h,w,-1)
+                density_feature_yz = F.grid_sample(density_plane_yz, norm_coord_frustum[i][...,[1,2]].unsqueeze(0), mode='bilinear', padding_mode='zeros', align_corners=False).squeeze(0).reshape(d,h,w,-1)
+                density_feature_xz = F.grid_sample(density_plane_xz, norm_coord_frustum[i][...,[0,2]].unsqueeze(0), mode='bilinear', padding_mode='zeros', align_corners=False).squeeze(0).reshape(d,h,w,-1)
+                color_feature_xy = F.grid_sample(color_plane_xy, norm_coord_frustum[i][...,[0,1]].unsqueeze(0), mode='bilinear', padding_mode='zeros', align_corners=False).squeeze(0).reshape(d,h,w,-1)
+                color_feature_yz = F.grid_sample(color_plane_yz, norm_coord_frustum[i][...,[1,2]].unsqueeze(0), mode='bilinear', padding_mode='zeros', align_corners=False).squeeze(0).reshape(d,h,w,-1)
+                color_feature_xz = F.grid_sample(color_plane_xz, norm_coord_frustum[i][...,[0,2]].unsqueeze(0), mode='bilinear', padding_mode='zeros', align_corners=False).squeeze(0).reshape(d,h,w,-1)
+
                 density_feature = torch.mean(torch.stack([density_feature_xy, density_feature_yz, density_feature_xz]), dim=0)
                 color_feature = torch.mean(torch.stack([color_feature_xy, color_feature_yz, color_feature_xz]), dim=0)
                 density_features.append(density_feature)
                 color_features.append(color_feature)
             
-            density_features = torch.cat(density_features, dim=0)
-            color_features = torch.cat(color_features, dim=0)
-
+            density_features = torch.stack(density_features, dim=0)
+            color_features = torch.stack(color_features, dim=0)
+        
             density = F.relu(self.density_head(density_features))
             rgb = torch.sigmoid(self.color_head(color_features))
             
@@ -440,7 +442,7 @@ class NeRFOcc_Triplane(BEVDepth):
                 directions.append(direction)
 
             directions = torch.stack(directions, dim=0)
-            weights, tdist = compute_alpha_weights(density, s_vals, directions, s_to_t)
+            weights, tdist = compute_alpha_weights(density, s_vals, directions, s_to_t) # b, d, h, w, c
             acc = weights.sum(dim=1)
 
             # reconstruct depth and rgb image
@@ -453,8 +455,8 @@ class NeRFOcc_Triplane(BEVDepth):
             depth_values = (weights * t_mids[..., None, None]).sum(dim=1) + background_depth
             depth_values = depth_values.unsqueeze(1)
     
-            rgb_values = F.interpolate(rgb_values, scale_factor=16)
-            depth_values = F.interpolate(depth_values, scale_factor=16).squeeze(1)
+            rgb_values = F.interpolate(rgb_values, scale_factor=8)
+            depth_values = F.interpolate(depth_values, scale_factor=8).squeeze(1)
             # depth_values = self.upsample(depth_values)
             # print("color:", rgb_values.shape, "depth:", depth_values.shape)
             # print(img_inputs[0][0].shape, img_inputs[-7][0].shape)

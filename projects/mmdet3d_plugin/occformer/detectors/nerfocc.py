@@ -426,8 +426,8 @@ class NeRFOcc(BEVDepth):
             depth_values = (weights * t_mids[..., None, None]).sum(dim=1) + background_depth
             depth_values = depth_values.unsqueeze(1)
     
-            rgb_values = F.interpolate(rgb_values, scale_factor=4)
-            depth_values = F.interpolate(depth_values, scale_factor=4).squeeze(1)
+            rgb_values = F.interpolate(rgb_values, scale_factor=8)
+            depth_values = F.interpolate(depth_values, scale_factor=8).squeeze(1)
             # depth_values = self.upsample(depth_values)
             # print("color:", rgb_values.shape, "depth:", depth_values.shape)
             # print(img_inputs[0][0].shape, img_inputs[-7][0].shape)
