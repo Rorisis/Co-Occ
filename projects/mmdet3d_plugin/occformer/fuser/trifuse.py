@@ -34,14 +34,33 @@ class TriFuser(nn.Module):
             nn.Sigmoid(),
         )
 
+        self.plane_yz_mlp = nn.Sequential(
+            nn.Conv3d(128, 1, 7, padding=3, bias=False),
+            build_norm_layer(norm_cfg, 1)[1],
+            # nn.BatchNorm3d(1),
+            nn.ReLU(True),
+        )
+        self.plane_xz_mlp = nn.Sequential(
+            nn.Conv3d(128, 1, 7, padding=3, bias=False),
+            build_norm_layer(norm_cfg, 1)[1],
+            # nn.BatchNorm3d(1),
+            nn.ReLU(True),
+        )
+        self.plane_xy_mlp = nn.Sequential(
+            nn.Conv3d(16, 1, 7, padding=3, bias=False),
+            build_norm_layer(norm_cfg, 1)[1],
+            # nn.BatchNorm3d(1),
+            nn.ReLU(True),
+        )
+
     def forward(self, img_voxel_feats, pts_voxel_feats):
         # print("img_voxel_feats",img_voxel_feats.shape)
-        img_plane_xy = torch.mean(img_voxel_feats, dim=-1)
-        img_plane_yz = torch.mean(img_voxel_feats, dim=-3)
-        img_plane_xz = torch.mean(img_voxel_feats, dim=-2)
-        pts_plane_xy = torch.mean(pts_voxel_feats, dim=-1)
-        pts_plane_yz = torch.mean(pts_voxel_feats, dim=-3)
-        pts_plane_xz = torch.mean(pts_voxel_feats, dim=-2)
+        img_plane_xy = self.plane_xy_mlp(img_voxel_feats.permute(0,-1,1,2,3)).squeeze(1)
+        img_plane_yz = self.plane_yz_mlp(img_voxel_feats.permute(0,2,1,3,4)).squeeze(1)
+        img_plane_xz = self.plane_xz_mlp(img_voxel_feats.permute(0,3,1,2,4)).squeeze(1)
+        pts_plane_xy = self.plane_xy_mlp(pts_voxel_feats.permute(0,-1,1,2,3)).squeeze(1)
+        pts_plane_yz = self.plane_yz_mlp(pts_voxel_feats.permute(0,2,1,3,4)).squeeze(1)
+        pts_plane_xz = self.plane_xz_mlp(pts_voxel_feats.permute(0,3,1,2,4)).squeeze(1)
         # print("img_plane_xy", img_plane_xy.shape, "img_plane_yz", img_plane_yz.shape, "img_plane_xz", img_plane_xz.shape)
         img_plane_xy = self.img_enc(img_plane_xy)
         img_plane_yz = self.img_enc(img_plane_yz)

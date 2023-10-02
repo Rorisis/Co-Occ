@@ -324,7 +324,6 @@ class NeRFOcc_Triplane(BEVDepth):
             plane_xz_ = plane_xz[i].unsqueeze(-2).expand(-1,-1,-1,plane_xy[i].shape[-1],-1)
             # print("plane_xy", plane_xy_.shape, "plane_yz", plane_yz_.shape, "plane_xz", plane_xz_.shape)
             fused = plane_xy_ + plane_yz_ + plane_xz_
-            # print("fused:", fused.shape)
             semantic_voxel.append(fused)
         return semantic_voxel
 
@@ -455,8 +454,8 @@ class NeRFOcc_Triplane(BEVDepth):
             depth_values = (weights * t_mids[..., None, None]).sum(dim=1) + background_depth
             depth_values = depth_values.unsqueeze(1)
     
-            rgb_values = F.interpolate(rgb_values, scale_factor=8)
-            depth_values = F.interpolate(depth_values, scale_factor=8).squeeze(1)
+            rgb_values = F.interpolate(rgb_values, scale_factor=16)
+            depth_values = F.interpolate(depth_values, scale_factor=16).squeeze(1)
             # depth_values = self.upsample(depth_values)
             # print("color:", rgb_values.shape, "depth:", depth_values.shape)
             # print(img_inputs[0][0].shape, img_inputs[-7][0].shape)
