@@ -8,6 +8,7 @@ import torch.nn.functional as F
 from mmdet3d.models.builder import FUSION_LAYERS
 from mmcv.cnn import build_norm_layer
 from projects.mmdet3d_plugin.utils import VanillaNeRFRadianceField, MLP
+import numpy as np
 
 
 @FUSION_LAYERS.register_module()
@@ -60,9 +61,9 @@ class TriFuser(nn.Module):
         #     # nn.BatchNorm3d(1),
         #     nn.ReLU(True),
         # )
-        self.plane_xy_conv = SPPModule(in_channels=in_channels*16, out_channels=out_channels)
-        self.plane_yz_conv = SPPModule(in_channels=in_channels*128, out_channels=out_channels)
-        self.plane_xz_conv = SPPModule(in_channels=in_channels*128, out_channels=out_channels)
+        self.plane_xy_attn = LayerAttentionModule(num_channels=in_channels, attention_dim=2)
+        self.plane_yz_attn = LayerAttentionModule(num_channels=in_channels, attention_dim=0)
+        self.plane_xz_attn = LayerAttentionModule(num_channels=in_channels, attention_dim=1)
 
 
 
@@ -72,55 +73,45 @@ class TriFuser(nn.Module):
         vis_weight = self.vis_enc(torch.cat([img_voxel_feats, pts_voxel_feats], dim=1))
         voxel_feats = vis_weight * img_voxel_feats + (1 - vis_weight) * pts_voxel_feats # B, C, H, W, L
         B, C, H, W, L = voxel_feats.shape
+        voxel_feats = voxel_feats.view(B,H,W,L,C)
 
-        plane_xy = self.plane_xy_conv(voxel_feats.view(B, C*L, H, W))
-        plane_yz = self.plane_yz_conv(voxel_feats.view(B, C*H, W, L))
-        plane_xz = self.plane_xz_conv(voxel_feats.view(B, C*W, H, L))
-        # print(plane_xy.min(), plane_xy.min())
+        plane_xy = self.plane_xy_attn(voxel_feats).permute(0,-1,1,2)
+        plane_yz = self.plane_yz_attn(voxel_feats).permute(0,-1,1,2)
+        plane_xz = self.plane_xz_attn(voxel_feats).permute(0,-1,1,2)
+        # print(plane_xy.shape, plane_xz.shape, plane_yz.shape)
         return plane_xy, plane_yz, plane_xz
 
 
-class SPPModule(nn.Module):
-    def __init__(self, in_channels, out_channels, **kwargs):
-        super(SPPModule, self).__init__(**kwargs)
+class LayerAttentionModule(nn.Module):
+    def __init__(
+        self,
+        num_channels: int,
+        attention_dim: int
+        ):
+        super().__init__()
 
-        self.conv1x1 = nn.Sequential(
-            nn.Conv2d(in_channels, out_channels, kernel_size=1, stride=1, padding=0, bias=False),
-            nn.BatchNorm2d(out_channels, eps=0.001, momentum=0.01, affine=True, track_running_stats=True),
-            nn.ReLU(),
-        )
-        self.conv3x3 = nn.Sequential(
-            nn.Conv2d(in_channels, out_channels, kernel_size=3, stride=1, padding=1, bias=False),
-            nn.BatchNorm2d(out_channels, eps=0.001, momentum=0.01, affine=True, track_running_stats=True),
-            nn.ReLU()
-        )
-        self.dilated_conv3x3_rate6 = nn.Sequential(
-            nn.Conv2d(in_channels, out_channels, kernel_size=3, stride=1, padding=6, dilation=6, bias=False),
-            nn.BatchNorm2d(out_channels, eps=0.001, momentum=0.01, affine=True, track_running_stats=True),
-            nn.ReLU()
-        )
-        self.dilated_conv3x3_rate12 = nn.Sequential(
-            nn.Conv2d(in_channels, out_channels, kernel_size=3, stride=1, padding=12, dilation=12, bias=False),
-            nn.BatchNorm2d(out_channels, eps=0.001, momentum=0.01, affine=True, track_running_stats=True),
-            nn.ReLU()
-        )
-        # self.dilated_conv3x3_rate18 = nn.Sequential(
-        #     nn.Conv2d(512+256, 256, kernel_size=3, stride=1, padding=12, dilation=12, bias=False),
-        #     nn.BatchNorm2d(256, eps=0.001, momentum=0.01, affine=True, track_running_stats=True),
-        #     nn.ReLU()
-        # )
-        self.fuse = nn.Sequential(
-            nn.Conv2d(out_channels * 4, out_channels, kernel_size=1, stride=1, padding=0, bias=False),
-            nn.BatchNorm2d(out_channels, eps=0.001, momentum=0.01, affine=True, track_running_stats=True),
-            nn.ReLU(),
-        )
+        self.Q_linear = nn.Linear(num_channels, num_channels)
+        self.K_linear = nn.Linear(num_channels, num_channels)
+        self.V_linear = nn.Linear(num_channels, num_channels)
 
-    def forward(self, x):
-        x1 = self.conv1x1(x)
-        x2 = self.conv3x3(x)
-        # x2 = self.dilated_conv3x3_rate18(x)
-        x3 = self.dilated_conv3x3_rate6(x)
-        x4 = self.dilated_conv3x3_rate12(x)
-        ret = self.fuse(torch.cat([x1, x2, x3, x4], dim=1))
-        
+        self.attention_dim = attention_dim
+
+    def forward(self, x): # x: torch.Tensor # [B, H, W, L, C]
+        x = x.transpose(1, self.attention_dim + 1) # [B, d_att, d_1, d_2, C]
+        B, d_att, d_1, d_2, C = x.shape
+
+        Q = self.Q_linear(x)
+        if self.attention_dim in [0, 1]: # H or W
+            Q = Q[:, d_att//2, ...] # [B, d_1, d_2, C]
+        else: # L
+            Q = Q[:, 0, ...] # [B, d_1, d_2, C]
+        Q = Q.reshape(B, 1, d_1 * d_2 * C) # [B, 1, d_1 * d_2 * C]
+
+        K = self.K_linear(x).reshape(B, d_att, d_1 * d_2 * C) # [B, d_att, d_1 * d_2 * C]
+        weights = torch.bmm(Q, K.transpose(1, 2)) #! [B, 1, d_1 * d_2 * C] * [B, d_1 * d_2 * C, d_att] -> [B, 1, d_att]
+        weights = torch.softmax(weights / np.sqrt(d_1 * d_2 * C), dim=-1)
+
+        V = self.V_linear(x).reshape(B, d_att, d_1 * d_2 * C) # [B, d_att, d_1 * d_2 * C]
+        ret = torch.bmm(weights, V) #! [B, 1, d_att] * [B, d_att, d_1 * d_2 * C] -> [B, 1, d_1 * d_2 * C]
+        ret = ret.reshape(B, d_1, d_2, C)
         return ret

@@ -11,7 +11,7 @@ from .modules.cross_attention import CrossAttention
 
 @FUSION_LAYERS.register_module()
 class AttnFuser(nn.Module):
-    def __init__(self, in_channels, out_channels, embed_dims, positional_encoding,
+    def __init__(self, in_channels, out_channels, embed_dims, positional_encoding, cross_attention,
                  real_h=102.4, strides=[1, 1, 1, 1], norm_cfg=None) -> None:
         super().__init__()
         self.in_channels = in_channels
@@ -20,7 +20,7 @@ class AttnFuser(nn.Module):
         self.embed_dims = embed_dims
         self.strides = strides
         self.positional_encoding = build_positional_encoding(positional_encoding)
-        self.cross_attention = CrossAttention()
+        self.cross_attention = build_attention(cross_attention)
 
         if norm_cfg is None:
             norm_cfg = dict(type='BN3d', eps=1e-3, momentum=0.01)
@@ -89,7 +89,7 @@ class AttnFuser(nn.Module):
             dtype = pts_voxel_feats.dtype
         # bev_queries = self.bev_embed.weight.to(dtype) #[128*128*16, dim]
         x = pts_voxel_feats
-        kv = self.vis_enc(torch.cat([img_voxel_feats, pts_voxel_feats], dim=1))
+        kv = img_voxel_feats
         padding_mask = x.new_zeros((bs, ) + x.shape[-3:], dtype = torch.bool)
         pos_embed = self.positional_encoding(padding_mask)
         padding_mask_kv = kv.new_zeros((bs, ) + kv.shape[-3:], dtype = torch.bool)
@@ -137,6 +137,6 @@ class AttnFuser(nn.Module):
                                            reference_points=reference_points, level_start_index=level_start_index,
                                            valid_radios=valid_radios,)
         voxel_feats = voxel_feats.reshape(bs, -1, H, W, L)
-        # voxel_feats = self.vis_enc2(voxel_feats)
+        voxel_feats = self.vis_enc(torch.cat([voxel_feats, pts_voxel_feats], dim=1))
         return voxel_feats
 
