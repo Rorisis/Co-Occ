@@ -7,7 +7,7 @@ sync_bn = True
 plugin = True
 plugin_dir = "projects/mmdet3d_plugin/"
 img_norm_cfg = dict(mean=[123.675, 116.28, 103.53], std=[58.395, 57.12, 57.375], to_rgb=True)
-
+occ_path = "./data/nuScenes-Occupancy"
 # class_names = [
 #     'car', 'truck', 'construction_vehicle', 'bus', 'trailer', 'barrier',
 #     'motorcycle', 'bicycle', 'pedestrian', 'traffic_cone'
@@ -19,9 +19,9 @@ class_names = ['empty', 'barrier', 'bicycle', 'bus', 'car',
 num_class = len(class_names)
 
 point_cloud_range = [-51.2, -51.2, -5.0, 51.2, 51.2, 3.0]
-occ_size = [256, 256, 32]
+occ_size = [512, 512, 40]
 # downsample ratio in [x, y, z] when generating 3D volumes in LSS
-lss_downsample = [2, 2, 2]
+lss_downsample = [4, 4, 4]
 
 voxel_x = (point_cloud_range[3] - point_cloud_range[0]) / occ_size[0]
 voxel_y = (point_cloud_range[4] - point_cloud_range[1]) / occ_size[1]
@@ -64,13 +64,13 @@ empty_idx = 0  # noise 0-->255
 num_cls = 17  # 0 free, 1-16 obj
 visible_mask = False
 
-cascade_ratio = 2
+cascade_ratio = 4
 sample_from_voxel = True
 sample_from_img = True
 
 
 model = dict(
-    type='NeRFOcc_Triplane',
+    type='NeRFOcc',
     loss_norm=True,
     voxel_size = voxel_size,
     n_voxels = occ_size,
@@ -124,27 +124,29 @@ model = dict(
         base_channel=16,
         out_channel=numC_Trans,
         norm_cfg=dict(type='SyncBN', requires_grad=True),
-        sparse_shape_xyz=[1024, 1024, 128],  # hardcode, xy size follow centerpoint
+        sparse_shape_xyz=[1024, 1024, 80],  # hardcode, xy size follow centerpoint
         ),
     occ_fuser=dict(
-        type='TriFuser',
+        type='VisFuser',
         in_channels=numC_Trans,
         out_channels=numC_Trans,
     ),
     density_encoder=dict(
-        type='FPN_Render',
-        in_channels=[128, 256, 512, 1024],
+        type='FPN3D_Render',
+        with_cp=True,
+        in_channels=voxel_channels,
         out_channels=voxel_out_channel,
         norm_cfg=dict(type='SyncBN', requires_grad=True),
     ),
     color_encoder=dict(
-        type='FPN_Render',
-        in_channels=[128, 256, 512, 1024],
+        type='FPN3D_Render',
+        with_cp=True,
+        in_channels=voxel_channels,
         out_channels=voxel_out_channel,
         norm_cfg=dict(type='SyncBN', requires_grad=True),
     ),
     semantic_encoder=dict(
-        type='CustomResNet',
+        type='CustomResNet3D',
         depth=18,
         n_input_channels=numC_Trans,
         block_inplanes=voxel_channels,
@@ -152,10 +154,10 @@ model = dict(
         norm_cfg=dict(type='SyncBN', requires_grad=True),
     ),
     semantic_neck=dict(
-        type='FPN',
-        in_channels=[128, 256, 512, 1024],
+        type='FPN3D',
+        with_cp=True,
+        in_channels=voxel_channels,
         out_channels=voxel_out_channel,
-        num_outs=4,
         norm_cfg=dict(type='SyncBN', requires_grad=True),
     ),
     pts_bbox_head=dict(
@@ -203,9 +205,11 @@ train_pipeline = [
     dict(type='LoadMultiViewImageFromFiles_OccFormer', is_train=False,
             data_config=data_config, img_norm_cfg=img_norm_cfg),
     dict(type='CreateDepthFromLiDAR', dataset='nusc'),
-    dict(type='LoadNuscOccupancyAnnotations', is_train=True, grid_size=occ_size, 
-            point_cloud_range=point_cloud_range, bda_aug_conf=bda_aug_conf,
-            cls_metas=nusc_class_metas),
+    # dict(type='LoadNuscOccupancyAnnotations', is_train=True, grid_size=occ_size, 
+    #         point_cloud_range=point_cloud_range, bda_aug_conf=bda_aug_conf,
+    #         cls_metas=nusc_class_metas),
+    dict(type='LoadOccupancy', is_train=True, to_float32=True, use_semantic=True, occ_path=occ_path, grid_size=occ_size, use_vel=False,
+        unoccupied=empty_idx, pc_range=point_cloud_range, cal_visible=visible_mask, bda_aug_conf=bda_aug_conf, cls_metas=nusc_class_metas),
     dict(type='OccDefaultFormatBundle3D', class_names=class_names),
     dict(type='Collect3D', keys=['img_inputs', 'gt_occ', 'points', 'points_occ'],
             meta_keys=['pc_range', 'occ_size']),
@@ -220,9 +224,11 @@ test_pipeline = [
         sweeps_num=10),
     dict(type='LoadMultiViewImageFromFiles_OccFormer', is_train=False,
             data_config=data_config, img_norm_cfg=img_norm_cfg),
-    dict(type='LoadNuscOccupancyAnnotations', is_train=False, grid_size=occ_size,
-            point_cloud_range=point_cloud_range, bda_aug_conf=bda_aug_conf,
-            cls_metas=nusc_class_metas),
+    # dict(type='LoadNuscOccupancyAnnotations', is_train=False, grid_size=occ_size,
+    #         point_cloud_range=point_cloud_range, bda_aug_conf=bda_aug_conf,
+    #         cls_metas=nusc_class_metas),
+    dict(type='LoadOccupancy', is_train=False, to_float32=True, use_semantic=True, occ_path=occ_path, grid_size=occ_size, use_vel=False,
+        unoccupied=empty_idx, pc_range=point_cloud_range, cal_visible=visible_mask, bda_aug_conf=bda_aug_conf, cls_metas=nusc_class_metas),
     dict(type='OccDefaultFormatBundle3D', class_names=class_names, with_label=False), 
     dict(type='Collect3D', keys=['img_inputs', 'gt_occ', 'points', 'points_occ'],
             meta_keys=['pc_range', 'occ_size', 'sample_idx', 'timestamp',
