@@ -40,7 +40,7 @@ class VisFuser(nn.Module):
         )
 
     def forward(self, img_voxel_feats, pts_voxel_feats):
-
+        # print("img_voxel:", img_voxel_feats.shape, "pts:", pts_voxel_feats.shape)
         img_voxel_feats = self.img_enc(img_voxel_feats)
         pts_voxel_feats = self.pts_enc(pts_voxel_feats)
         vis_weight = self.vis_enc(torch.cat([img_voxel_feats, pts_voxel_feats], dim=1))

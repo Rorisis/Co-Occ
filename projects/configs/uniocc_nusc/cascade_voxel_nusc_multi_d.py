@@ -21,7 +21,7 @@ num_class = len(class_names)
 point_cloud_range = [-51.2, -51.2, -5.0, 51.2, 51.2, 3.0]
 occ_size = [512, 512, 40]
 # downsample ratio in [x, y, z] when generating 3D volumes in LSS
-lss_downsample = [4, 4, 4]
+lss_downsample = [2, 2, 2]
 
 voxel_x = (point_cloud_range[3] - point_cloud_range[0]) / occ_size[0]
 voxel_y = (point_cloud_range[4] - point_cloud_range[1]) / occ_size[1]
@@ -64,7 +64,7 @@ empty_idx = 0  # noise 0-->255
 num_cls = 17  # 0 free, 1-16 obj
 visible_mask = False
 
-cascade_ratio = 4
+cascade_ratio = 2
 sample_from_voxel = True
 sample_from_img = True
 
@@ -83,7 +83,7 @@ model = dict(
     nerf_sample_view=6,
     squeeze_scale=4,
     nerf_density=True,
-    use_rendering=True,
+    use_rendering=False,
     test_rendering=False,
     loss_voxel_ce_weight=1.0,
     loss_voxel_sem_scal_weight=1.0,
@@ -124,39 +124,39 @@ model = dict(
         base_channel=16,
         out_channel=numC_Trans,
         norm_cfg=dict(type='SyncBN', requires_grad=True),
-        sparse_shape_xyz=[1024, 1024, 80],  # hardcode, xy size follow centerpoint
+        sparse_shape_xyz=[2048, 2048, 160],  # hardcode, xy size follow centerpoint
         ),
     occ_fuser=dict(
-        type='BiFuser',
+        type='ConvFuser',
         in_channels=numC_Trans,
         out_channels=numC_Trans,
     ),
     density_encoder=dict(
         type='FPN3D_Render',
         with_cp=True,
-        in_channels=voxel_channels,
+        in_channels=voxel_channels_half,
         out_channels=voxel_out_channel,
         norm_cfg=dict(type='SyncBN', requires_grad=True),
     ),
     color_encoder=dict(
         type='FPN3D_Render',
         with_cp=True,
-        in_channels=voxel_channels,
+        in_channels=voxel_channels_half,
         out_channels=voxel_out_channel,
         norm_cfg=dict(type='SyncBN', requires_grad=True),
     ),
     semantic_encoder=dict(
         type='CustomResNet3D',
-        depth=18,
+        depth=10,
         n_input_channels=numC_Trans,
-        block_inplanes=voxel_channels,
+        block_inplanes=voxel_channels_half,
         out_indices=voxel_out_indices,
         norm_cfg=dict(type='SyncBN', requires_grad=True),
     ),
     semantic_neck=dict(
         type='FPN3D',
         with_cp=True,
-        in_channels=voxel_channels,
+        in_channels=voxel_channels_half,
         out_channels=voxel_out_channel,
         norm_cfg=dict(type='SyncBN', requires_grad=True),
     ),

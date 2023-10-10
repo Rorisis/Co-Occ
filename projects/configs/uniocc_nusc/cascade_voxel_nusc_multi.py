@@ -84,7 +84,7 @@ model = dict(
     squeeze_scale=4,
     nerf_density=True,
     use_rendering=True,
-    test_rendering=False,
+    test_rendering=True,
     loss_voxel_ce_weight=1.0,
     loss_voxel_sem_scal_weight=1.0,
     loss_voxel_geo_scal_weight=1.0,
@@ -127,7 +127,7 @@ model = dict(
         sparse_shape_xyz=[1024, 1024, 128],  # hardcode, xy size follow centerpoint
         ),
     occ_fuser=dict(
-        type='VisFuser',
+        type='BiFuser',
         in_channels=numC_Trans,
         out_channels=numC_Trans,
     ),
