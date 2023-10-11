@@ -41,7 +41,10 @@ class BiFuser(nn.Module):
         # )
 
         self.con_enc = nn.Sequential(
-            nn.Conv3d(in_channels*3, out_channels, 3, padding=1, bias=False),
+            nn.Conv3d(in_channels*4, out_channels*2, 3, padding=1, bias=False),
+            nn.BatchNorm3d(out_channels*2),
+            nn.ReLU(True),
+            nn.Conv3d(in_channels*2, out_channels, 3, padding=1, bias=False),
             nn.BatchNorm3d(out_channels),
             nn.ReLU(True),
             )
@@ -116,12 +119,17 @@ class BiFuser(nn.Module):
         indices = inds_img[nearest_img_coords]
         nearest_img_feats = img_voxel_feats[indices[:, 0], indices[:, 1], indices[:, 2], indices[:, 3]].contiguous()
         # nearest_img_feats = self.knn_enc(nearest_img_feats)
-
-        fused_feats_sparse = torch.cat([selected_pts_feats, nearest_img_feats], dim=-1)
+        selected_img_feats = img_voxel_feats[inds_img[:, 0], inds_img[:, 1], inds_img[:, 2], inds_img[:, 3]].contiguous()
+        nearest_pts_coords = self.fps_NN_fast(inds_img.contiguous(), inds_pts.contiguous(), fps_num=2048, radius=6, max_cluster_samples=200, dist_thresh=13.3)
+        indices_pts = inds_pts[nearest_pts_coords]
+        nearest_pts_feats = pts_voxel_feats[indices_pts[:, 0], indices_pts[:, 1], indices_pts[:, 2], indices_pts[:, 3]].contiguous()
+        fused_feats_sparse1 = torch.cat([selected_pts_feats, nearest_img_feats], dim=-1)
+        fused_feats_sparse2 = torch.cat([selected_img_feats, nearest_pts_feats], dim=-1)
         fused_feats = torch.zeros(B, H, W, L, C * 2).to(img_voxel_feats.device)
-        fused_feats[inds_pts[:, 0], inds_pts[:, 1], inds_pts[:, 2], inds_pts[:, 3]] = fused_feats_sparse
+        fused_feats[inds_pts[:, 0], inds_pts[:, 1], inds_pts[:, 2], inds_pts[:, 3]] = fused_feats_sparse1
+        fused_feats[inds_img[:, 0], inds_img[:, 1], inds_img[:, 2], inds_img[:, 3]] = fused_feats_sparse2
 
-        all_feats = torch.cat([img_voxel_feats, fused_feats], dim=-1)
+        all_feats = torch.cat([img_voxel_feats, pts_voxel_feats, fused_feats], dim=-1)
         output_feats = self.con_enc(all_feats.permute(0, 4, 1, 2, 3))
         return output_feats
         #! 

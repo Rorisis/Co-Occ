@@ -120,22 +120,26 @@ class LoadOccupancy(object):
             occ = occ[occ[..., 3] > 0]
             occ[..., 3] = 1
 
-        pcd_np_cor =  self.voxel2world(occ[..., [2,1,0]] + 0.5)
-        pcd_label = occ[..., -1:]
-        pcd_np_cor = (bda_rot @ torch.from_numpy(pcd_np_cor).unsqueeze(-1).float()).squeeze(-1).numpy()
-        pcd_np_cor = self.world2voxel(pcd_np_cor)
+        voxel = np.zeros(self.grid_size)
+        voxel[occ[:, 0].astype(np.int), occ[:, 1].astype(np.int), occ[:, 2].astype(np.int)] = occ[:, 3]
+        # print(voxel.shape)
 
-        # make sure the point is in the grid
-        pcd_np_cor = np.clip(pcd_np_cor, np.array([0,0,0]), self.grid_size - 1)
-        transformed_occ = copy.deepcopy(pcd_np_cor)
-        pcd_np = np.concatenate([pcd_np_cor, pcd_label], axis=-1)
+        # pcd_np_cor =  self.voxel2world(occ[..., [2,1,0]] + 0.5)
+        # pcd_label = occ[..., -1:]
+        # pcd_np_cor = (bda_rot @ torch.from_numpy(pcd_np_cor).unsqueeze(-1).float()).squeeze(-1).numpy()
+        # pcd_np_cor = self.world2voxel(pcd_np_cor)
 
-        # 255: noise, 1-16 normal classes, 0 unoccupied
-        pcd_np = pcd_np[np.lexsort((pcd_np_cor[:, 0], pcd_np_cor[:, 1], pcd_np_cor[:, 2])), :]
-        pcd_np = pcd_np.astype(np.int64)
-        processed_label = np.ones(self.grid_size, dtype=np.uint8) * self.unoccupied
-        processed_label = nb_process_label(processed_label, pcd_np)
-        results['gt_occ'] = processed_label
+        # # make sure the point is in the grid
+        # pcd_np_cor = np.clip(pcd_np_cor, np.array([0,0,0]), self.grid_size - 1)
+        # transformed_occ = copy.deepcopy(pcd_np_cor)
+        # pcd_np = np.concatenate([pcd_np_cor, pcd_label], axis=-1)
+
+        # # 255: noise, 1-16 normal classes, 0 unoccupied
+        # pcd_np = pcd_np[np.lexsort((pcd_np_cor[:, 0], pcd_np_cor[:, 1], pcd_np_cor[:, 2])), :]
+        # pcd_np = pcd_np.astype(np.int64)
+        # processed_label = np.ones(self.grid_size, dtype=np.uint8) * self.unoccupied
+        # processed_label = nb_process_label(processed_label, pcd_np)
+        results['gt_occ'] = voxel
         # print(results['gt_occ'].shape)
 
         results['points_occ'] = torch.from_numpy(lidarseg).float()
