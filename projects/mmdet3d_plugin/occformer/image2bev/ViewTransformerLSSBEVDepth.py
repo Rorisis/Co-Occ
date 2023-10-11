@@ -156,7 +156,7 @@ class ViewTransformerLiftSplatShoot(BaseModule):
         """
         B, N, _ = trans.shape
         ogfH, ogfW = self.data_config['input_size']
-        fH, fW = ogfH // 16, ogfW // 16
+        fH, fW = ogfH // 8, ogfW // 8
         ds = torch.arange(*self.grid_config['dbound'], dtype=torch.float).view(-1, 1, 1).expand(-1, fH, fW)
         D, _, _ = ds.shape
         xs = torch.linspace(0, ogfW - 1, fW, dtype=torch.float).view(1, 1, fW).expand(D, fH, fW)

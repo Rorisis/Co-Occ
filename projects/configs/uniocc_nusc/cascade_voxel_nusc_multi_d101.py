@@ -9,6 +9,7 @@ plugin_dir = "projects/mmdet3d_plugin/"
 img_norm_cfg = dict(mean=[123.675, 116.28, 103.53], std=[58.395, 57.12, 57.375], to_rgb=True)
 occ_path = "./data/nuscenes_occ"
 
+load_from = 'ckpts/r101_dcn_fcos3d_pretrain.pth'
 # class_names = [
 #     'car', 'truck', 'construction_vehicle', 'bus', 'trailer', 'barrier',
 #     'motorcycle', 'bicycle', 'pedestrian', 'traffic_cone'
@@ -91,15 +92,17 @@ model = dict(
     loss_voxel_geo_scal_weight=1.0,
     loss_voxel_lovasz_weight=1.0,
     img_backbone=dict(
-        pretrained='ckpts/resnet50-0676ba61.pth',
         type='ResNet',
-        depth=50,
+        depth=101,
         num_stages=4,
         out_indices=(0, 1, 2, 3),
-        frozen_stages=0,
-        norm_cfg=dict(type='BN', requires_grad=True),
-        norm_eval=False,
-        style='pytorch'),
+        frozen_stages=1,
+        norm_cfg=dict(type='BN2d', requires_grad=False),
+        norm_eval=True,
+        style='caffe',
+        with_cp=True,
+        dcn=dict(type='DCNv2', deform_groups=1, fallback_on_stride=False), # original DCNv2 will print log when perform load_state_dict
+        stage_with_dcn=(False, False, True, True),),
     img_neck=dict(
         type='SECONDFPN',
         in_channels=[256, 512, 1024, 2048],
