@@ -18,6 +18,176 @@ from pyquaternion import Quaternion
 @PIPELINES.register_module()
 class LoadOccupancy(object):
 
+    def __init__(self, to_float32=True, use_semantic=True, occ_path=None, grid_size=[512, 512, 40], unoccupied=0,
+            pc_range=[-51.2, -51.2, -5.0, 51.2, 51.2, 3.0], gt_resize_ratio=1, cal_visible=False, use_vel=False, data_root='data/nuscenes',
+            is_train=False, is_test_submit=False, bda_aug_conf=None, cls_metas='nuscenes.yaml'):
+        self.to_float32 = to_float32
+        self.use_semantic = use_semantic
+        self.occ_path = occ_path
+        self.cal_visible = cal_visible
+        
+        self.is_train = is_train
+        self.is_test_submit = is_test_submit
+        
+        self.cls_metas = cls_metas
+        with open(cls_metas, 'r') as stream:
+            nusc_cls_metas = yaml.safe_load(stream)
+            self.learning_map = nusc_cls_metas['learning_map']
+
+        self.data_root = data_root
+        self.bda_aug_conf = bda_aug_conf
+
+        self.grid_size = np.array(grid_size)
+        self.unoccupied = unoccupied
+        self.pc_range = np.array(pc_range)
+        self.voxel_size = (self.pc_range[3:] - self.pc_range[:3]) / self.grid_size
+        self.gt_resize_ratio = gt_resize_ratio
+        self.use_vel = use_vel
+    
+    def sample_3d_augmentation(self):
+        """Generate 3d augmentation values based on bda_config."""
+        
+        # Currently, we only use the flips along three directions. The rotation and scaling are not fully experimented.
+        rotate_bda = np.random.uniform(*self.bda_aug_conf['rot_lim'])
+        scale_bda = np.random.uniform(*self.bda_aug_conf['scale_lim'])
+        flip_dx = np.random.uniform() < self.bda_aug_conf['flip_dx_ratio']
+        flip_dy = np.random.uniform() < self.bda_aug_conf['flip_dy_ratio']
+        flip_dz = np.random.uniform() < self.bda_aug_conf.get('flip_dz_ratio', 0.0)
+        
+        return rotate_bda, scale_bda, flip_dx, flip_dy, flip_dz
+
+    def __call__(self, results):
+        if self.is_test_submit:
+            imgs, rots, trans, intrins, post_rots, post_trans, gt_depths, sensor2sensors = results['img_inputs']
+            bda_rot = torch.eye(3).float()
+            results['img_inputs'] = (imgs, rots, trans, intrins, post_rots, post_trans, bda_rot, gt_depths, sensor2sensors)
+            
+            pts_filename = results['pts_filename']
+            points = np.fromfile(pts_filename, dtype=np.float32, count=-1).reshape(-1, 5)[..., :3]
+            points_label = np.zeros((points.shape[0], 1)) # placeholder
+            lidarseg = np.concatenate([points, points_label], axis=-1)
+            results['points_occ'] = torch.from_numpy(lidarseg).float()
+            
+            return results
+        
+        ''' load lidarseg points '''
+        # print(results.keys())
+        # print(results['lidarseg'], results['occ_path'])
+        lidarseg_labels_filename = os.path.join(self.data_root, results['lidarseg'])
+        points_label = np.fromfile(lidarseg_labels_filename, dtype=np.uint8).reshape([-1, 1])
+        points_label = np.vectorize(self.learning_map.__getitem__)(points_label)
+        pts_filename = results['pts_filename']
+        
+        points = np.fromfile(pts_filename, dtype=np.float32, count=-1).reshape(-1, 5)[..., :3]
+        lidarseg = np.concatenate([points, points_label], axis=-1)
+        
+        pointsT = points.copy().T
+
+        pointsT = np.array(Quaternion(results['lidar2ego_rotation']).rotation_matrix) @ pointsT
+        pointsT = pointsT + np.array(results['lidar2ego_translation'])[:, np.newaxis]
+
+        pointsT = np.array(Quaternion(results['ego2global_rotation']).rotation_matrix) @ pointsT
+        pointsT = pointsT + np.array(results['ego2global_translation'])[:, np.newaxis]
+        pointsT = pointsT.T
+
+        aabb_min = torch.Tensor([pointsT[:, 0].min(), pointsT[:, 1].min(), pointsT[:, 2].min()])
+        aabb_max = torch.Tensor([pointsT[:, 0].max(), pointsT[:, 1].max(), pointsT[:, 2].max()])
+        aabb = torch.stack([aabb_min, aabb_max])
+
+        ''' create multi-view projections '''
+        ''' apply 3D augmentation for lidar_points (and the later generated occupancy) '''
+        if self.is_train:
+            rotate_bda, scale_bda, flip_dx, flip_dy, flip_dz = self.sample_3d_augmentation()
+            _, bda_rot = voxel_transform(None, rotate_bda, scale_bda, flip_dx, flip_dy, flip_dz)
+        else:
+            bda_rot = torch.eye(3).float()
+        
+        # transform points
+        points = points @ bda_rot.t().numpy()
+        lidarseg[:, :3] = points
+        
+        # print(results['pts_filename'].split('/')[-1])
+        rel_path = 'samples/{0}.npy'.format(results['pts_filename'].split('/')[-1])
+        #  [z y x cls] or [z y x vx vy vz cls]
+        occ = np.load(os.path.join(self.occ_path, rel_path))
+        occ = occ.astype(np.float32)
+        # occ = occ[..., -1:]
+        
+        # class 0 is 'ignore' class
+        if self.use_semantic:
+            occ[..., 3][occ[..., 3] == 0] = 255
+        else:
+            occ = occ[occ[..., 3] > 0]
+            occ[..., 3] = 1
+
+        pcd_np_cor =  self.voxel2world(occ[..., [2,1,0]] + 0.5)
+        pcd_label = occ[..., -1:]
+        pcd_np_cor = (bda_rot @ torch.from_numpy(pcd_np_cor).unsqueeze(-1).float()).squeeze(-1).numpy()
+        pcd_np_cor = self.world2voxel(pcd_np_cor)
+
+        # make sure the point is in the grid
+        pcd_np_cor = np.clip(pcd_np_cor, np.array([0,0,0]), self.grid_size - 1)
+        transformed_occ = copy.deepcopy(pcd_np_cor)
+        pcd_np = np.concatenate([pcd_np_cor, pcd_label], axis=-1)
+
+        # 255: noise, 1-16 normal classes, 0 unoccupied
+        pcd_np = pcd_np[np.lexsort((pcd_np_cor[:, 0], pcd_np_cor[:, 1], pcd_np_cor[:, 2])), :]
+        pcd_np = pcd_np.astype(np.int64)
+        processed_label = np.ones(self.grid_size, dtype=np.uint8) * self.unoccupied
+        processed_label = nb_process_label(processed_label, pcd_np)
+        results['gt_occ'] = processed_label
+        # print(results['gt_occ'].shape)
+
+        results['points_occ'] = torch.from_numpy(lidarseg).float()
+
+        imgs, rots, trans, intrins, post_rots, post_trans, gt_depths, sensor2sensors, denorm_imgs, intrin_nerf, c2ws, img_size = results['img_inputs']
+        results['img_inputs'] = (imgs, rots, trans, intrins, post_rots, post_trans, bda_rot, gt_depths, sensor2sensors, denorm_imgs, aabb, intrin_nerf, c2ws, img_size)
+
+        return results
+
+    def voxel2world(self, voxel):
+        """
+        voxel: [N, 3]
+        """
+        return voxel * self.voxel_size[None, :] + self.pc_range[:3][None, :]
+
+
+    def world2voxel(self, wolrd):
+        """
+        wolrd: [N, 3]
+        """
+        return (wolrd - self.pc_range[:3][None, :]) / self.voxel_size[None, :]
+
+
+    def __repr__(self):
+        """str: Return a string that describes the module."""
+        repr_str = self.__class__.__name__
+        repr_str += f'(to_float32={self.to_float32}'
+        return repr_str
+
+    def project_points(self, points, rots, trans, intrins, post_rots, post_trans):
+        
+        # from lidar to camera
+        points = points.reshape(-1, 1, 3)
+        points = points - trans.reshape(1, -1, 3)
+        inv_rots = rots.inverse().unsqueeze(0)
+        points = (inv_rots @ points.unsqueeze(-1))
+        
+        # from camera to raw pixel
+        points = (intrins.unsqueeze(0) @ points).squeeze(-1)
+        points_d = points[..., 2:3]
+        points_uv = points[..., :2] / points_d
+        
+        # from raw pixel to transformed pixel
+        points_uv = post_rots[:, :2, :2].unsqueeze(0) @ points_uv.unsqueeze(-1)
+        points_uv = points_uv.squeeze(-1) + post_trans[..., :2].unsqueeze(0)
+        points_uvd = torch.cat((points_uv, points_d), dim=2)
+        
+        return points_uvd
+
+@PIPELINES.register_module()
+class LoadOccupancy2(object):
+
     def __init__(self, to_float32=True, use_semantic=False, occ_path=None, grid_size=[512, 512, 40], unoccupied=0,
             pc_range=[-51.2, -51.2, -5.0, 51.2, 51.2, 3.0], gt_resize_ratio=1, cal_visible=False, use_vel=False, data_root='data/nuscenes',
             is_train=False, is_test_submit=False, bda_aug_conf=None, cls_metas='nuscenes.yaml'):
@@ -111,6 +281,7 @@ class LoadOccupancy(object):
         pcd_label[pcd_label==0] = 255
         pcd_np_cor = self.voxel2world(pcd[..., [2,1,0]] + 0.5)  # x y z
         untransformed_occ = copy.deepcopy(pcd_np_cor)  # N 4
+        # print(untransformed_occ.shape)
         # bevdet augmentation
         pcd_np_cor = (bda_rot @ torch.from_numpy(pcd_np_cor).unsqueeze(-1).float()).squeeze(-1).numpy()
         pcd_np_cor = self.world2voxel(pcd_np_cor)
@@ -133,7 +304,6 @@ class LoadOccupancy(object):
         processed_label = np.ones(self.grid_size, dtype=np.uint8) * self.unoccupied
         processed_label = nb_process_label(processed_label, pcd_np)
         results['gt_occ'] = processed_label
-
 
         if self.cal_visible:
             visible_mask = np.zeros(self.grid_size, dtype=np.uint8)

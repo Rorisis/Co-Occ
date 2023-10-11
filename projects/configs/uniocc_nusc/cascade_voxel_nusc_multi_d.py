@@ -7,7 +7,7 @@ sync_bn = True
 plugin = True
 plugin_dir = "projects/mmdet3d_plugin/"
 img_norm_cfg = dict(mean=[123.675, 116.28, 103.53], std=[58.395, 57.12, 57.375], to_rgb=True)
-occ_path = "./data/nuScenes-Occupancy"
+occ_path = "./data/nuscenes_occ"
 # class_names = [
 #     'car', 'truck', 'construction_vehicle', 'bus', 'trailer', 'barrier',
 #     'motorcycle', 'bicycle', 'pedestrian', 'traffic_cone'
@@ -19,7 +19,7 @@ class_names = ['empty', 'barrier', 'bicycle', 'bus', 'car',
 num_class = len(class_names)
 
 point_cloud_range = [-51.2, -51.2, -5.0, 51.2, 51.2, 3.0]
-occ_size = [512, 512, 40]
+occ_size = [200, 200, 16]
 # downsample ratio in [x, y, z] when generating 3D volumes in LSS
 lss_downsample = [2, 2, 2]
 
@@ -83,7 +83,7 @@ model = dict(
     nerf_sample_view=6,
     squeeze_scale=4,
     nerf_density=True,
-    use_rendering=False,
+    use_rendering=True,
     test_rendering=False,
     loss_voxel_ce_weight=1.0,
     loss_voxel_sem_scal_weight=1.0,
@@ -124,10 +124,10 @@ model = dict(
         base_channel=16,
         out_channel=numC_Trans,
         norm_cfg=dict(type='SyncBN', requires_grad=True),
-        sparse_shape_xyz=[2048, 2048, 160],  # hardcode, xy size follow centerpoint
+        sparse_shape_xyz=[800, 800, 64],  # hardcode, xy size follow centerpoint
         ),
     occ_fuser=dict(
-        type='ConvFuser',
+        type='BiFuser',
         in_channels=numC_Trans,
         out_channels=numC_Trans,
     ),
