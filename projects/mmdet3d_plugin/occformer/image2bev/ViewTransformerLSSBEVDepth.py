@@ -149,14 +149,14 @@ class ViewTransformerLiftSplatShoot(BaseModule):
         
         return points
 
-    def get_frustum(self, rots, trans, intrins, post_rots, post_trans, bda):
+    def get_frustum(self, rots, trans, intrins, post_rots, post_trans, bda, scale):
         """Determine the (x,y,z) locations (in the ego frame)
         of the points in the point cloud.
         Returns B x N x D x H/downsample x W/downsample x 3
         """
         B, N, _ = trans.shape
         ogfH, ogfW = self.data_config['input_size']
-        fH, fW = ogfH // 8, ogfW // 8
+        fH, fW = ogfH // scale, ogfW // scale
         ds = torch.arange(*self.grid_config['dbound'], dtype=torch.float).view(-1, 1, 1).expand(-1, fH, fW)
         D, _, _ = ds.shape
         xs = torch.linspace(0, ogfW - 1, fW, dtype=torch.float).view(1, 1, fW).expand(D, fH, fW)

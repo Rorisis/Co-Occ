@@ -46,6 +46,7 @@ class NeRFOcc(BEVDepth):
                 rendering_test=False,
                 disable_loss_depth=False,
                 empty_idx=0,
+                scale=16,
                 white_bkgd=True,
                 occ_fuser=None,
                 occ_encoder_backbone=None,
@@ -81,6 +82,7 @@ class NeRFOcc(BEVDepth):
         self.semantic_encoder = builder.build_backbone(semantic_encoder)
         self.semantic_neck = builder.build_neck(semantic_neck)
 
+        self.scale = scale
         self.voxel_size = voxel_size
         self.n_voxels = n_voxels
         self.aabb = aabb
@@ -426,8 +428,8 @@ class NeRFOcc(BEVDepth):
             depth_values = (weights * t_mids[..., None, None]).sum(dim=1) + background_depth
             depth_values = depth_values.unsqueeze(1)
     
-            rgb_values = F.interpolate(rgb_values, scale_factor=8)
-            depth_values = F.interpolate(depth_values, scale_factor=8).squeeze(1)
+            rgb_values = F.interpolate(rgb_values, scale_factor=self.scale)
+            depth_values = F.interpolate(depth_values, scale_factor=self.scale).squeeze(1)
             # depth_values = self.upsample(depth_values)
             # print("color:", rgb_values.shape, "depth:", depth_values.shape)
             # print(img_inputs[0][0].shape, img_inputs[-7][0].shape)

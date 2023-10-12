@@ -44,7 +44,7 @@ data_config={
     'crop_h': (0.0, 0.0),
     'resize_test': 0.00,
 }
-
+scale = 16
 grid_config = {
     'xbound': [point_cloud_range[0], point_cloud_range[3], voxel_x * lss_downsample[0]],
     'ybound': [point_cloud_range[1], point_cloud_range[4], voxel_y * lss_downsample[1]],
@@ -83,6 +83,7 @@ model = dict(
     depth_supervise=True,
     use_nerf_mask=True,
     nerf_sample_view=6,
+    scale=scale,
     squeeze_scale=4,
     nerf_density=True,
     use_rendering=True,
@@ -112,6 +113,7 @@ model = dict(
         type='ViewTransformerLiftSplatShootVoxel',
         loss_depth_weight=1.0,
         loss_depth_type='bce',
+        scale=scale,
         grid_config=grid_config,
         data_config=data_config,
         numC_Trans=numC_Trans,

@@ -49,11 +49,11 @@ class BiFuser(nn.Module):
             nn.ReLU(True),
             )
 
-        # self.knn_enc = nn.Sequential(
-        #     nn.Linear(in_channels, out_channels),
-        #     # nn.BatchNorm1d(self.in_channels_2D[i]),
-        #     nn.ReLU()
-        #     )
+        self.knn_enc = nn.Sequential(
+            nn.Linear(in_channels, out_channels),
+            # nn.BatchNorm1d(self.in_channels_2D[i]),
+            nn.ReLU()
+            )
 
     def fps_NN_fast(self, query, key, fps_num, radius, max_cluster_samples, dist_thresh):
         """Efficient NN search for huge amounts of query and key (suppose queries are redundant)
@@ -118,18 +118,24 @@ class BiFuser(nn.Module):
         nearest_img_coords = self.fps_NN_fast(inds_pts.contiguous(), inds_img.contiguous(), fps_num=2048, radius=6, max_cluster_samples=200, dist_thresh=13.3)
         indices = inds_img[nearest_img_coords]
         nearest_img_feats = img_voxel_feats[indices[:, 0], indices[:, 1], indices[:, 2], indices[:, 3]].contiguous()
+        nearest_img_feats = self.knn_enc(nearest_img_feats) * selected_pts_feats
         # nearest_img_feats = self.knn_enc(nearest_img_feats)
         selected_img_feats = img_voxel_feats[inds_img[:, 0], inds_img[:, 1], inds_img[:, 2], inds_img[:, 3]].contiguous()
         nearest_pts_coords = self.fps_NN_fast(inds_img.contiguous(), inds_pts.contiguous(), fps_num=2048, radius=6, max_cluster_samples=200, dist_thresh=13.3)
         indices_pts = inds_pts[nearest_pts_coords]
         nearest_pts_feats = pts_voxel_feats[indices_pts[:, 0], indices_pts[:, 1], indices_pts[:, 2], indices_pts[:, 3]].contiguous()
-        fused_feats_sparse1 = torch.cat([selected_pts_feats, nearest_img_feats], dim=-1)
-        fused_feats_sparse2 = torch.cat([selected_img_feats, nearest_pts_feats], dim=-1)
-        fused_feats = torch.zeros(B, H, W, L, C * 2).to(img_voxel_feats.device)
-        fused_feats[inds_pts[:, 0], inds_pts[:, 1], inds_pts[:, 2], inds_pts[:, 3]] = fused_feats_sparse1
-        fused_feats[inds_img[:, 0], inds_img[:, 1], inds_img[:, 2], inds_img[:, 3]] = fused_feats_sparse2
+        nearest_pts_feats = self.knn_enc(nearest_pts_feats) * selected_img_feats
 
-        all_feats = torch.cat([img_voxel_feats, pts_voxel_feats, fused_feats], dim=-1)
+        fused_feats_img = torch.zeros(B, H, W, L, C).to(img_voxel_feats.device)
+        fused_feats_img[inds_pts[:, 0], inds_pts[:, 1], inds_pts[:, 2], inds_pts[:, 3]] = nearest_img_feats
+        
+
+        fused_feats_pts = torch.zeros(B, H, W, L, C).to(img_voxel_feats.device)
+        fused_feats_pts[inds_img[:, 0], inds_img[:, 1], inds_img[:, 2], inds_img[:, 3]] = nearest_pts_feats
+
+        # print("fused_pts:", fused_feats_pts.shape, "fused_img:", fused_feats_img.shape, "minmax", fused_feats_img.max(), fused_feats_pts.max())
+
+        all_feats = torch.cat([img_voxel_feats, pts_voxel_feats, fused_feats_img, fused_feats_pts], dim=-1)
         output_feats = self.con_enc(all_feats.permute(0, 4, 1, 2, 3))
         return output_feats
         #! 

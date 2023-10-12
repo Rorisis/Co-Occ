@@ -15,6 +15,7 @@ class ViewTransformerLiftSplatShootVoxel(ViewTransformerLSSBEVDepth):
     def __init__(
             self, 
             loss_depth_weight,
+            scale=16,
             point_cloud_range=None,
             loss_depth_type='bce', 
             **kwargs,
@@ -22,6 +23,7 @@ class ViewTransformerLiftSplatShootVoxel(ViewTransformerLSSBEVDepth):
         super(ViewTransformerLiftSplatShootVoxel, self).__init__(loss_depth_weight=loss_depth_weight, **kwargs)
         
         self.loss_depth_type = loss_depth_type
+        self.scale = scale
         self.cam_depth_range = self.grid_config['dbound']
         self.point_cloud_range = point_cloud_range
         self.constant_std = 0.5
@@ -136,6 +138,6 @@ class ViewTransformerLiftSplatShootVoxel(ViewTransformerLSSBEVDepth):
 
         # Splat
         geom = self.get_geometry(rots, trans, intrins, post_rots, post_trans, bda)
-        frustum = self.get_frustum(rots, trans, intrins, post_rots, post_trans, bda)
+        frustum = self.get_frustum(rots, trans, intrins, post_rots, post_trans, bda, self.scale)
         bev_feat = self.voxel_pooling(geom, volume)
         return bev_feat, depth_prob, frustum
