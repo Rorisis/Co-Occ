@@ -114,7 +114,7 @@ class NeRFOcc(BEVDepth):
             self.color_encoder = builder.build_neck(color_encoder)
             # self.color_neck = builder.build_neck(color_neck)
             self.density_head = torch.nn.Linear(256, 1)
-            self.color_head = MLP(input_dim=256, output_dim=3,net_depth=3,skip_layer=1)#torch.nn.Linear(256, 3)#MLP(input_dim=256, output_dim=3,net_depth=3,skip_layer=0)
+            self.color_head = MLP(input_dim=256, output_dim=3,net_depth=3,skip_layer=None)#torch.nn.Linear(256, 3)#MLP(input_dim=256, output_dim=3,net_depth=3,skip_layer=0)
         
         coord_x, coord_y, coord_z = torch.meshgrid(torch.arange(self.n_voxels[0]),torch.arange(self.n_voxels[1]), torch.arange(self.n_voxels[2]))
         self.sample_coordinates = torch.stack([coord_x, coord_y, coord_z], dim=0)
