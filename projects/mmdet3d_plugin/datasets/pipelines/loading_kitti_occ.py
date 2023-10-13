@@ -47,8 +47,8 @@ class LoadSemKittiAnnotation():
         else:
             bda_rot = torch.eye(4).float()
         
-        imgs, rots, trans, intrins, post_rots, post_trans, gt_depths, sensor2sensors = results['img_inputs']
-        results['img_inputs'] = (imgs, rots, trans, intrins, post_rots, post_trans, bda_rot, gt_depths, sensor2sensors)
+        imgs, rots, trans, intrins, post_rots, post_trans, gt_depths, sensor2sensors, img_size = results['img_inputs']
+        results['img_inputs'] = (imgs, rots, trans, intrins, post_rots, post_trans, bda_rot, gt_depths, sensor2sensors, img_size)
         results['gt_occ'] = gt_occ.long()
         
         return results

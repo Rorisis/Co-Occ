@@ -5,6 +5,8 @@ import os
 from mmdet.datasets import DATASETS
 from mmdet3d.datasets import SemanticKITTIDataset
 
+from projects.mmdet3d_plugin.utils.formating import cm_to_ious, format_SC_results, format_SSC_results
+
 @DATASETS.register_module()
 class CustomSemanticKITTILssDataset(SemanticKITTIDataset):
     r"""NuScenes Dataset.
@@ -181,7 +183,7 @@ class CustomSemanticKITTILssDataset(SemanticKITTIDataset):
             lidar2img_rts.append(info['proj_matrix_{}'.format(int(cam_type))])
             cam_intrinsics.append(info['P{}'.format(int(cam_type))])
             lidar2cam_rts.append(info['T_velo_2_cam'])
-
+        print("info", info, "images_path", image_paths)
         input_dict.update(
             dict(
                 img_filename=image_paths,
@@ -194,6 +196,44 @@ class CustomSemanticKITTILssDataset(SemanticKITTIDataset):
         input_dict['gt_occ'] = self.get_ann_info(index)
 
         return input_dict
+    
+    def evaluate_ssc(self, results, logger=None, **kwargs):
+        # though supported, it can only be evaluated by the sparse-LiDAR-generated occupancy in nusc
+        
+        eval_results = {}
+        
+        ''' evaluate SC '''
+        evaluation_semantic = sum(results['SC_metric'])
+        ious = cm_to_ious(evaluation_semantic)
+        res_table, res_dic = format_SC_results(ious[1:], return_dic=True)
+        for key, val in res_dic.items():
+            eval_results['SC_{}'.format(key)] = val
+        if logger is not None:
+            logger.info('SC Evaluation')
+            logger.info(res_table)
+        
+        ''' evaluate SSC '''
+        evaluation_semantic = sum(results['SSC_metric'])
+        ious = cm_to_ious(evaluation_semantic)
+        res_table, res_dic = format_SSC_results(ious, return_dic=True)
+        for key, val in res_dic.items():
+            eval_results['SSC_{}'.format(key)] = val
+        if logger is not None:
+            logger.info('SSC Evaluation')
+            logger.info(res_table)
+        
+        ''' evaluate SSC_fine '''
+        if 'SSC_metric_fine' in results.keys():
+            evaluation_semantic = sum(results['SSC_metric_fine'])
+            ious = cm_to_ious(evaluation_semantic)
+            res_table, res_dic = format_SSC_results(ious, return_dic=True)
+            for key, val in res_dic.items():
+                eval_results['SSC_fine_{}'.format(key)] = val
+            if logger is not None:
+                logger.info('SSC fine Evaluation')
+                logger.info(res_table)
+
+        return eval_results
 
     def evaluate(self, results, logger=None, **kwargs):
         if results is None:
@@ -247,8 +287,9 @@ class CustomSemanticKITTILssDataset(SemanticKITTIDataset):
         eval_results = {}
         for key, val in res_dic.items():
             eval_results['semkitti_{}'.format(key)] = round(val * 100, 2)
-        
+
         eval_results['semkitti_combined_IoU'] = eval_results['semkitti_SC_IoU'] + eval_results['semkitti_SSC_mIoU']
+        eval_results.update(self.evaluate_ssc)
         
         if logger is not None:
             logger.info('SemanticKITTI SSC Evaluation')

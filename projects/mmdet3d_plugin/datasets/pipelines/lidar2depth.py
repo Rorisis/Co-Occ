@@ -44,6 +44,7 @@ class CreateDepthFromLiDAR(object):
             seq_id, _, filename = img_filename.split("/")[-3:]
             lidar_filename = os.path.join(self.data_root, 'data_velodyne/velodyne/sequences', 
                             seq_id, "velodyne", filename.replace(".png", ".bin"))
+            print("img_filename:", img_filename, "seq_id", seq_id, "lidar_filename", lidar_filename)
             lidar_points = np.fromfile(lidar_filename, dtype=np.float32).reshape(-1, 4)
             lidar_points = torch.from_numpy(lidar_points[:, :3]).float()
         else:

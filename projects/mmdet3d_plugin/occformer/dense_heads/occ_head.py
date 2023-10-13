@@ -313,8 +313,9 @@ class OccHead(nn.Module):
                             loss_batch_dict[k] = loss_batch_dict[k] + v
                 for k, v in loss_batch_dict.items():
                     loss_dict[k] = v / len(output_coords_fine)
-        losses_lidarseg = self.forward_lidarseg(output_voxels[0], target_points, img_metas)
-        loss_dict.update(losses_lidarseg)
+        if target_points:
+            losses_lidarseg = self.forward_lidarseg(output_voxels[0], target_points, img_metas)
+            loss_dict.update(losses_lidarseg)
             
         return loss_dict
 

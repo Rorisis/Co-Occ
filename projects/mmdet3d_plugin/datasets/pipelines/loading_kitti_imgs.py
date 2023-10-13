@@ -132,10 +132,11 @@ class LoadMultiViewImageFromFiles_SemanticKitti(object):
         
         results['canvas'] = np.array(img)[None]
         
-        img = self.normalize_img(img, img_norm_cfg=self.img_norm_cfg)
+        # img = self.normalize_img(img, img_norm_cfg=self.img_norm_cfg)
+        img = torch.tensor(np.array(img)).float().permute(2, 0, 1).contiguous()/255.
         depth = torch.zeros(1)
         
-        res = [img, rot, tran, intrin, post_rot, post_tran, depth, cam2lidar]
+        res = [img, rot, tran, intrin, post_rot, post_tran, depth, cam2lidar, img.shape[-2:]]
         res = [x[None] for x in res]
         
         return tuple(res)
