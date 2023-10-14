@@ -442,7 +442,7 @@ class NeRFOcc(BEVDepth):
             depth_values = depth_values[fg_mask]
             losses["loss_render_depth"] = F.smooth_l1_loss(depth_values, gt_depths, reduction='none').mean()
             if pts_feats != None:
-                rendered_opacity = F.interpolate(weights, scale_factor=16).sum(dim=1)
+                rendered_opacity = F.interpolate(weights, scale_factor=self.scale).sum(dim=1)
                 gt_opacity = (gt_depths != 0).to(gt_depths.dtype)
                 losses["loss_opacity"] = torch.mean(-gt_opacity * torch.log(rendered_opacity + 1e-6) - (1 - gt_opacity) * torch.log(1 - rendered_opacity +1e-6)) # BCE loss
             
