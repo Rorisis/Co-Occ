@@ -112,7 +112,7 @@ model = dict(
     ),
     img_neck=dict(
         type='SECONDFPN',
-        in_channels=[256, 512, 1024, 2048],
+        in_channels=[96, 192, 384, 768],
         upsample_strides=[0.25, 0.5, 1, 2],
         out_channels=[128, 128, 128, 128]),
     img_view_transformer=dict(
