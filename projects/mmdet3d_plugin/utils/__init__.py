@@ -11,4 +11,4 @@ from .render_ray import render_rays, sample_along_camera_ray, get_ray_direction_
 from .save_rendered_img import save_rendered_img, compute_psnr
 from .torch_moe_layer_nobatch import moe_layer, SingleExpert, Mlp
 from .moe import MoE
-# from .transformer import PatchEmbed, PatchMerging
+from .transformer import PatchEmbed, PatchMerging

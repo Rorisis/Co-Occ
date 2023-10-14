@@ -1,7 +1,8 @@
 # Copyright (c) OpenMMLab. All rights reserved.
 import math
 import warnings
-from typing import Optional, Sequence, Tuple, Union
+
+from typing import List, Optional, Sequence, Tuple, Union
 
 import torch
 import torch.nn.functional as F
@@ -12,7 +13,14 @@ from mmengine.model import BaseModule, ModuleList
 from mmengine.utils import to_2tuple
 from torch import Tensor, nn
 
-from mmdet.utils import OptConfigType, OptMultiConfig
+# from mmdet.utils import OptConfigType, OptMultiConfig
+from mmengine.config import ConfigDict
+
+
+ConfigType = Union[ConfigDict, dict]
+OptConfigType = Optional[ConfigType]
+MultiConfig = Union[ConfigType, List[ConfigType]]
+OptMultiConfig = Optional[MultiConfig]
 
 
 def nlc_to_nchw(x: Tensor, hw_shape: Sequence[int]) -> Tensor:

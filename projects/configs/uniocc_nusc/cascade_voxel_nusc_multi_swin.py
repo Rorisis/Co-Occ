@@ -94,7 +94,7 @@ model = dict(
     loss_voxel_lovasz_weight=1.0,
     img_backbone=dict(
         type='SwinTransformer',
-        embed_dim=128,
+        embed_dims=96,
         depths=[2, 2, 6, 2],
         num_heads=[3, 6, 12, 24],
         window_size=7,
@@ -105,13 +105,14 @@ model = dict(
         attn_drop_rate=0.,
         drop_path_rate=0.3,
         patch_norm=True,
+        with_cp=False,
         out_indices=(0, 1, 2, 3),
-        convert_weights=False,
+        convert_weights=True,
         init_cfg=dict(type='Pretrained', checkpoint='https://github.com/SwinTransformer/storage/releases/download/v1.0.0/swin_tiny_patch4_window7_224.pth'),
     ),
     img_neck=dict(
         type='SECONDFPN',
-        in_channels=[256, 512, 1024, 2048],
+        in_channels=[96, 192, 384, 768],
         upsample_strides=[0.25, 0.5, 1, 2],
         out_channels=[128, 128, 128, 128]),
     img_view_transformer=dict(
