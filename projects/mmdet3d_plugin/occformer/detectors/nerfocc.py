@@ -409,7 +409,11 @@ class NeRFOcc(BEVDepth):
             
             for i in range(gemo.shape[0]):
                 dir_coord_2d = dir_coord_2d * img_inputs[0].shape[-1] // gemo.shape[-2] #img: b, n, c, h, w gemo: b, d, h, w, c
-                dir_coord_3d = unproject_image_to_rect(dir_coord_2d, torch.cat((cam_intrins[i], torch.zeros(3, 1).to(cam_intrins.device)), dim=1).float())
+                # print(cam_intrins[i].shape)
+                if cam_intrins.shape[-1] == 4:
+                    dir_coord_3d = unproject_image_to_rect(dir_coord_2d, torch.cat((cam_intrins[i][:3, :3], torch.zeros(3, 1).to(cam_intrins.device)), dim=1).float())
+                else:
+                    dir_coord_3d = unproject_image_to_rect(dir_coord_2d, torch.cat((cam_intrins[i], torch.zeros(3, 1).to(cam_intrins.device)), dim=1).float())
                 direction = dir_coord_3d[:, :, 1, :] - dir_coord_3d[:, :, 0, :]
                 direction /= img_inputs[0].shape[-1] // gemo.shape[-2]
                 directions.append(direction)
@@ -445,7 +449,11 @@ class NeRFOcc(BEVDepth):
                 rendered_opacity = F.interpolate(weights, scale_factor=self.scale).sum(dim=1)
                 gt_opacity = (gt_depths != 0).to(gt_depths.dtype)
                 losses["loss_opacity"] = torch.mean(-gt_opacity * torch.log(rendered_opacity + 1e-6) - (1 - gt_opacity) * torch.log(1 - rendered_opacity +1e-6)) # BCE loss
-            
+
+                # rand_indices = np.random.choice(range(points[0].shape[0]), self.N_rand)
+                # selected_lidar = points[0][rand_indices][:, :3]
+                # lidar_density = F.grid_sample(density_voxel[0].permute(0,1,4,3,2), selected_lidar.reshape(1,1,1,self.N_rand,3), mode='bilinear', padding_mode='zeros', align_corners=False)
+                # losses['loss_density'] = F.mse_loss(lidar_density.reshape(self.N_rand, -1), 1e2)
             
             
             # for b in range(img_inputs[0].shape[0]):

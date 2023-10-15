@@ -23,14 +23,18 @@ def coarse_to_fine_coordinates(coarse_cor, ratio, topk=30000):
 
 
 def project_points_on_img(points, rots, trans, intrins, post_rots, post_trans, bda_mat, pts_range,
-                        W_img, H_img, W_occ, H_occ, D_occ):
+                        W_img, H_img, W_occ, H_occ, D_occ, data_type='nus'):
     with torch.no_grad():
         voxel_size = ((pts_range[3:] - pts_range[:3]) / torch.tensor([W_occ-1, H_occ-1, D_occ-1])).to(points.device)
         points = points * voxel_size[None, None] + pts_range[:3][None, None].to(points.device)
 
+        if data_type == 'nus':
         # project 3D point cloud (after bev-aug) onto multi-view images for corresponding 2D coordinates
-        inv_bda = bda_mat.inverse()
-        points = (inv_bda @ points.unsqueeze(-1)).squeeze(-1)
+            inv_bda = bda_mat.inverse()
+            points = (inv_bda @ points.unsqueeze(-1)).squeeze(-1)
+        else: 
+            inv_bda = bda_mat.inverse()
+            points = (inv_bda[:, :3, :3] @ points.unsqueeze(-1)).squeeze(-1)
         
         # from lidar to camera
         points = points.view(-1, 1, 3)
@@ -38,8 +42,13 @@ def project_points_on_img(points, rots, trans, intrins, post_rots, post_trans, b
         inv_rots = rots.inverse().unsqueeze(0)
         points = (inv_rots @ points.unsqueeze(-1))
         
+        if data_type == 'nus':
         # from camera to raw pixel
-        points = (intrins.unsqueeze(0) @ points).squeeze(-1)
+            points = (intrins.unsqueeze(0) @ points).squeeze(-1)
+        else:
+            points = torch.cat((points, torch.ones((points.shape[0], points.shape[1], trans.shape[1], 1, 1)).to(points.device)), dim=-2)
+            points = (intrins.unsqueeze(0) @ points).squeeze(-1)
+
         points_d = points[..., 2:3]
         points_uv = points[..., :2] / (points_d + 1e-5)
         

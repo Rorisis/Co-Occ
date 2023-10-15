@@ -14,7 +14,7 @@ class CustomSemanticKITTILssDataset(SemanticKITTIDataset):
     This datset only add camera intrinsics and extrinsics to the results.
     """
 
-    def __init__(self, split, camera_used, occ_size, pc_range, 
+    def __init__(self, split, camera_used, lidar_used, occ_size, pc_range, 
                  load_continuous=False, *args, **kwargs):
         
         self.occ_size = occ_size
@@ -22,6 +22,7 @@ class CustomSemanticKITTILssDataset(SemanticKITTIDataset):
         self.camera_map = {'left': '2', 'right': '3'}
         self.camera_used = [self.camera_map[camera] for camera in camera_used]
         self.multi_scales = ["1_1", "1_2", "1_4", "1_8", "1_16"]
+        self.lidar_used = lidar_used
         
         self.load_continuous = load_continuous
         self.splits = {
@@ -183,7 +184,7 @@ class CustomSemanticKITTILssDataset(SemanticKITTIDataset):
             lidar2img_rts.append(info['proj_matrix_{}'.format(int(cam_type))])
             cam_intrinsics.append(info['P{}'.format(int(cam_type))])
             lidar2cam_rts.append(info['T_velo_2_cam'])
-        print("info", info, "images_path", image_paths)
+        
         input_dict.update(
             dict(
                 img_filename=image_paths,
@@ -192,6 +193,11 @@ class CustomSemanticKITTILssDataset(SemanticKITTIDataset):
                 lidar2cam=lidar2cam_rts,
             ))
         
+        if self.lidar_used:
+            seq_id, _, filename = image_paths[0].split("/")[-3:]
+            pts_filename = os.path.join(self.data_root, 'dataset/sequences', 
+                            seq_id, "velodyne", filename.replace(".png", ".bin"))
+            input_dict["pts_filename"] = pts_filename
         # gt_occ is None for test-set
         input_dict['gt_occ'] = self.get_ann_info(index)
 

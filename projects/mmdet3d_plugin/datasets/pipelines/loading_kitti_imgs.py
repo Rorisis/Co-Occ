@@ -95,51 +95,89 @@ class LoadMultiViewImageFromFiles_SemanticKitti(object):
         return resize, resize_dims, crop, flip, rotate
 
     def get_inputs(self, results, flip=None, scale=None):
+        imgs = []
+        rots = []
+        trans = []
+        intrins = []
+        post_rots = []
+        post_trans = []
+        gt_depths = []
+        sensor2sensors = []
+        denorm_imgs = []
+        intrin_nerf = []
+        c2ws = []
         # load the monocular image for semantic kitti
         img_filenames = results['img_filename']
-        assert len(img_filenames) == 1
-        img_filenames = img_filenames[0]
+        # assert len(img_filenames) == 1
         
-        img = mmcv.imread(img_filenames, 'unchanged')
-        results['raw_img'] = img
-        img = Image.fromarray(img)
-        
-        # perform image-view augmentation
-        post_rot = torch.eye(2)
-        post_tran = torch.zeros(2)
-        
-        img_augs = self.sample_augmentation(H=img.height, W=img.width, 
-                        flip=flip, scale=scale)
+        for i in range(len(img_filenames)):
+            img_filename = img_filenames[i]
+            
+            img = mmcv.imread(img_filename, 'unchanged')
+            results['raw_img'] = img
+            img = Image.fromarray(img)
+            
+            # perform image-view augmentation
+            post_rot = torch.eye(2)
+            post_tran = torch.zeros(2)
+            
+            img_augs = self.sample_augmentation(H=img.height, W=img.width, 
+                            flip=flip, scale=scale)
 
-        resize, resize_dims, crop, flip, rotate = img_augs
-        img, post_rot2, post_tran2 = \
-            self.img_transform(img, post_rot, post_tran, resize=resize, 
-                resize_dims=resize_dims, crop=crop,flip=flip, rotate=rotate)
+            resize, resize_dims, crop, flip, rotate = img_augs
+            img, post_rot2, post_tran2 = \
+                self.img_transform(img, post_rot, post_tran, resize=resize, 
+                    resize_dims=resize_dims, crop=crop,flip=flip, rotate=rotate)
 
-        post_tran = torch.zeros(3)
-        post_rot = torch.eye(3)
-        post_tran[:2] = post_tran2
-        post_rot[:2, :2] = post_rot2
+            post_tran = torch.zeros(3)
+            post_rot = torch.eye(3)
+            post_tran[:2] = post_tran2
+            post_rot[:2, :2] = post_rot2
+            
+            # intrins
+            intrin = torch.Tensor(results['cam_intrinsic'][0])
+            
+            # extrins
+            lidar2cam = torch.Tensor(results['lidar2cam'][0])
+            cam2lidar = lidar2cam.inverse()
+            rot = cam2lidar[:3, :3]
+            tran = cam2lidar[:3, 3]
+            
+            results['canvas'] = np.array(img)[None]
+            
+            # img = self.normalize_img(img, img_norm_cfg=self.img_norm_cfg)
+            img = torch.tensor(np.array(img)).float().permute(2, 0, 1).contiguous()/255.
+            depth = torch.zeros(1)
+
+            imgs.append(img)
+            intrins.append(intrin)
+            rots.append(rot)
+            trans.append(tran)
+            post_rots.append(post_rot)
+            post_trans.append(post_tran)
+            gt_depths.append(torch.zeros(1))
+            denorm_imgs.append(torch.zeros(1))
+            intrin_nerf.append(torch.zeros(1))
+            c2ws.append(torch.zeros(1))
+            # only placeholder currently, to be used for video-based methods
+            sensor2sensors.append(cam2lidar)
         
-        # intrins
-        intrin = torch.Tensor(results['cam_intrinsic'][0])
+        imgs = torch.stack(imgs)
+        rots = torch.stack(rots)
+        trans = torch.stack(trans)
+        intrins = torch.stack(intrins)
+        post_rots = torch.stack(post_rots)
+        post_trans = torch.stack(post_trans)
+        gt_depths = torch.stack(gt_depths)
+        denorm_imgs = torch.stack(denorm_imgs)
+        intrin_nerf = torch.stack(intrin_nerf)
+        c2ws = torch.stack(c2ws)
+        sensor2sensors = torch.stack(sensor2sensors)
         
-        # extrins
-        lidar2cam = torch.Tensor(results['lidar2cam'][0])
-        cam2lidar = lidar2cam.inverse()
-        rot = cam2lidar[:3, :3]
-        tran = cam2lidar[:3, 3]
+        # res = [imgs, rots, trans, intrins, post_rots, post_trans, gt_depths, sensor2sensors, imgs.shape[-2:]]
+        # res = [x[None] for x in res]
         
-        results['canvas'] = np.array(img)[None]
-        
-        # img = self.normalize_img(img, img_norm_cfg=self.img_norm_cfg)
-        img = torch.tensor(np.array(img)).float().permute(2, 0, 1).contiguous()/255.
-        depth = torch.zeros(1)
-        
-        res = [img, rot, tran, intrin, post_rot, post_tran, depth, cam2lidar, img.shape[-2:]]
-        res = [x[None] for x in res]
-        
-        return tuple(res)
+        return imgs, rots, trans, intrins, post_rots, post_trans, gt_depths, sensor2sensors, denorm_imgs, intrin_nerf, c2ws, imgs.shape[-2:]
 
     def __call__(self, results):
         results['img_inputs'] = self.get_inputs(results)

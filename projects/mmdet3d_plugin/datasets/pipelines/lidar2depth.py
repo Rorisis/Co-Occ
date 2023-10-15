@@ -22,7 +22,7 @@ class CreateDepthFromLiDAR(object):
         
         # the intrinsic matrix is [4, 4] for kitti and [3, 3] for nuscenes 
         if intrins.shape[-1] == 4:
-            points = torch.cat((points, torch.ones((points.shape[0], 1, 1, 1))), dim=2)
+            points = torch.cat((points, torch.ones((points.shape[0], trans.shape[0], 1, 1))), dim=2)
             points = (intrins.unsqueeze(0) @ points).squeeze(-1)
         else:
             points = (intrins.unsqueeze(0) @ points).squeeze(-1)
@@ -42,9 +42,8 @@ class CreateDepthFromLiDAR(object):
         if self.dataset == 'kitti':
             img_filename = results['img_filename'][0]
             seq_id, _, filename = img_filename.split("/")[-3:]
-            lidar_filename = os.path.join(self.data_root, 'data_velodyne/velodyne/sequences', 
+            lidar_filename = os.path.join(self.data_root, 'dataset/sequences', 
                             seq_id, "velodyne", filename.replace(".png", ".bin"))
-            print("img_filename:", img_filename, "seq_id", seq_id, "lidar_filename", lidar_filename)
             lidar_points = np.fromfile(lidar_filename, dtype=np.float32).reshape(-1, 4)
             lidar_points = torch.from_numpy(lidar_points[:, :3]).float()
         else:

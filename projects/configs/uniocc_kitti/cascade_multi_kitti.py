@@ -38,7 +38,7 @@ data_config = {
     'resize_test': 0.00,
 }
 
-scale = 4
+scale = 16
 grid_config = {
     'xbound': [point_cloud_range[0], point_cloud_range[3], voxel_x * lss_downsample[0]],
     'ybound': [point_cloud_range[1], point_cloud_range[4], voxel_y * lss_downsample[1]],
@@ -57,7 +57,7 @@ voxel_out_channel_half = 128
 norm_cfg = dict(type='GN', num_groups=32, requires_grad=True)
 
 empty_idx = 0  # noise 0-->255
-num_cls = 17  # 0 free, 1-16 obj
+num_cls = 20  # 0 free, 1-16 obj
 visible_mask = False
 
 cascade_ratio = 2
@@ -86,24 +86,33 @@ model = dict(
     loss_voxel_geo_scal_weight=1.0,
     loss_voxel_lovasz_weight=1.0,
     img_backbone=dict(
-        type='CustomEfficientNet',
-        arch='b7',
-        drop_path_rate=0.2,
-        frozen_stages=0,
-        norm_eval=False,
-        out_indices=(2, 3, 4, 5, 6),
-        with_cp=True,
-        init_cfg=dict(type='Pretrained', prefix='backbone', checkpoint='ckpts/efficientnet-b7_3rdparty_8xb32-aa_in1k_20220119-bf03951c.pth'),
+        type='SwinTransformer',
+        embed_dims=96,
+        depths=[2, 2, 6, 2],
+        num_heads=[3, 6, 12, 24],
+        window_size=7,
+        mlp_ratio=4,
+        qkv_bias=True,
+        qk_scale=None,
+        drop_rate=0.,
+        attn_drop_rate=0.,
+        drop_path_rate=0.3,
+        patch_norm=True,
+        with_cp=False,
+        out_indices=(0, 1, 2, 3),
+        convert_weights=True,
+        init_cfg=dict(type='Pretrained', checkpoint='ckpts/swin_tiny_patch4_window7_224.pth'),
     ),
     img_neck=dict(
         type='SECONDFPN',
-        in_channels=[48, 80, 224, 640, 2560],
-        upsample_strides=[0.25, 0.5, 1, 2, 2],
-        out_channels=[128, 128, 128, 128, 128]),
+        in_channels=[96, 192, 384, 768],
+        upsample_strides=[0.25, 0.5, 1, 2],
+        out_channels=[128, 128, 128, 128]),
     img_view_transformer=dict(
         type='ViewTransformerLiftSplatShootVoxel',
-        numC_input=640,
+        numC_input=512,
         cam_channels=33,
+        scale = scale,
         loss_depth_weight=1.0,
         grid_config=grid_config,
         data_config=data_config,
@@ -121,7 +130,7 @@ model = dict(
         base_channel=16,
         out_channel=numC_Trans,
         norm_cfg=dict(type='SyncBN', requires_grad=True),
-        sparse_shape_xyz=[800, 800, 64],  # hardcode, xy size follow centerpoint
+        sparse_shape_xyz=[1024, 1024, 128],  # hardcode, xy size follow centerpoint
         ),
     occ_fuser=dict(
         type='BiFuser',
@@ -171,6 +180,7 @@ model = dict(
         in_channels=[voxel_out_channel] * len(voxel_out_indices),
         out_channel=num_cls,
         point_cloud_range=point_cloud_range,
+        data_type='kitti',
         loss_weight_cfg=dict(
             loss_voxel_ce_weight=1.0,
             loss_voxel_sem_scal_weight=1.0,
@@ -195,17 +205,17 @@ bda_aug_conf = dict(
 train_pipeline = [
     dict(type='LoadPointsFromFile',
         coord_type='LIDAR',
-        load_dim=5,
-        use_dim=5),
-    dict(type='LoadPointsFromMultiSweeps',
-        sweeps_num=10),
+        load_dim=4,
+        use_dim=4),
+    # dict(type='LoadPointsFromMultiSweeps',
+    #     sweeps_num=10),
     dict(type='LoadMultiViewImageFromFiles_SemanticKitti', is_train=True,
             data_config=data_config, img_norm_cfg=img_norm_cfg),
     dict(type='CreateDepthFromLiDAR', data_root=data_root, dataset='kitti'),
     dict(type='LoadSemKittiAnnotation', bda_aug_conf=bda_aug_conf, 
             is_train=True, point_cloud_range=point_cloud_range),
     dict(type='OccDefaultFormatBundle3D', class_names=class_names),
-    dict(type='Collect3D', keys=['img_inputs', 'gt_occ'], 
+    dict(type='Collect3D', keys=['img_inputs', 'points', 'gt_occ'], 
             meta_keys=['pc_range', 'occ_size']),
 ]
 
@@ -221,7 +231,7 @@ test_pipeline = [
     dict(type='LoadSemKittiAnnotation', bda_aug_conf=bda_aug_conf,
             is_train=False, point_cloud_range=point_cloud_range),
     dict(type='OccDefaultFormatBundle3D', class_names=class_names, with_label=False), 
-    dict(type='Collect3D', keys=['img_inputs', 'gt_occ'], 
+    dict(type='Collect3D', keys=['img_inputs', 'gt_occ', 'gt_occ'], 
             meta_keys=['pc_range', 'occ_size', 'sequence', 'frame_id', 'raw_img']),
 ]
 
@@ -241,6 +251,7 @@ test_config=dict(
     modality=input_modality,
     split='test',
     camera_used=camera_used,
+    lidar_used=True,
     occ_size=occ_size,
     pc_range=point_cloud_range,
 )
@@ -258,6 +269,7 @@ data = dict(
         test_mode=False,
         split='train',
         camera_used=camera_used,
+        lidar_used=True,
         occ_size=occ_size,
         pc_range=point_cloud_range,
     ),

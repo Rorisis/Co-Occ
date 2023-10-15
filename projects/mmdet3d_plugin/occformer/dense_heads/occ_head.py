@@ -9,7 +9,7 @@ from mmcv.cnn import build_conv_layer, build_norm_layer
 from .lovasz_softmax import lovasz_softmax
 from projects.mmdet3d_plugin.utils import coarse_to_fine_coordinates, project_points_on_img
 from projects.mmdet3d_plugin.utils.nusc_param import nusc_class_frequencies, nusc_class_names
-from projects.mmdet3d_plugin.utils.semkitti import geo_scal_loss, sem_scal_loss, CE_ssc_loss
+from projects.mmdet3d_plugin.utils.semkitti import geo_scal_loss, sem_scal_loss, CE_ssc_loss, semantic_kitti_class_frequencies
 from projects.mmdet3d_plugin.utils import per_class_iu, fast_hist_crop
 
 @HEADS.register_module()
@@ -36,6 +36,7 @@ class OccHead(nn.Module):
         train_cfg=None,
         test_cfg=None,
         padding_mode='border',
+        data_type='nus',
     ):
         super(OccHead, self).__init__()
         
@@ -56,6 +57,7 @@ class OccHead(nn.Module):
 
         self.align_corners = True
         self.padding_mode = padding_mode
+        self.data_type = data_type
 
         if self.cascade_ratio != 1: 
             if self.sample_from_voxel or self.sample_from_img:
@@ -131,9 +133,15 @@ class OccHead(nn.Module):
             
         # loss functions
         if balance_cls_weight:
-            self.class_weights = torch.from_numpy(1 / np.log(nusc_class_frequencies + 0.001))
+            if self.data_type == 'nus':
+                self.class_weights = torch.from_numpy(1 / np.log(nusc_class_frequencies + 0.001))
+            else:
+                self.class_weights = torch.from_numpy(1 / np.log(semantic_kitti_class_frequencies + 0.001))
         else:
-            self.class_weights = torch.ones(17)/17  # FIXME hardcode 17
+            if self.data_type == 'nus':
+                self.class_weights = torch.ones(17)/17  # FIXME hardcode 17
+            else:
+                self.class_weights = torch.ones(20)/20  # FIXME hardcode 17
 
         self.class_names = nusc_class_names    
         self.empty_idx = empty_idx
@@ -219,7 +227,7 @@ class OccHead(nn.Module):
                                     intrins=transform[2][b:b+1], post_rots=transform[3][b:b+1],
                                     post_trans=transform[4][b:b+1], bda_mat=transform[5][b:b+1],
                                     W_img=transform[-1][1][b:b+1], H_img=transform[-1][0][b:b+1],
-                                    pts_range=self.point_cloud_range, W_occ=W_new, H_occ=H_new, D_occ=D_new)  # 1 N n_cam 2
+                                    pts_range=self.point_cloud_range, W_occ=W_new, H_occ=H_new, D_occ=D_new, data_type=self.data_type)  # 1 N n_cam 2
                         for img_feat in img_feats:
                             sampled_img_feat = F.grid_sample(img_feat[b].contiguous(), img_uv.contiguous(), align_corners=True, mode='bilinear', padding_mode='zeros')
                             sampled_img_feat = sampled_img_feat * img_mask.permute(2,1,0)[:,None]
@@ -268,6 +276,7 @@ class OccHead(nn.Module):
         assert torch.isnan(target_voxels).sum().item() == 0
 
         loss_dict = {}
+        # print(output_voxels.shape)
         # igore 255 = ignore noise. we keep the loss bascward for the label=0 (free voxels)
         loss_dict['loss_voxel_ce_{}'.format(tag)] = self.loss_voxel_ce_weight * CE_ssc_loss(output_voxels, target_voxels, self.class_weights.type_as(output_voxels), ignore_index=255)
         loss_dict['loss_voxel_sem_scal_{}'.format(tag)] = self.loss_voxel_sem_scal_weight * sem_scal_loss(output_voxels, target_voxels, ignore_index=255)
