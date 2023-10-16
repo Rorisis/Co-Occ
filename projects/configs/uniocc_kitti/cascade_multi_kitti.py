@@ -11,12 +11,10 @@ img_norm_cfg = dict(
 camera_used = ['left', 'right']
 
 # 20 classes with unlabeled
-class_names = [
-    'unlabeled', 'car', 'bicycle', 'motorcycle', 'truck', 'other-vehicle',
+class_names = ['unlabeled', 'car', 'bicycle', 'motorcycle', 'truck', 'other-vehicle',
     'person', 'bicyclist', 'motorcyclist', 'road', 'parking', 'sidewalk',
     'other-ground', 'building', 'fence', 'vegetation', 'trunk', 'terrain',
-    'pole', 'traffic-sign',
-]
+    'pole', 'traffic-sign',]
 num_class = len(class_names)
 
 point_cloud_range = [0, -25.6, -2, 51.2, 25.6, 4.4]
@@ -38,7 +36,7 @@ data_config = {
     'resize_test': 0.00,
 }
 
-scale = 16
+scale = 4
 grid_config = {
     'xbound': [point_cloud_range[0], point_cloud_range[3], voxel_x * lss_downsample[0]],
     'ybound': [point_cloud_range[1], point_cloud_range[4], voxel_y * lss_downsample[1]],
@@ -69,15 +67,15 @@ model = dict(
     loss_norm=True,
     voxel_size = voxel_size,
     n_voxels = occ_size,
-    aabb=([-51.2, -51.2, -5.0], [51.2, 51.2, 3.0]),
-    near_far_range=[0.2, 50],
+    aabb=([0, -25.6, -2], [51.2, 25.6, 4.4]),
+    near_far_range=[0.2, 51.2],
     N_samples=64,
     N_rand=2048,
     depth_supervise=True,
     use_nerf_mask=True,
     nerf_sample_view=6,
     squeeze_scale=4,
-    scale = scale,
+    scale=scale,
     nerf_density=True,
     use_rendering=True,
     test_rendering=False,
@@ -231,7 +229,7 @@ test_pipeline = [
     dict(type='LoadSemKittiAnnotation', bda_aug_conf=bda_aug_conf,
             is_train=False, point_cloud_range=point_cloud_range),
     dict(type='OccDefaultFormatBundle3D', class_names=class_names, with_label=False), 
-    dict(type='Collect3D', keys=['img_inputs', 'gt_occ', 'gt_occ'], 
+    dict(type='Collect3D', keys=['img_inputs', 'gt_occ'], 
             meta_keys=['pc_range', 'occ_size', 'sequence', 'frame_id', 'raw_img']),
 ]
 

@@ -595,7 +595,7 @@ class NeRFOcc(BEVDepth):
         
         return self.simple_test(img_metas, img_inputs, **kwargs)
     
-    def simple_test(self, img_metas, img=None, points=None, rescale=False, points_occ=None, 
+    def simple_test(self, img_metas, img=None, gt_depths=None, points=None, rescale=False, points_occ=None, 
             gt_occ=None, visible_mask=None):
         
         voxel_feats, img_feats, pts_feats, depth, gemo = self.extract_feat(points, img=img, img_metas=img_metas)

@@ -29,7 +29,7 @@ voxel_y = (point_cloud_range[4] - point_cloud_range[1]) / occ_size[1]
 voxel_z = (point_cloud_range[5] - point_cloud_range[2]) / occ_size[2]
 voxel_size = [voxel_x, voxel_y, voxel_z] # (0.4, 0.4, 0.25)
 
-scale = 4
+scale = 16
 grid_config = {
     'xbound': [point_cloud_range[0], point_cloud_range[3], voxel_x * lss_downsample[0]],
     'ybound': [point_cloud_range[1], point_cloud_range[4], voxel_y * lss_downsample[1]],
@@ -171,7 +171,8 @@ train_pipeline = [
         load_dim=5,
         use_dim=5),
     dict(type='LoadPointsFromMultiSweeps',
-        sweeps_num=10),
+        sweeps_num=10,
+        file_client_args=file_client_args),
     dict(type='LoadMultiViewImageFromFiles_OccFormer', is_train=True,
             data_config=data_config, img_norm_cfg=img_norm_cfg),
     dict(type='CreateDepthFromLiDAR', dataset='nusc'),
@@ -191,7 +192,8 @@ test_pipeline = [
         load_dim=5,
         use_dim=5),
     dict(type='LoadPointsFromMultiSweeps',
-        sweeps_num=10),
+        sweeps_num=10,
+        file_client_args=file_client_args),
     dict(type='LoadMultiViewImageFromFiles_OccFormer', is_train=False,
         data_config=data_config, img_norm_cfg=img_norm_cfg),
     # dict(type='LoadNuscOccupancyAnnotations', is_train=False, grid_size=occ_size,
