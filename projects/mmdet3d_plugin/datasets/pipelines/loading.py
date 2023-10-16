@@ -146,6 +146,7 @@ class LoadOccupancy(object):
 
         imgs, rots, trans, intrins, post_rots, post_trans, gt_depths, sensor2sensors, denorm_imgs, intrin_nerf, c2ws, img_size = results['img_inputs']
         results['img_inputs'] = (imgs, rots, trans, intrins, post_rots, post_trans, bda_rot, gt_depths, sensor2sensors, denorm_imgs, aabb, intrin_nerf, c2ws, img_size)
+        results['gt_depths'] = rots, trans, intrins, post_rots, post_trans, bda_rot, img_size, gt_depths
 
         return results
 
@@ -364,6 +365,7 @@ class LoadOccupancy2(object):
 
         imgs, rots, trans, intrins, post_rots, post_trans, gt_depths, sensor2sensors, denorm_imgs, intrin_nerf, c2ws, img_size = results['img_inputs']
         results['img_inputs'] = (imgs, rots, trans, intrins, post_rots, post_trans, bda_rot, gt_depths, sensor2sensors, denorm_imgs, aabb, intrin_nerf, c2ws, img_size)
+        results['gt_depths'] = rots, trans, intrins, post_rots, post_trans, bda_rot, gt_depths
 
         return results
 

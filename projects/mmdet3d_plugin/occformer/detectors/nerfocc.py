@@ -111,10 +111,12 @@ class NeRFOcc(BEVDepth):
         if use_rendering:
             self.density_encoder = builder.build_neck(density_encoder)
             # self.density_neck = builder.build_neck(density_neck)
-            self.color_encoder = builder.build_neck(color_encoder)
+            if color_encoder:
+                self.color_encoder = builder.build_neck(color_encoder)
+                self.color_head = MLP(input_dim=256, output_dim=3,net_depth=3,skip_layer=None)#torch.nn.Linear(256, 3)#MLP(input_dim=256, output_dim=3,net_depth=3,skip_layer=0)
             # self.color_neck = builder.build_neck(color_neck)
             self.density_head = torch.nn.Linear(256, 1)
-            self.color_head = MLP(input_dim=256, output_dim=3,net_depth=3,skip_layer=None)#torch.nn.Linear(256, 3)#MLP(input_dim=256, output_dim=3,net_depth=3,skip_layer=0)
+            
         
         coord_x, coord_y, coord_z = torch.meshgrid(torch.arange(self.n_voxels[0]),torch.arange(self.n_voxels[1]), torch.arange(self.n_voxels[2]))
         self.sample_coordinates = torch.stack([coord_x, coord_y, coord_z], dim=0)
@@ -327,6 +329,7 @@ class NeRFOcc(BEVDepth):
             gt_occ=None,
             points_occ=None,
             visible_mask=None,
+            gt_depths=None,
             **kwargs,
         ):
 
@@ -361,6 +364,7 @@ class NeRFOcc(BEVDepth):
         # losses['loss_voxel_sem'] = self.loss_voxel_sem_scal_weight * sem_scal_loss(semantic_preds, gt_occ, ignore_index=255)
         # losses['loss_voxel_geo'] = self.loss_voxel_geo_scal_weight * geo_scal_loss(semantic_preds, gt_occ, ignore_index=255, non_empty_idx=self.empty_idx)
         # losses['loss_voxel'] = self.loss_voxel_lovasz_weight * lovasz_softmax(torch.softmax(semantic_preds, dim=1), gt_occ, ignore=255)
+
         transform = img_inputs[1:] if img_inputs is not None else None
         losses_occupancy = self.forward_pts_train(semantic_voxel, gt_occ,
                         points_occ, img_metas, img_feats=img_feats, pts_feats=pts_feats, transform=transform, 
@@ -375,8 +379,11 @@ class NeRFOcc(BEVDepth):
             # gt_depths = []
             
             density_voxel = self.density_encoder(mid_voxel)
-            color_voxel = self.color_encoder(mid_voxel)
+            if img_feats:
+                color_voxel = self.color_encoder(mid_voxel)
             t_to_s, s_to_t = construct_ray_warps(self.near_far_range[0], self.near_far_range[1], uniform=True)
+            if gemo == None:
+                gemo = get_frustum(gt_depths[0], gt_depths[1], gt_depths[2], gt_depths[3], gt_depths[4], gt_depths[5], gt_depths[6], self.scale)
             B,N,D,H,W,_ = gemo.shape
             gemo = gemo.reshape(B*N, D, H, W, 3)
 
@@ -394,28 +401,41 @@ class NeRFOcc(BEVDepth):
             color_features = []
             for i in range(norm_coord_frustum.shape[0]):
                 density_feature = F.grid_sample(density_voxel[0].permute(0,1,4,3,2), norm_coord_frustum[i].unsqueeze(0), mode='bilinear', padding_mode='zeros', align_corners=False).permute(0,4,2,3,1)
-                color_feature = F.grid_sample(color_voxel[0].permute(0,1,4,3,2), norm_coord_frustum[i].unsqueeze(0), mode='bilinear', padding_mode='zeros', align_corners=False).permute(0,4,2,3,1) # b, h, w, d, c
+                if img_feats:
+                    color_feature = F.grid_sample(color_voxel[0].permute(0,1,4,3,2), norm_coord_frustum[i].unsqueeze(0), mode='bilinear', padding_mode='zeros', align_corners=False).permute(0,4,2,3,1) # b, h, w, d, c
+                    color_features .append(color_feature)
                 density_features.append(density_feature)
-                color_features .append(color_feature)
+                
             
             density_features = torch.cat(density_features, dim=0)
-            color_features = torch.cat(color_features, dim=0)
+            if img_feats:
+                color_features = torch.cat(color_features, dim=0)
 
             density = F.relu(self.density_head(density_features))
-            rgb = torch.sigmoid(self.color_head(color_features))
+            if img_feats:
+                rgb = torch.sigmoid(self.color_head(color_features))
             
             directions = []
-            cam_intrins = img_inputs[3][0]
+            if img_feats:
+                cam_intrins = img_inputs[3][0]
+            else:
+                cam_intrins = gt_depths[3][0]
             
             for i in range(gemo.shape[0]):
-                dir_coord_2d = dir_coord_2d * img_inputs[0].shape[-1] // gemo.shape[-2] #img: b, n, c, h, w gemo: b, d, h, w, c
+                if img_feats:
+                    dir_coord_2d = dir_coord_2d * img_inputs[0].shape[-1] // gemo.shape[-2] #img: b, n, c, h, w gemo: b, d, h, w, c
+                else:
+                    dir_coord_2d = dir_coord_2d * gt_depths[-2][0][-1].item() // gemo.shape[-2]
                 # print(cam_intrins[i].shape)
                 if cam_intrins.shape[-1] == 4:
                     dir_coord_3d = unproject_image_to_rect(dir_coord_2d, torch.cat((cam_intrins[i][:3, :3], torch.zeros(3, 1).to(cam_intrins.device)), dim=1).float())
                 else:
                     dir_coord_3d = unproject_image_to_rect(dir_coord_2d, torch.cat((cam_intrins[i], torch.zeros(3, 1).to(cam_intrins.device)), dim=1).float())
                 direction = dir_coord_3d[:, :, 1, :] - dir_coord_3d[:, :, 0, :]
-                direction /= img_inputs[0].shape[-1] // gemo.shape[-2]
+                if img_feats:
+                    direction /= img_inputs[0].shape[-1] // gemo.shape[-2]
+                else:
+                    direction /= gt_depths[-2][0][-1].item() // gemo.shape[-2]
                 directions.append(direction)
 
             directions = torch.stack(directions, dim=0)
@@ -427,20 +447,25 @@ class NeRFOcc(BEVDepth):
             background_rgb = rearrange((1 - acc)[..., None] * torch.tensor([1.0, 1.0, 1.0]).float().cuda(),
                                        'b h w c -> b c h w')
             # print("weights:", weights.shape, "rgb:", rgb.shape, "background_rgb", background_rgb.shape)
-            rgb_values = torch.sum(weights.unsqueeze(1) * rgb.permute(0,-1,1,2,3), dim=2) + background_rgb
+            if img_feats:
+                rgb_values = torch.sum(weights.unsqueeze(1) * rgb.permute(0,-1,1,2,3), dim=2) + background_rgb
             background_depth = (1 - acc) * torch.tensor([1.0]).float().cuda() * self.near_far_range[1]
             depth_values = (weights * t_mids[..., None, None]).sum(dim=1) + background_depth
             depth_values = depth_values.unsqueeze(1)
-    
-            rgb_values = F.interpolate(rgb_values, scale_factor=self.scale)
+
+            if img_feats:
+                rgb_values = F.interpolate(rgb_values, scale_factor=self.scale)
             depth_values = F.interpolate(depth_values, scale_factor=self.scale).squeeze(1)
             # depth_values = self.upsample(depth_values)
             # print("color:", rgb_values.shape, "depth:", depth_values.shape)
             # print(img_inputs[0][0].shape, img_inputs[-7][0].shape)
-            gt_depths = img_inputs[7][0]
-            gt_imgs = img_inputs[0][0]
-
-            losses["loss_color"] = F.mse_loss(rgb_values, gt_imgs)
+            
+            if img_feats:
+                gt_depths = img_inputs[7][0]
+                gt_imgs = img_inputs[0][0]
+                losses["loss_color"] = F.mse_loss(rgb_values, gt_imgs)
+            else: 
+                gt_depths = gt_depths[-1][0]
             fg_mask = torch.max(gt_depths.reshape(gt_depths.shape[0], -1), dim=1).values > 0.0
             gt_depths = gt_depths[fg_mask]
             depth_values = depth_values[fg_mask]
@@ -778,6 +803,52 @@ def fast_hist(pred, label, max_label=18):
     label = copy.deepcopy(label.flatten())
     bin_count = np.bincount(max_label * label.astype(int) + pred, minlength=max_label ** 2)
     return bin_count[:max_label ** 2].reshape(max_label, max_label)
+
+def get_frustum(rots, trans, intrins, post_rots, post_trans, bda, input_size, scale):
+        """Determine the (x,y,z) locations (in the ego frame)
+        of the points in the point cloud.
+        Returns B x N x D x H/downsample x W/downsample x 3
+        """
+        B, N, _ = trans.shape
+        ogfH, ogfW = input_size[0].item(), input_size[1].item()
+        
+        fH, fW = ogfH // scale, ogfW // scale
+        ds = torch.arange(2.0, 58.0, 0.5, dtype=torch.float).view(-1, 1, 1).expand(-1, fH, fW)
+        D, _, _ = ds.shape
+        xs = torch.linspace(0, ogfW - 1, fW, dtype=torch.float).view(1, 1, fW).expand(D, fH, fW)
+        ys = torch.linspace(0, ogfH - 1, fH, dtype=torch.float).view(1, fH, 1).expand(D, fH, fW)
+        
+        # D x H x W x 3
+        frustum = torch.stack((xs, ys, ds), -1)
+        frustum = torch.nn.Parameter(frustum, requires_grad=False).to(post_trans.device)
+
+        # undo post-transformation
+        # B x N x D x H x W x 3
+        points = frustum - post_trans.view(B, N, 1, 1, 1, 3)
+        points = torch.inverse(post_rots).view(B, N, 1, 1, 1, 3, 3).matmul(points.unsqueeze(-1))
+        # cam_to_ego
+        points = torch.cat((points[:, :, :, :, :, :2] * points[:, :, :, :, :, 2:3],
+                            points[:, :, :, :, :, 2:3]
+                            ), 5)
+        
+        if intrins.shape[3] == 4: # for KITTI
+            shift = intrins[:, :, :3, 3]
+            points = points - shift.view(B, N, 1, 1, 1, 3, 1)
+            intrins = intrins[:, :, :3, :3]
+        
+        combine = rots.matmul(torch.inverse(intrins))
+        points = combine.view(B, N, 1, 1, 1, 3, 3).matmul(points).squeeze(-1)
+        points += trans.view(B, N, 1, 1, 1, 3)
+        
+        
+        if bda.shape[-1] == 4:
+            points = torch.cat((points, torch.ones(*points.shape[:-1], 1).type_as(points)), dim=-1)
+            points = bda.view(B, 1, 1, 1, 1, 4, 4).matmul(points.unsqueeze(-1)).squeeze(-1)
+            points = points[..., :3]
+        else:
+            points = bda.view(B, 1, 1, 1, 1, 3, 3).matmul(points.unsqueeze(-1)).squeeze(-1)
+        
+        return points
 
 # @DETECTORS.register_module()
 # class OccupancyFormer4D(OccupancyFormer):

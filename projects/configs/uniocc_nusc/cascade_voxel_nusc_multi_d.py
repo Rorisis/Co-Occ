@@ -206,7 +206,7 @@ train_pipeline = [
         use_dim=5),
     dict(type='LoadPointsFromMultiSweeps',
         sweeps_num=10),
-    dict(type='LoadMultiViewImageFromFiles_OccFormer', is_train=False,
+    dict(type='LoadMultiViewImageFromFiles_OccFormer', is_train=True,
             data_config=data_config, img_norm_cfg=img_norm_cfg),
     dict(type='CreateDepthFromLiDAR', dataset='nusc'),
     # dict(type='LoadNuscOccupancyAnnotations', is_train=True, grid_size=occ_size, 

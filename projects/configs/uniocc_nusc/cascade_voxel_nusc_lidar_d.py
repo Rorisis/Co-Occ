@@ -29,6 +29,14 @@ voxel_y = (point_cloud_range[4] - point_cloud_range[1]) / occ_size[1]
 voxel_z = (point_cloud_range[5] - point_cloud_range[2]) / occ_size[2]
 voxel_size = [voxel_x, voxel_y, voxel_z] # (0.4, 0.4, 0.25)
 
+scale = 4
+grid_config = {
+    'xbound': [point_cloud_range[0], point_cloud_range[3], voxel_x * lss_downsample[0]],
+    'ybound': [point_cloud_range[1], point_cloud_range[4], voxel_y * lss_downsample[1]],
+    'zbound': [point_cloud_range[2], point_cloud_range[5], voxel_z * lss_downsample[2]],
+    'dbound': [2.0, 58.0, 0.5],
+}
+
 data_config={
     'cams': ['CAM_FRONT_LEFT', 'CAM_FRONT', 'CAM_FRONT_RIGHT',
              'CAM_BACK_LEFT', 'CAM_BACK', 'CAM_BACK_RIGHT'],
@@ -42,13 +50,6 @@ data_config={
     'flip': False,
     'crop_h': (0.0, 0.0),
     'resize_test': 0.00,
-}
-scale = 16
-grid_config = {
-    'xbound': [point_cloud_range[0], point_cloud_range[3], voxel_x * lss_downsample[0]],
-    'ybound': [point_cloud_range[1], point_cloud_range[4], voxel_y * lss_downsample[1]],
-    'zbound': [point_cloud_range[2], point_cloud_range[5], voxel_z * lss_downsample[2]],
-    'dbound': [2.0, 58.0, 0.5],
 }
 
 numC_Trans = 128
@@ -68,7 +69,7 @@ visible_mask = False
 
 cascade_ratio = 2
 sample_from_voxel = True
-sample_from_img = True
+sample_from_img = False
 
 
 model = dict(
@@ -92,30 +93,6 @@ model = dict(
     loss_voxel_sem_scal_weight=1.0,
     loss_voxel_geo_scal_weight=1.0,
     loss_voxel_lovasz_weight=1.0,
-    img_backbone=dict(
-        pretrained='ckpts/resnet50-0676ba61.pth',
-        type='ResNet',
-        depth=50,
-        num_stages=4,
-        out_indices=(0, 1, 2, 3),
-        frozen_stages=0,
-        norm_cfg=dict(type='BN', requires_grad=True),
-        norm_eval=False,
-        style='pytorch'),
-    img_neck=dict(
-        type='SECONDFPN',
-        in_channels=[256, 512, 1024, 2048],
-        upsample_strides=[0.25, 0.5, 1, 2],
-        out_channels=[128, 128, 128, 128]),
-    img_view_transformer=dict(
-        type='ViewTransformerLiftSplatShootVoxel',
-        scale = scale,
-        loss_depth_weight=1.0,
-        loss_depth_type='bce',
-        grid_config=grid_config,
-        data_config=data_config,
-        numC_Trans=numC_Trans,
-        vp_megvii=False),
     pts_voxel_layer=dict(
         max_num_points=10, 
         point_cloud_range=point_cloud_range,
@@ -130,19 +107,7 @@ model = dict(
         norm_cfg=dict(type='SyncBN', requires_grad=True),
         sparse_shape_xyz=[800, 800, 64],  # hardcode, xy size follow centerpoint
         ),
-    occ_fuser=dict(
-        type='BiFuser',
-        in_channels=numC_Trans,
-        out_channels=numC_Trans,
-    ),
     density_encoder=dict(
-        type='FPN3D_Render',
-        with_cp=True,
-        in_channels=voxel_channels,
-        out_channels=voxel_out_channel,
-        norm_cfg=dict(type='SyncBN', requires_grad=True),
-    ),
-    color_encoder=dict(
         type='FPN3D_Render',
         with_cp=True,
         in_channels=voxel_channels,
@@ -191,6 +156,7 @@ model = dict(
 dataset_type = 'CustomNuScenesOccLSSDataset'
 data_root = 'data/nuscenes'
 nusc_class_metas = 'projects/configs/_base_/nuscenes.yaml'
+file_client_args = dict(backend='disk')
 
 bda_aug_conf = dict(
     rot_lim=(0, 0),
@@ -206,7 +172,7 @@ train_pipeline = [
         use_dim=5),
     dict(type='LoadPointsFromMultiSweeps',
         sweeps_num=10),
-    dict(type='LoadMultiViewImageFromFiles_OccFormer', is_train=False,
+    dict(type='LoadMultiViewImageFromFiles_OccFormer', is_train=True,
             data_config=data_config, img_norm_cfg=img_norm_cfg),
     dict(type='CreateDepthFromLiDAR', dataset='nusc'),
     # dict(type='LoadNuscOccupancyAnnotations', is_train=True, grid_size=occ_size, 
@@ -215,7 +181,7 @@ train_pipeline = [
     dict(type='LoadOccupancy', is_train=True, to_float32=True, use_semantic=True, occ_path=occ_path, grid_size=occ_size, use_vel=False,
         unoccupied=empty_idx, pc_range=point_cloud_range, cal_visible=visible_mask, bda_aug_conf=bda_aug_conf, cls_metas=nusc_class_metas),
     dict(type='OccDefaultFormatBundle3D', class_names=class_names),
-    dict(type='Collect3D', keys=['img_inputs', 'gt_occ', 'points', 'points_occ'],
+    dict(type='Collect3D', keys=['gt_depths','gt_occ', 'points', 'points_occ'],
             meta_keys=['pc_range', 'occ_size']),
 ]
 
@@ -227,21 +193,21 @@ test_pipeline = [
     dict(type='LoadPointsFromMultiSweeps',
         sweeps_num=10),
     dict(type='LoadMultiViewImageFromFiles_OccFormer', is_train=False,
-            data_config=data_config, img_norm_cfg=img_norm_cfg),
+        data_config=data_config, img_norm_cfg=img_norm_cfg),
     # dict(type='LoadNuscOccupancyAnnotations', is_train=False, grid_size=occ_size,
     #         point_cloud_range=point_cloud_range, bda_aug_conf=bda_aug_conf,
     #         cls_metas=nusc_class_metas),
     dict(type='LoadOccupancy', is_train=False, to_float32=True, use_semantic=True, occ_path=occ_path, grid_size=occ_size, use_vel=False,
         unoccupied=empty_idx, pc_range=point_cloud_range, cal_visible=visible_mask, bda_aug_conf=bda_aug_conf, cls_metas=nusc_class_metas),
     dict(type='OccDefaultFormatBundle3D', class_names=class_names, with_label=False), 
-    dict(type='Collect3D', keys=['img_inputs', 'gt_occ', 'points', 'points_occ'],
+    dict(type='Collect3D', keys=['gt_depths', 'gt_occ', 'points', 'points_occ'],
             meta_keys=['pc_range', 'occ_size', 'sample_idx', 'timestamp',
                        'scene_token', 'img_filenames', 'scene_name']),
 ]
 
 input_modality = dict(
     use_lidar=True,
-    use_camera=True,
+    use_camera=False,
     use_radar=False,
     use_map=False,
     use_external=False)
