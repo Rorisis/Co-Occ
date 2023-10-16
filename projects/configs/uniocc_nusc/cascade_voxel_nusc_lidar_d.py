@@ -9,14 +9,14 @@ plugin_dir = "projects/mmdet3d_plugin/"
 img_norm_cfg = dict(mean=[123.675, 116.28, 103.53], std=[58.395, 57.12, 57.375], to_rgb=True)
 occ_path = "./data/nuscenes_occ"
 
-# class_names = [
-#     'car', 'truck', 'construction_vehicle', 'bus', 'trailer', 'barrier',
-#     'motorcycle', 'bicycle', 'pedestrian', 'traffic_cone'
-# ]
-class_names = ['empty', 'barrier', 'bicycle', 'bus', 'car', 
-    'construction_vehicle', 'motorcycle', 'pedestrian', 
-    'traffic_cone', 'trailer', 'truck', 'driveable_surface', 
-    'other_flat', 'sidewalk', 'terrain', 'manmade', 'vegetation']
+class_names = [
+    'car', 'truck', 'construction_vehicle', 'bus', 'trailer', 'barrier',
+    'motorcycle', 'bicycle', 'pedestrian', 'traffic_cone'
+]
+# class_names = ['empty', 'barrier', 'bicycle', 'bus', 'car', 
+#     'construction_vehicle', 'motorcycle', 'pedestrian', 
+#     'traffic_cone', 'trailer', 'truck', 'driveable_surface', 
+#     'other_flat', 'sidewalk', 'terrain', 'manmade', 'vegetation']
 num_class = len(class_names)
 
 point_cloud_range = [-50, -50, -5.0, 50, 50, 3.0]
@@ -52,7 +52,7 @@ data_config={
     'resize_test': 0.00,
 }
 
-numC_Trans = 128
+numC_Trans = 256
 voxel_channels = [128, 256, 512, 1024]
 voxel_channels_half = [64, 128, 256, 512]
 voxel_num_layer = [2, 2, 2, 2]
@@ -73,7 +73,7 @@ sample_from_img = False
 
 
 model = dict(
-    type='NeRFOcc',
+    type='NeRFOcc_L',
     loss_norm=True,
     voxel_size = voxel_size,
     n_voxels = occ_size,
@@ -85,7 +85,7 @@ model = dict(
     use_nerf_mask=True,
     nerf_sample_view=6,
     squeeze_scale=4,
-    scale = scale,
+    scale=scale,
     nerf_density=True,
     use_rendering=True,
     test_rendering=False,
@@ -99,14 +99,42 @@ model = dict(
         voxel_size=[0.1, 0.1, 0.1],  # xy size follow centerpoint
         max_voxels=(90000, 120000)),
     pts_voxel_encoder=dict(type='HardSimpleVFE', num_features=5),
+    # pts_middle_encoder=dict(
+    #     type='SparseLiDAREnc8x',
+    #     input_channel=4,
+    #     base_channel=16,
+    #     out_channel=numC_Trans,
+    #     norm_cfg=dict(type='SyncBN', requires_grad=True),
+    #     sparse_shape_xyz=[800, 800, 64],  # hardcode, xy size follow centerpoint
+    #     ),
     pts_middle_encoder=dict(
-        type='SparseLiDAREnc8x',
-        input_channel=4,
-        base_channel=16,
-        out_channel=numC_Trans,
-        norm_cfg=dict(type='SyncBN', requires_grad=True),
-        sparse_shape_xyz=[800, 800, 64],  # hardcode, xy size follow centerpoint
-        ),
+        type='SparseEncoderHD',
+        in_channels=4,
+        sparse_shape=[65, 800, 800],
+        output_channels=256,
+        order=('conv', 'norm', 'act'),
+        encoder_channels=((16, 16, 32), (32, 32, 64), (64, 64, 128), (128, 128)),
+        encoder_paddings=((0, 0, 1), (0, 0, 1), (0, 0, [0, 1, 1]), (0, 0)),
+        block_type='basicblock',
+        fp16_enabled=False), # not enable FP16 here
+    pts_backbone=dict(
+        type='SECOND3D',
+        in_channels=[256, 256, 256],
+        out_channels=[128, 256, 512],
+        layer_nums=[5, 5, 5],
+        layer_strides=[1, 2, 4],
+        is_cascade=False,
+        norm_cfg=dict(type='BN3d', eps=1e-3, momentum=0.01),
+        conv_cfg=dict(type='Conv3d', kernel=(1,3,3), bias=False)),
+    pts_neck=dict(
+        type='SECOND3DFPN',
+        in_channels=[128, 256, 512],
+        out_channels=[256, 256, 256],
+        upsample_strides=[1, 2, 4],
+        norm_cfg=dict(type='BN3d', eps=1e-3, momentum=0.01),
+        upsample_cfg=dict(type='deconv3d', bias=False),
+        extra_conv=dict(type='Conv3d', num_conv=3, bias=False),
+        use_conv_for_no_stride=True),
     density_encoder=dict(
         type='FPN3D_Render',
         with_cp=True,

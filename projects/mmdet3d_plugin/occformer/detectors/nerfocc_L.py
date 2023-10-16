@@ -27,7 +27,7 @@ import cv2
 import copy
 
 @DETECTORS.register_module()
-class NeRFOcc(BEVDepth):
+class NeRFOcc_L(BEVDepth):
     def __init__(self, 
                 voxel_size,
                 n_voxels,
@@ -228,17 +228,18 @@ class NeRFOcc(BEVDepth):
         batch_size = coors[-1, 0] + 1
         pts_enc_feats = self.pts_middle_encoder(voxel_features, coors, batch_size)
         if self.with_pts_backbone:
-            pts_enc_feats['x'] = self.pts_backbone(pts_enc_feats['x'])
+            x = self.pts_backbone(pts_enc_feats)
         if self.with_pts_neck:
-            pts_enc_feats['x'] = self.pts_neck(pts_enc_feats['x'])
+            x = self.pts_neck(x)
 
         if self.record_time:
             torch.cuda.synchronize()
             t1 = time.time()
             self.time_stats['pts_encoder'].append(t1 - t0)
         
-        pts_feats = pts_enc_feats['pts_feats']
-        return pts_enc_feats['x'], pts_feats
+        pts_feats = [x]
+
+        return x.permute(0,1,4,3,2), pts_feats
 
     def extract_feat(self, points, img, img_metas):
         """Extract features from images and points."""
