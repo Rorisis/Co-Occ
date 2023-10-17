@@ -295,7 +295,7 @@ class CustomSemanticKITTILssDataset(SemanticKITTIDataset):
             eval_results['semkitti_{}'.format(key)] = round(val * 100, 2)
 
         eval_results['semkitti_combined_IoU'] = eval_results['semkitti_SC_IoU'] + eval_results['semkitti_SSC_mIoU']
-        eval_results.update(self.evaluate_ssc)
+        eval_results.update(self.evaluate_ssc(results, logger, **kwargs))
         
         if logger is not None:
             logger.info('SemanticKITTI SSC Evaluation')

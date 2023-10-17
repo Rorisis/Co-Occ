@@ -99,24 +99,24 @@ model = dict(
         voxel_size=[0.1, 0.1, 0.1],  # xy size follow centerpoint
         max_voxels=(90000, 120000)),
     pts_voxel_encoder=dict(type='HardSimpleVFE', num_features=5),
-    # pts_middle_encoder=dict(
-    #     type='SparseLiDAREnc8x',
-    #     input_channel=4,
-    #     base_channel=16,
-    #     out_channel=numC_Trans,
-    #     norm_cfg=dict(type='SyncBN', requires_grad=True),
-    #     sparse_shape_xyz=[800, 800, 64],  # hardcode, xy size follow centerpoint
-    #     ),
     pts_middle_encoder=dict(
-        type='SparseEncoderHD',
-        in_channels=4,
-        sparse_shape=[65, 800, 800],
-        output_channels=256,
-        order=('conv', 'norm', 'act'),
-        encoder_channels=((16, 16, 32), (32, 32, 64), (64, 64, 128), (128, 128)),
-        encoder_paddings=((0, 0, 1), (0, 0, 1), (0, 0, [0, 1, 1]), (0, 0)),
-        block_type='basicblock',
-        fp16_enabled=False), # not enable FP16 here
+        type='SparseLiDAREnc8x',
+        input_channel=4,
+        base_channel=16,
+        out_channel=numC_Trans,
+        norm_cfg=dict(type='SyncBN', requires_grad=True),
+        sparse_shape_xyz=[800, 800, 64],  # hardcode, xy size follow centerpoint
+        ),
+    # pts_middle_encoder=dict(
+    #     type='SparseEncoderHD',
+    #     in_channels=4,
+    #     sparse_shape=[65, 800, 800],
+    #     output_channels=256,
+    #     order=('conv', 'norm', 'act'),
+    #     encoder_channels=((16, 16, 32), (32, 32, 64), (64, 64, 128), (128, 128)),
+    #     encoder_paddings=((0, 0, 1), (0, 0, 1), (0, 0, [0, 1, 1]), (0, 0)),
+    #     block_type='basicblock',
+    #     fp16_enabled=False), # not enable FP16 here
     pts_backbone=dict(
         type='SECOND3D',
         in_channels=[256, 256, 256],
