@@ -36,7 +36,7 @@ data_config = {
     'resize_test': 0.00,
 }
 
-scale = 4
+scale = 8
 grid_config = {
     'xbound': [point_cloud_range[0], point_cloud_range[3], voxel_x * lss_downsample[0]],
     'ybound': [point_cloud_range[1], point_cloud_range[4], voxel_y * lss_downsample[1]],
@@ -44,7 +44,7 @@ grid_config = {
     'dbound': [2.0, 58.0, 0.5],
 }
 
-numC_Trans = 128
+numC_Trans = 256
 voxel_channels = [128, 256, 512, 1024]
 voxel_channels_half = [64, 128, 256, 512]
 voxel_num_layer = [2, 2, 2, 2]
@@ -63,7 +63,7 @@ sample_from_voxel = True
 sample_from_img = True
 
 model = dict(
-    type='NeRFOcc',
+    type='NeRFOcc_KITTI',
     loss_norm=True,
     voxel_size = voxel_size,
     n_voxels = occ_size,
@@ -84,26 +84,18 @@ model = dict(
     loss_voxel_geo_scal_weight=1.0,
     loss_voxel_lovasz_weight=1.0,
     img_backbone=dict(
-        type='SwinTransformer',
-        embed_dims=96,
-        depths=[2, 2, 6, 2],
-        num_heads=[3, 6, 12, 24],
-        window_size=7,
-        mlp_ratio=4,
-        qkv_bias=True,
-        qk_scale=None,
-        drop_rate=0.,
-        attn_drop_rate=0.,
-        drop_path_rate=0.3,
-        patch_norm=True,
-        with_cp=False,
+        pretrained='ckpts/resnet50-0676ba61.pth',
+        type='ResNet',
+        depth=50,
+        num_stages=4,
         out_indices=(0, 1, 2, 3),
-        convert_weights=True,
-        init_cfg=dict(type='Pretrained', checkpoint='ckpts/swin_tiny_patch4_window7_224.pth'),
-    ),
+        frozen_stages=0,
+        norm_cfg=dict(type='BN', requires_grad=True),
+        norm_eval=False,
+        style='pytorch'),
     img_neck=dict(
         type='SECONDFPN',
-        in_channels=[96, 192, 384, 768],
+        in_channels=[256, 512, 1024, 2048],
         upsample_strides=[0.25, 0.5, 1, 2],
         out_channels=[128, 128, 128, 128]),
     img_view_transformer=dict(
@@ -123,13 +115,33 @@ model = dict(
         max_voxels=(90000, 120000)),
     pts_voxel_encoder=dict(type='HardSimpleVFE', num_features=5),
     pts_middle_encoder=dict(
-        type='SparseLiDAREnc8x',
-        input_channel=4,
-        base_channel=16,
-        out_channel=numC_Trans,
-        norm_cfg=dict(type='SyncBN', requires_grad=True),
-        sparse_shape_xyz=[1024, 1024, 128],  # hardcode, xy size follow centerpoint
-        ),
+        type='SparseEncoderHD',
+        in_channels=4,
+        sparse_shape=[129, 1024, 1024],
+        output_channels=256,
+        order=('conv', 'norm', 'act'),
+        encoder_channels=((16, 16, 32), (32, 32, 64), (64, 64, 128), (128, 128)),
+        encoder_paddings=((0, 0, 1), (0, 0, 1), (0, 0, [0, 1, 1]), (0, 0)),
+        block_type='basicblock',
+        fp16_enabled=False), # not enable FP16 here
+    pts_backbone=dict(
+        type='SECOND3D',
+        in_channels=[256, 256, 256],
+        out_channels=[128, 256, 512],
+        layer_nums=[5, 5, 5],
+        layer_strides=[1, 2, 4],
+        is_cascade=False,
+        norm_cfg=dict(type='BN3d', eps=1e-3, momentum=0.01),
+        conv_cfg=dict(type='Conv3d', kernel=(1,3,3), bias=False)),
+    pts_neck=dict(
+        type='SECOND3DFPN',
+        in_channels=[128, 256, 512],
+        out_channels=[256, 256, 256],
+        upsample_strides=[1, 2, 4],
+        norm_cfg=dict(type='BN3d', eps=1e-3, momentum=0.01),
+        upsample_cfg=dict(type='deconv3d', bias=False),
+        extra_conv=dict(type='Conv3d', num_conv=3, bias=False),
+        use_conv_for_no_stride=True),
     occ_fuser=dict(
         type='BiFuser',
         in_channels=numC_Trans,
@@ -220,16 +232,14 @@ train_pipeline = [
 test_pipeline = [
     dict(type='LoadPointsFromFile',
         coord_type='LIDAR',
-        load_dim=5,
-        use_dim=5),
-    dict(type='LoadPointsFromMultiSweeps',
-        sweeps_num=10),
+        load_dim=4,
+        use_dim=4),
     dict(type='LoadMultiViewImageFromFiles_SemanticKitti', is_train=False, 
          data_config=data_config, img_norm_cfg=img_norm_cfg),
     dict(type='LoadSemKittiAnnotation', bda_aug_conf=bda_aug_conf,
             is_train=False, point_cloud_range=point_cloud_range),
     dict(type='OccDefaultFormatBundle3D', class_names=class_names, with_label=False), 
-    dict(type='Collect3D', keys=['img_inputs', 'gt_occ'], 
+    dict(type='Collect3D', keys=['img_inputs', 'points', 'gt_occ'], 
             meta_keys=['pc_range', 'occ_size', 'sequence', 'frame_id', 'raw_img']),
 ]
 

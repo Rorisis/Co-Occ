@@ -104,6 +104,7 @@ class BiFuser(nn.Module):
             return query_NN_key_idx
 
     def forward(self, img_voxel_feats, pts_voxel_feats): # img_feats: N, C, H, W, L 
+        # print(img_voxel_feats.shape, pts_voxel_feats.shape)
         B, C, H, W, L = img_voxel_feats.shape
         inds_img = torch.nonzero(img_voxel_feats.sum(1))
         inds_pts = torch.nonzero(pts_voxel_feats.sum(1))

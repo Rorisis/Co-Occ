@@ -13,7 +13,7 @@ from projects.mmdet3d_plugin.utils.semkitti import geo_scal_loss, sem_scal_loss,
 from projects.mmdet3d_plugin.utils import per_class_iu, fast_hist_crop
 
 @HEADS.register_module()
-class OccHead(nn.Module):
+class OccHead_kitti(nn.Module):
     def __init__(
         self,
         in_channels,
