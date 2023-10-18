@@ -52,7 +52,7 @@ data_config={
     'resize_test': 0.00,
 }
 
-numC_Trans = 256
+numC_Trans = 128
 voxel_channels = [128, 256, 512, 1024]
 voxel_channels_half = [64, 128, 256, 512]
 voxel_num_layer = [2, 2, 2, 2]
@@ -111,7 +111,7 @@ model = dict(
         type='SparseEncoderHD',
         in_channels=4,
         sparse_shape=[65, 800, 800],
-        output_channels=256,
+        output_channels=128,
         order=('conv', 'norm', 'act'),
         encoder_channels=((16, 16, 32), (32, 32, 64), (64, 64, 128), (128, 128)),
         encoder_paddings=((0, 0, 1), (0, 0, 1), (0, 0, [0, 1, 1]), (0, 0)),
@@ -119,7 +119,7 @@ model = dict(
         fp16_enabled=False), # not enable FP16 here
     pts_backbone=dict(
         type='SECOND3D',
-        in_channels=[256, 256, 256],
+        in_channels=[128, 128, 128],
         out_channels=[128, 256, 512],
         layer_nums=[5, 5, 5],
         layer_strides=[1, 2, 4],
@@ -129,7 +129,7 @@ model = dict(
     pts_neck=dict(
         type='SECOND3DFPN',
         in_channels=[128, 256, 512],
-        out_channels=[256, 256, 256],
+        out_channels=[128, 128, 128],
         upsample_strides=[1, 2, 4],
         norm_cfg=dict(type='BN3d', eps=1e-3, momentum=0.01),
         upsample_cfg=dict(type='deconv3d', bias=False),
