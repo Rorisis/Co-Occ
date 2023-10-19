@@ -36,7 +36,7 @@ data_config = {
     'resize_test': 0.00,
 }
 
-scale = 8
+scale = 16
 grid_config = {
     'xbound': [point_cloud_range[0], point_cloud_range[3], voxel_x * lss_downsample[0]],
     'ybound': [point_cloud_range[1], point_cloud_range[4], voxel_y * lss_downsample[1]],
@@ -77,7 +77,7 @@ model = dict(
     squeeze_scale=4,
     scale=scale,
     nerf_density=True,
-    use_rendering=False,
+    use_rendering=True,
     test_rendering=False,
     loss_voxel_ce_weight=1.0,
     loss_voxel_sem_scal_weight=1.0,
@@ -291,8 +291,8 @@ data = dict(
 embed_multi = dict(lr_mult=1.0, decay_mult=0.0)
 optimizer = dict(
     type='AdamW',
-    lr=0.0001,
-    weight_decay=0.01,
+    lr=0.001,
+    weight_decay=0.001,
     eps=1e-8,
     betas=(0.9, 0.999),
     paramwise_cfg=dict(

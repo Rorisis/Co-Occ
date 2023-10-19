@@ -36,7 +36,7 @@ data_config = {
     'resize_test': 0.00,
 }
 
-scale = 4
+scale = 16
 grid_config = {
     'xbound': [point_cloud_range[0], point_cloud_range[3], voxel_x * lss_downsample[0]],
     'ybound': [point_cloud_range[1], point_cloud_range[4], voxel_y * lss_downsample[1]],
@@ -82,7 +82,7 @@ model = dict(
     squeeze_scale=4,
     scale=scale,
     nerf_density=True,
-    use_rendering=False,
+    use_rendering=True,
     test_rendering=False,
     loss_voxel_ce_weight=1.0,
     loss_voxel_sem_scal_weight=1.0,
@@ -265,7 +265,7 @@ model = dict(
             instance_on=False)),
 )
 
-dataset_type = 'CustomSemanticKITTILssDataset'
+dataset_type = 'CustomSemanticKITTILssDataset_Scale'
 data_root = 'data/SemanticKITTI'
 ann_file = 'data/SemanticKITTI/labels'
 
@@ -296,16 +296,14 @@ train_pipeline = [
 test_pipeline = [
     dict(type='LoadPointsFromFile',
         coord_type='LIDAR',
-        load_dim=5,
-        use_dim=5),
-    dict(type='LoadPointsFromMultiSweeps',
-        sweeps_num=10),
+        load_dim=4,
+        use_dim=4),
     dict(type='LoadMultiViewImageFromFiles_SemanticKitti', is_train=False, 
          data_config=data_config, img_norm_cfg=img_norm_cfg),
     dict(type='LoadSemKittiAnnotation', bda_aug_conf=bda_aug_conf,
             is_train=False, point_cloud_range=point_cloud_range),
     dict(type='OccDefaultFormatBundle3D', class_names=class_names, with_label=False), 
-    dict(type='Collect3D', keys=['img_inputs', 'gt_occ'], 
+    dict(type='Collect3D', keys=['img_inputs', 'gt_occ', 'points'], 
             meta_keys=['pc_range', 'occ_size', 'sequence', 'frame_id', 'raw_img']),
 ]
 

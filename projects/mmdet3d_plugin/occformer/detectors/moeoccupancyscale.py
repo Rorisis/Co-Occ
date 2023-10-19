@@ -110,11 +110,11 @@ class MoEOccupancyScale(BEVDepth):
         if use_rendering:
             # self.density_encoder = builder.build_neck(density_encoder)
             # self.density_neck = builder.build_neck(density_neck)
-            if color_encoder:
+
                 # self.color_encoder = builder.build_neck(color_encoder)
-                self.color_head = MLP(input_dim=256, output_dim=3,net_depth=3,skip_layer=None)#torch.nn.Linear(256, 3)#MLP(input_dim=256, output_dim=3,net_depth=3,skip_layer=0)
+            self.color_head = MLP(input_dim=192, output_dim=3,net_depth=3,skip_layer=None)#torch.nn.Linear(256, 3)#MLP(input_dim=256, output_dim=3,net_depth=3,skip_layer=0)
             # self.color_neck = builder.build_neck(color_neck)
-            self.density_head = torch.nn.Linear(256, 1)
+            self.density_head = torch.nn.Linear(192, 1)
             
         
         coord_x, coord_y, coord_z = torch.meshgrid(torch.arange(self.n_voxels[0]),torch.arange(self.n_voxels[1]), torch.arange(self.n_voxels[2]))
@@ -324,7 +324,7 @@ class MoEOccupancyScale(BEVDepth):
         ):
 
         # extract bird-eye-view features from perspective images
-        voxel_feats, img_feats, pts_feats, depth, geom = self.extract_feat(
+        voxel_feats, img_feats, pts_feats, depth, gemo = self.extract_feat(
             points, img=img_inputs, img_metas=img_metas)
         # training losses
         losses = dict()
@@ -371,43 +371,40 @@ class MoEOccupancyScale(BEVDepth):
 
             density_features = []
             color_features = []
+
             for i in range(norm_coord_frustum.shape[0]):
-                density_feature = F.grid_sample(voxel_feats.permute(0,1,4,3,2), norm_coord_frustum[i].unsqueeze(0), mode='bilinear', padding_mode='zeros', align_corners=False).permute(0,4,2,3,1)
-                if img_feats:
-                    color_feature = F.grid_sample(voxel_feats.permute(0,1,4,3,2), norm_coord_frustum[i].unsqueeze(0), mode='bilinear', padding_mode='zeros', align_corners=False).permute(0,4,2,3,1) # b, h, w, d, c
-                    color_features .append(color_feature)
+                density_feature = F.grid_sample(voxel_feats[0].permute(0,1,4,3,2), norm_coord_frustum[i].unsqueeze(0), mode='bilinear', padding_mode='zeros', align_corners=False).permute(0,4,2,3,1)
+ 
+                color_feature = F.grid_sample(voxel_feats[0].permute(0,1,4,3,2), norm_coord_frustum[i].unsqueeze(0), mode='bilinear', padding_mode='zeros', align_corners=False).permute(0,4,2,3,1) # b, h, w, d, c
+                color_features .append(color_feature)
                 density_features.append(density_feature)
                 
             
             density_features = torch.cat(density_features, dim=0)
-            if img_feats:
-                color_features = torch.cat(color_features, dim=0)
+
+            color_features = torch.cat(color_features, dim=0)
 
             density = F.relu(self.density_head(density_features))
-            if img_feats:
-                rgb = torch.sigmoid(self.color_head(color_features))
+
+            rgb = torch.sigmoid(self.color_head(color_features))
             
             directions = []
-            if img_feats:
-                cam_intrins = img_inputs[3][0]
-            else:
-                cam_intrins = gt_depths[3][0]
+
+            cam_intrins = img_inputs[3][0]
+
             
             for i in range(gemo.shape[0]):
-                if img_feats:
-                    dir_coord_2d = dir_coord_2d * img_inputs[0].shape[-1] // gemo.shape[-2] #img: b, n, c, h, w gemo: b, d, h, w, c
-                else:
-                    dir_coord_2d = dir_coord_2d * gt_depths[-2][0][-1].item() // gemo.shape[-2]
+
+                dir_coord_2d = dir_coord_2d * img_inputs[0].shape[-1] // gemo.shape[-2] #img: b, n, c, h, w gemo: b, d, h, w, c
+
                 # print(cam_intrins[i].shape)
                 if cam_intrins.shape[-1] == 4:
                     dir_coord_3d = unproject_image_to_rect(dir_coord_2d, torch.cat((cam_intrins[i][:3, :3], torch.zeros(3, 1).to(cam_intrins.device)), dim=1).float())
                 else:
                     dir_coord_3d = unproject_image_to_rect(dir_coord_2d, torch.cat((cam_intrins[i], torch.zeros(3, 1).to(cam_intrins.device)), dim=1).float())
                 direction = dir_coord_3d[:, :, 1, :] - dir_coord_3d[:, :, 0, :]
-                if img_feats:
-                    direction /= img_inputs[0].shape[-1] // gemo.shape[-2]
-                else:
-                    direction /= gt_depths[-2][0][-1].item() // gemo.shape[-2]
+                direction /= img_inputs[0].shape[-1] // gemo.shape[-2]
+
                 directions.append(direction)
 
             directions = torch.stack(directions, dim=0)
@@ -419,33 +416,31 @@ class MoEOccupancyScale(BEVDepth):
             background_rgb = rearrange((1 - acc)[..., None] * torch.tensor([1.0, 1.0, 1.0]).float().cuda(),
                                        'b h w c -> b c h w')
             # print("weights:", weights.shape, "rgb:", rgb.shape, "background_rgb", background_rgb.shape)
-            if img_feats:
-                rgb_values = torch.sum(weights.unsqueeze(1) * rgb.permute(0,-1,1,2,3), dim=2) + background_rgb
+
+            rgb_values = torch.sum(weights.unsqueeze(1) * rgb.permute(0,-1,1,2,3), dim=2) + background_rgb
             background_depth = (1 - acc) * torch.tensor([1.0]).float().cuda() * self.near_far_range[1]
             depth_values = (weights * t_mids[..., None, None]).sum(dim=1) + background_depth
             depth_values = depth_values.unsqueeze(1)
 
-            if img_feats:
-                rgb_values = F.interpolate(rgb_values, scale_factor=self.scale)
+            rgb_values = F.interpolate(rgb_values, scale_factor=self.scale)
             depth_values = F.interpolate(depth_values, scale_factor=self.scale).squeeze(1)
             # depth_values = self.upsample(depth_values)
             # print("color:", rgb_values.shape, "depth:", depth_values.shape)
             # print(img_inputs[0][0].shape, img_inputs[-7][0].shape)
             
-            if img_feats:
-                gt_depths = img_inputs[7][0]
-                gt_imgs = img_inputs[0][0]
-                losses["loss_color"] = F.mse_loss(rgb_values, gt_imgs)
-            else: 
-                gt_depths = gt_depths[-1][0]
+
+            gt_depths = img_inputs[7][0]
+            gt_imgs = img_inputs[0][0]
+            losses["loss_color"] = F.mse_loss(rgb_values, gt_imgs)
+
             fg_mask = torch.max(gt_depths.reshape(gt_depths.shape[0], -1), dim=1).values > 0.0
             gt_depths = gt_depths[fg_mask]
             depth_values = depth_values[fg_mask]
             losses["loss_render_depth"] = F.smooth_l1_loss(depth_values, gt_depths, reduction='none').mean()
-            if pts_feats != None:
-                rendered_opacity = F.interpolate(weights, scale_factor=self.scale).sum(dim=1)
-                gt_opacity = (gt_depths != 0).to(gt_depths.dtype)
-                losses["loss_opacity"] = torch.mean(-gt_opacity * torch.log(rendered_opacity + 1e-6) - (1 - gt_opacity) * torch.log(1 - rendered_opacity +1e-6)) # BCE lo
+            # if pts_feats != None:
+            rendered_opacity = F.interpolate(weights, scale_factor=self.scale).sum(dim=1)
+            gt_opacity = (gt_depths != 0).to(gt_depths.dtype)
+            losses["loss_opacity"] = torch.mean(-gt_opacity * torch.log(rendered_opacity + 1e-6) - (1 - gt_opacity) * torch.log(1 - rendered_opacity +1e-6)) # BCE lo
 
 
 
@@ -480,7 +475,7 @@ class MoEOccupancyScale(BEVDepth):
     def simple_test(self, img_metas, img=None, points=None, rescale=False, points_occ=None, 
             gt_occ=None, visible_mask=None, points_uv=None):
         
-        voxel_feats, img_feats, pts_feats, depth = self.extract_feat(points, img=img, img_metas=img_metas)       
+        voxel_feats, img_feats, pts_feats, depth, gemo = self.extract_feat(points, img=img, img_metas=img_metas)       
         output = self.pts_bbox_head.simple_test(
             voxel_feats=voxel_feats,
             points=points_occ,
