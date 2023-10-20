@@ -228,7 +228,7 @@ class NeRFOcc_KITTI(BEVDepth):
         batch_size = coors[-1, 0] + 1
         pts_enc_feats = self.pts_middle_encoder(voxel_features, coors, batch_size)
         if self.with_pts_backbone:
-            x = self.pts_backbone(pts_enc_feats)
+            x = self.pts_backbone(pts_enc_feats['x'])
         if self.with_pts_neck:
             x = self.pts_neck(x)
 
@@ -237,9 +237,9 @@ class NeRFOcc_KITTI(BEVDepth):
             t1 = time.time()
             self.time_stats['pts_encoder'].append(t1 - t0)
         
-        pts_feats = [x]
+        pts_feats = pts_enc_feats['pts_feats']
 
-        return x.permute(0,1,4,3,2), pts_feats
+        return pts_enc_feats['x'], pts_feats
 
     def extract_feat(self, points, img, img_metas):
         """Extract features from images and points."""
@@ -401,7 +401,7 @@ class NeRFOcc_KITTI(BEVDepth):
             sampled_disparity = s_vals[:, :-1][:, None, None, :, None].repeat(1, gemo.shape[-3],
                                                                             gemo.shape[-2], 1, 1)
             norm_coord_frustum = torch.cat([norm_coord_2d, sampled_disparity], dim=-1).cuda()  # (b, h, w, d, 3)
-            # print("norm_coord_frustum:", norm_coord_frustum.max(), norm_coord_frustum.min())
+            # print("norm_coord_frustum:", norm_coord_frustum.max(), norm_coord_frustum.min(), norm_coord_frustum.shape)
 
             density_features = []
             color_features = []

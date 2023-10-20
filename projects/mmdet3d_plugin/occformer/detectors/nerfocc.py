@@ -400,7 +400,7 @@ class NeRFOcc(BEVDepth):
             sampled_disparity = s_vals[:, :-1][:, None, None, :, None].repeat(1, gemo.shape[-3],
                                                                             gemo.shape[-2], 1, 1)
             norm_coord_frustum = torch.cat([norm_coord_2d, sampled_disparity], dim=-1).cuda()  # (b, h, w, d, 3)
-            # print("norm_coord_frustum:", norm_coord_frustum.max(), norm_coord_frustum.min())
+            # print("norm_coord_frustum:", norm_coord_frustum.max(), norm_coord_frustum.min(), norm_coord_frustum.shape)
 
             density_features = []
             color_features = []

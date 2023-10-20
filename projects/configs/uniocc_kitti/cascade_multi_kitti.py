@@ -60,11 +60,11 @@ visible_mask = False
 
 cascade_ratio = 2
 sample_from_voxel = True
-sample_from_img = True
+sample_from_img = False
 
 model = dict(
     type='NeRFOcc_KITTI',
-    loss_norm=True,
+    loss_norm=False,
     voxel_size = voxel_size,
     n_voxels = occ_size,
     aabb=([0, -25.6, -2], [51.2, 25.6, 4.4]),
@@ -115,33 +115,41 @@ model = dict(
         max_voxels=(90000, 120000)),
     pts_voxel_encoder=dict(type='HardSimpleVFE', num_features=5),
     pts_middle_encoder=dict(
-        type='SparseEncoderHD',
-        in_channels=4,
-        sparse_shape=[129, 1024, 1024],
-        output_channels=256,
-        order=('conv', 'norm', 'act'),
-        encoder_channels=((16, 16, 32), (32, 32, 64), (64, 64, 128), (128, 128)),
-        encoder_paddings=((0, 0, 1), (0, 0, 1), (0, 0, [0, 1, 1]), (0, 0)),
-        block_type='basicblock',
-        fp16_enabled=False), # not enable FP16 here
-    pts_backbone=dict(
-        type='SECOND3D',
-        in_channels=[256, 256, 256],
-        out_channels=[128, 256, 512],
-        layer_nums=[5, 5, 5],
-        layer_strides=[1, 2, 4],
-        is_cascade=False,
-        norm_cfg=dict(type='BN3d', eps=1e-3, momentum=0.01),
-        conv_cfg=dict(type='Conv3d', kernel=(1,3,3), bias=False)),
-    pts_neck=dict(
-        type='SECOND3DFPN',
-        in_channels=[128, 256, 512],
-        out_channels=[256, 256, 256],
-        upsample_strides=[1, 2, 4],
-        norm_cfg=dict(type='BN3d', eps=1e-3, momentum=0.01),
-        upsample_cfg=dict(type='deconv3d', bias=False),
-        extra_conv=dict(type='Conv3d', num_conv=3, bias=False),
-        use_conv_for_no_stride=True),
+        type='SparseLiDAREnc8x',
+        input_channel=4,
+        base_channel=16,
+        out_channel=numC_Trans,
+        norm_cfg=dict(type='SyncBN', requires_grad=True),
+        sparse_shape_xyz=[1024, 1024, 128],  # hardcode, xy size follow centerpoint
+        ),
+    # pts_middle_encoder=dict(
+    #     type='SparseEncoderHD',
+    #     in_channels=4,
+    #     sparse_shape=[129, 1024, 1024],
+    #     output_channels=256,
+    #     order=('conv', 'norm', 'act'),
+    #     encoder_channels=((16, 16, 32), (32, 32, 64), (64, 64, 128), (128, 128)),
+    #     encoder_paddings=((0, 0, 1), (0, 0, 1), (0, 0, [0, 1, 1]), (0, 0)),
+    #     block_type='basicblock',
+    #     fp16_enabled=False), # not enable FP16 here
+    # pts_backbone=dict(
+    #     type='SECOND3D',
+    #     in_channels=[256, 256, 256],
+    #     out_channels=[128, 256, 512],
+    #     layer_nums=[5, 5, 5],
+    #     layer_strides=[1, 2, 4],
+    #     is_cascade=False,
+    #     norm_cfg=dict(type='BN3d', eps=1e-3, momentum=0.01),
+    #     conv_cfg=dict(type='Conv3d', kernel=(1,3,3), bias=False)),
+    # pts_neck=dict(
+    #     type='SECOND3DFPN',
+    #     in_channels=[128, 256, 512],
+    #     out_channels=[256, 256, 256],
+    #     upsample_strides=[1, 2, 4],
+    #     norm_cfg=dict(type='BN3d', eps=1e-3, momentum=0.01),
+    #     upsample_cfg=dict(type='deconv3d', bias=False),
+    #     extra_conv=dict(type='Conv3d', num_conv=3, bias=False),
+    #     use_conv_for_no_stride=True),
     occ_fuser=dict(
         type='BiFuser',
         in_channels=numC_Trans,
@@ -177,7 +185,7 @@ model = dict(
         norm_cfg=dict(type='SyncBN', requires_grad=True),
     ),
     pts_bbox_head=dict(
-        type='OccHead',
+        type='OccHead_kitti',
         norm_cfg=dict(type='SyncBN', requires_grad=True),
         soft_weights=True,
         cascade_ratio=cascade_ratio,
