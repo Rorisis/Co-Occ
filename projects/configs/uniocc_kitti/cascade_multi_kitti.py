@@ -64,7 +64,7 @@ sample_from_img = False
 
 model = dict(
     type='NeRFOcc_KITTI',
-    loss_norm=False,
+    loss_norm=True,
     voxel_size = voxel_size,
     n_voxels = occ_size,
     aabb=([0, -25.6, -2], [51.2, 25.6, 4.4]),

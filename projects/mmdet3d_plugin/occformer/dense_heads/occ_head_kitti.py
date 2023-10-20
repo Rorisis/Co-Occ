@@ -136,12 +136,7 @@ class OccHead_kitti(nn.Module):
             if self.data_type == 'nus':
                 self.class_weights = torch.from_numpy(1 / np.log(nusc_class_frequencies + 0.001))
             else:
-                frequence = [7632350044, 15783539,  125136, 118809, 646799, 821951, 262978, 283696, 204750, 61688703, 4502961, 44883650, 2269923, 56840218, 15719652, 158442623, 2061623, 36970522, 1151988, 334146]
-                freq = torch.tensor(frequence)
-                # self.class_weights = torch.from_numpy(1 / np.log(semantic_kitti_class_frequencies + 0.001))
-                self.class_weights = freq/torch.sum(freq)
-                self.class_weights = torch.pow(torch.amax(self.class_weights) / self.class_weights, 1 / 3.0)
-                
+                self.class_weights = torch.from_numpy(1 / np.log(semantic_kitti_class_frequencies + 0.001))
         else:
             if self.data_type == 'nus':
                 self.class_weights = torch.ones(17)/17  # FIXME hardcode 17
@@ -183,7 +178,6 @@ class OccHead_kitti(nn.Module):
 
         out_voxel_feats = output['out_voxel_feats'][0]
         coarse_occ = output['occ'][0]
-        # print("coarse_occ:", coarse_occ.shape)
 
         if self.cascade_ratio != 1:
             if self.sample_from_img or self.sample_from_voxel:

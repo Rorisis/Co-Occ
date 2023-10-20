@@ -62,7 +62,7 @@ def draw_nusc_occupancy(
 	input_imgs,
 	voxels,
 	vox_origin,
-	voxel_size=0.2,
+	voxel_size=0.5,
 	grid=None,
 	pred_lidarseg=None,
 	target_lidarseg=None,
@@ -71,7 +71,7 @@ def draw_nusc_occupancy(
 	cam_positions=None,
 	focal_positions=None,
 ):
-	
+	# print(voxels.shape)
 	w, h, z = voxels.shape
 	grid = grid.astype(np.int32)
 	
@@ -225,7 +225,7 @@ if __name__ == "__main__":
 	args = parser.parse_args()
 	
 	point_cloud_range = [-51.2, -51.2, -5.0, 51.2, 51.2, 3.0]
-	occ_size = [256, 256, 32]
+	occ_size = [200, 200, 16]
 	voxel_x = (point_cloud_range[3] - point_cloud_range[0]) / occ_size[0]
 	voxel_y = (point_cloud_range[4] - point_cloud_range[1]) / occ_size[1]
 	voxel_z = (point_cloud_range[5] - point_cloud_range[2]) / occ_size[2]
@@ -251,7 +251,6 @@ if __name__ == "__main__":
 		
 		with open(sample_file, 'rb') as f:
 			sample_data = pickle.load(f)
-		
 		pred_voxels = sample_data['pred_voxels']
 		cam2lidar = sample_data['cam2lidar']
 		img_canvas = sample_data['img_canvas']

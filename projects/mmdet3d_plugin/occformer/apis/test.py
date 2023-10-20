@@ -194,8 +194,11 @@ def custom_multi_gpu_test(model, data_loader, tmpdir=None, gpu_collect=False, pr
                         img_metas['sequence'], img_metas['frame_id'], raw_img=img_metas['raw_img'], test_mapping=False)
                 
                 else:
+                    output_voxels_f = torch.nn.functional.interpolate(result['pred_f'], size=[H, W, D], mode='trilinear', align_corners=False).contiguous()
+                    output_voxels_f = torch.argmax(output_voxels_f, dim=1)
                     save_output_nuscenes(data['img_inputs'],
-                        output_voxels=output_voxels,
+                        # output_voxels=output_voxels,
+                        output_voxels=output_voxels_f,
                         output_points=result['output_points'],
                         target_points=result['target_points'], 
                         save_path=pred_save,
