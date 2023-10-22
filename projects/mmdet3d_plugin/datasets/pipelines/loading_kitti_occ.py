@@ -1,4 +1,5 @@
 import numpy as np
+import yaml, os
 import torch
 from mmdet.datasets.builder import PIPELINES
 from .loading_nusc_occ import custom_rotate_3d
@@ -7,11 +8,15 @@ import pdb
 @PIPELINES.register_module()
 class LoadSemKittiAnnotation():
     def __init__(self, bda_aug_conf, is_train=True, 
-                 point_cloud_range=[0, -25.6, -2, 51.2, 25.6, 4.4]):
+                 point_cloud_range=[0, -25.6, -2, 51.2, 25.6, 4.4],
+                 cls_metas='semantickitti.yaml',):
         self.bda_aug_conf = bda_aug_conf
         self.is_train = is_train
         self.point_cloud_range = torch.tensor(point_cloud_range)
         self.transform_center = (self.point_cloud_range[:3] + self.point_cloud_range[3:]) / 2
+        with open(cls_metas, 'r') as stream:
+            nusc_cls_metas = yaml.safe_load(stream)
+            self.learning_map = nusc_cls_metas['learning_map']
 
     def sample_bda_augmentation(self):
         """Generate bda augmentation values based on bda_config."""
@@ -39,6 +44,13 @@ class LoadSemKittiAnnotation():
             gt_occ = [torch.tensor(x) for x in results['gt_occ']]
         else:
             gt_occ = torch.tensor(results['gt_occ'])
+
+        # annotated_data = np.fromfile(results['lidarseg_filename'],dtype=np.uint32).reshape((-1, 1))
+        # annotated_data = annotated_data & 0xFFFF  # delete high 16 digits binary
+        # annotated_data = np.vectorize(self.learning_map.__getitem__)(annotated_data)
+        # points = np.fromfile(results['pts_filename'], dtype=np.float32, count=-1).reshape(-1, 4)[..., :3]
+        # lidarseg = np.concatenate([points, annotated_data], axis=-1)
+
         
         if self.is_train:
             rotate_bda, scale_bda, flip_dx, flip_dy, flip_dz = self.sample_bda_augmentation()
@@ -47,9 +59,13 @@ class LoadSemKittiAnnotation():
         else:
             bda_rot = torch.eye(4).float()
         
+        # points = points @ bda_rot[:3,:3].t().numpy()
+        # lidarseg[:, :3] = points
+        
         imgs, rots, trans, intrins, post_rots, post_trans, gt_depths, sensor2sensors, denorm_imgs, intrin_nerf, c2ws, img_size = results['img_inputs']
         results['img_inputs'] = (imgs, rots, trans, intrins, post_rots, post_trans, bda_rot, gt_depths, sensor2sensors, denorm_imgs, intrin_nerf, c2ws, img_size)
         results['gt_occ'] = gt_occ.long()
+        # results['points_occ'] = torch.from_numpy(lidarseg).float()
         
         return results
 

@@ -25,6 +25,7 @@ import time
 import pdb
 import cv2
 import copy
+import mayavi.mlab as mlab
 
 @DETECTORS.register_module()
 class MoEOccupancyScale(BEVDepth):
@@ -222,7 +223,18 @@ class MoEOccupancyScale(BEVDepth):
         if self.record_time:
             torch.cuda.synchronize()
             t0 = time.time()
+        # print(len(pts), pts[0].shape)
         voxels, num_points, coors = self.voxelize(pts)
+        # print(voxels.shape, len(num_points), coors.shape)
+        # fig = plt.figure()
+        # ax = fig.add_subplot(projection='3d')
+        # ax.scatter(pts[0][:,1].cpu().numpy(), pts[0][:,0].cpu().numpy(), pts[0][:,2].cpu().numpy(), color ='b', alpha=0.2)
+        # ax.scatter(voxels[:,1].cpu().numpy(), voxels[:,0].cpu().numpy(), voxels[:,2].cpu().numpy(), color ='r', marker='o')
+        # plt.savefig('./pts.png')
+#         fig = mlab.figure(figure=None, bgcolor=(1,1,1), fgcolor=None, engine=None, size=(1600, 1000))
+# #       category  label   r   g   b
+#         mlab.points3d(voxels[:,0], voxels[:,1], voxels[:,2], color=(0,0,0), mode='point', colormap = 'gnuplot', scale_factor=1, figure=fig)
+#         mlab.savefig('./pts.png', size=(1600, 1000), figure=fig)
         voxel_features = self.pts_voxel_encoder(voxels, num_points, coors)
         batch_size = coors[-1, 0] + 1
         pts_enc_feats = self.pts_middle_encoder(voxel_features, coors, batch_size)
@@ -433,10 +445,11 @@ class MoEOccupancyScale(BEVDepth):
             gt_imgs = img_inputs[0][0]
             losses["loss_color"] = F.mse_loss(rgb_values, gt_imgs)
 
-            fg_mask = torch.max(gt_depths.reshape(gt_depths.shape[0], -1), dim=1).values > 0.0
-            gt_depths = gt_depths[fg_mask]
-            depth_values = depth_values[fg_mask]
-            losses["loss_render_depth"] = F.smooth_l1_loss(depth_values, gt_depths, reduction='none').mean()
+            if self.depth_supervise:
+                fg_mask = torch.max(gt_depths.reshape(gt_depths.shape[0], -1), dim=1).values > 0.0
+                gt_depths = gt_depths[fg_mask]
+                depth_values = depth_values[fg_mask]
+                losses["loss_render_depth"] = F.smooth_l1_loss(depth_values, gt_depths, reduction='none').mean()
             # if pts_feats != None:
             rendered_opacity = F.interpolate(weights, scale_factor=self.scale).sum(dim=1)
             gt_opacity = (gt_depths != 0).to(gt_depths.dtype)

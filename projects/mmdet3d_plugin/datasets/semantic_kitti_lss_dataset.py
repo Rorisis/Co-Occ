@@ -197,7 +197,9 @@ class CustomSemanticKITTILssDataset(SemanticKITTIDataset):
             seq_id, _, filename = image_paths[0].split("/")[-3:]
             pts_filename = os.path.join(self.data_root, 'dataset/sequences', 
                             seq_id, "velodyne", filename.replace(".png", ".bin"))
+            # lidarseg_filename = pts_filename.replace('velodyne', 'labels')[:-3] + 'label'
             input_dict["pts_filename"] = pts_filename
+            # input_dict["lidarseg_filename"] = lidarseg_filename
         # gt_occ is None for test-set
         input_dict['gt_occ'] = self.get_ann_info(index)
 
@@ -494,7 +496,9 @@ class CustomSemanticKITTILssDataset_Scale(SemanticKITTIDataset):
             seq_id, _, filename = image_paths[0].split("/")[-3:]
             pts_filename = os.path.join(self.data_root, 'dataset/sequences', 
                             seq_id, "velodyne", filename.replace(".png", ".bin"))
+            # lidarseg_filename = pts_filename.replace('velodyne', 'labels')[:-3] + 'label'
             input_dict["pts_filename"] = pts_filename
+            # input_dict["lidarseg_filename"] = lidarseg_filename
         # gt_occ is None for test-set
         input_dict['gt_occ'] = self.get_ann_info(index)
 

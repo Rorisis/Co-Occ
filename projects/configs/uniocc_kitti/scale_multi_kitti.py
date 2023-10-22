@@ -36,7 +36,7 @@ data_config = {
     'resize_test': 0.00,
 }
 
-scale = 16
+scale = 32
 grid_config = {
     'xbound': [point_cloud_range[0], point_cloud_range[3], voxel_x * lss_downsample[0]],
     'ybound': [point_cloud_range[1], point_cloud_range[4], voxel_y * lss_downsample[1]],
@@ -76,7 +76,7 @@ model = dict(
     near_far_range=[0.2, 51.2],
     N_samples=64,
     N_rand=2048,
-    depth_supervise=True,
+    depth_supervise=False,
     use_nerf_mask=True,
     nerf_sample_view=6,
     squeeze_scale=4,
@@ -89,26 +89,18 @@ model = dict(
     loss_voxel_geo_scal_weight=1.0,
     loss_voxel_lovasz_weight=1.0,
     img_backbone=dict(
-        type='SwinTransformer',
-        embed_dims=96,
-        depths=[2, 2, 6, 2],
-        num_heads=[3, 6, 12, 24],
-        window_size=7,
-        mlp_ratio=4,
-        qkv_bias=True,
-        qk_scale=None,
-        drop_rate=0.,
-        attn_drop_rate=0.,
-        drop_path_rate=0.3,
-        patch_norm=True,
-        with_cp=False,
+        pretrained='ckpts/resnet50-0676ba61.pth',
+        type='ResNet',
+        depth=50,
+        num_stages=4,
         out_indices=(0, 1, 2, 3),
-        convert_weights=True,
-        init_cfg=dict(type='Pretrained', checkpoint='ckpts/swin_tiny_patch4_window7_224.pth'),
-    ),
+        frozen_stages=0,
+        norm_cfg=dict(type='BN', requires_grad=True),
+        norm_eval=False,
+        style='pytorch'),
     img_neck=dict(
         type='SECONDFPN',
-        in_channels=[96, 192, 384, 768],
+        in_channels=[256, 512, 1024, 2048],
         upsample_strides=[0.25, 0.5, 1, 2],
         out_channels=[128, 128, 128, 128]),
     img_view_transformer=dict(
@@ -122,7 +114,7 @@ model = dict(
         numC_Trans=numC_Trans,
         vp_megvii=False),
     pts_voxel_layer=dict(
-        max_num_points=10, 
+        max_num_points=20, 
         point_cloud_range=point_cloud_range,
         voxel_size=[0.1, 0.1, 0.1],  # xy size follow centerpoint
         max_voxels=(90000, 120000)),
@@ -135,8 +127,26 @@ model = dict(
         norm_cfg=dict(type='SyncBN', requires_grad=True),
         sparse_shape_xyz=[1024, 1024, 128],  # hardcode, xy size follow centerpoint
         ),
+    pts_backbone=dict(
+        type='SECOND3D',
+        in_channels=[128, 128, 128],
+        out_channels=[128, 256, 512],
+        layer_nums=[5, 5, 5],
+        layer_strides=[1, 2, 4],
+        is_cascade=False,
+        norm_cfg=dict(type='BN3d', eps=1e-3, momentum=0.01),
+        conv_cfg=dict(type='Conv3d', kernel=(1,3,3), bias=False)),
+    pts_neck=dict(
+        type='SECOND3DFPN',
+        in_channels=[128, 256, 512],
+        out_channels=[128, 128, 128],
+        upsample_strides=[1, 2, 4],
+        norm_cfg=dict(type='BN3d', eps=1e-3, momentum=0.01),
+        upsample_cfg=dict(type='deconv3d', bias=False),
+        extra_conv=dict(type='Conv3d', num_conv=3, bias=False),
+        use_conv_for_no_stride=True),
     occ_fuser=dict(
-        type='BiFuser',
+        type='ConvFuser',
         in_channels=numC_Trans,
         out_channels=numC_Trans,
     ),
@@ -268,6 +278,7 @@ model = dict(
 dataset_type = 'CustomSemanticKITTILssDataset_Scale'
 data_root = 'data/SemanticKITTI'
 ann_file = 'data/SemanticKITTI/labels'
+kitti_class_metas = 'projects/configs/_base_/semantickitti.yaml'
 
 bda_aug_conf = dict(
     rot_lim=(0, 0),
@@ -287,7 +298,7 @@ train_pipeline = [
             data_config=data_config, img_norm_cfg=img_norm_cfg),
     dict(type='CreateDepthFromLiDAR', data_root=data_root, dataset='kitti'),
     dict(type='LoadSemKittiAnnotation', bda_aug_conf=bda_aug_conf, 
-            is_train=True, point_cloud_range=point_cloud_range),
+            is_train=True, point_cloud_range=point_cloud_range, cls_metas=kitti_class_metas),
     dict(type='OccDefaultFormatBundle3D', class_names=class_names),
     dict(type='Collect3D', keys=['img_inputs', 'points', 'gt_occ'], 
             meta_keys=['pc_range', 'occ_size']),
@@ -301,7 +312,7 @@ test_pipeline = [
     dict(type='LoadMultiViewImageFromFiles_SemanticKitti', is_train=False, 
          data_config=data_config, img_norm_cfg=img_norm_cfg),
     dict(type='LoadSemKittiAnnotation', bda_aug_conf=bda_aug_conf,
-            is_train=False, point_cloud_range=point_cloud_range),
+            is_train=False, point_cloud_range=point_cloud_range, cls_metas=kitti_class_metas),
     dict(type='OccDefaultFormatBundle3D', class_names=class_names, with_label=False), 
     dict(type='Collect3D', keys=['img_inputs', 'gt_occ', 'points'], 
             meta_keys=['pc_range', 'occ_size', 'sequence', 'frame_id', 'raw_img']),

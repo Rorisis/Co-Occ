@@ -136,7 +136,11 @@ class OccHead_kitti(nn.Module):
             if self.data_type == 'nus':
                 self.class_weights = torch.from_numpy(1 / np.log(nusc_class_frequencies + 0.001))
             else:
-                self.class_weights = torch.from_numpy(1 / np.log(semantic_kitti_class_frequencies + 0.001))
+                # complt_num_per_class = [7632350044, 15783539,  125136, 118809, 646799, 821951, 262978, 283696, 204750, 61688703, 4502961, 44883650, 2269923, 56840218, 15719652, 158442623, 2061623, 36970522, 1151988, 334146]
+                # compl_labelweights = complt_num_per_class / np.sum(complt_num_per_class)
+                # self.class_weights = torch.from_numpy(np.power(np.amax(compl_labelweights) / compl_labelweights, 1 / 3.0))
+                kitti_class_weights = 1 / np.log(semantic_kitti_class_frequencies + 0.001)
+                self.class_weights = torch.from_numpy(kitti_class_weights / kitti_class_weights[0])
         else:
             if self.data_type == 'nus':
                 self.class_weights = torch.ones(17)/17  # FIXME hardcode 17
