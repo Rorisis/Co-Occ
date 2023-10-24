@@ -336,6 +336,7 @@ class CustomSemanticKITTILssDataset_Scale(SemanticKITTIDataset):
         self.n_classes = 20
         super().__init__(*args, **kwargs)
         self._set_group_flag()
+        self.modality = kwargs['modality']
     
     @staticmethod
     def read_calib(calib_path):
@@ -491,8 +492,17 @@ class CustomSemanticKITTILssDataset_Scale(SemanticKITTIDataset):
                 cam_intrinsic=cam_intrinsics,
                 lidar2cam=lidar2cam_rts,
             ))
+            # lidar2ego, ego2global, ;idar2camera, intrinsic
         
         if self.lidar_used:
+            if self.modality['use_camera'] == False:
+                image_paths.append(info['img_{}_path'.format(int(2))])
+                lidar2img_rts.append(info['proj_matrix_{}'.format(int(2))])
+                input_dict['camera_used'] = False
+            else:
+                input_dict['camera_used'] = True
+            cam_intrinsics.append(info['P{}'.format(int(2))])
+            lidar2cam_rts.append(info['T_velo_2_cam'])
             seq_id, _, filename = image_paths[0].split("/")[-3:]
             pts_filename = os.path.join(self.data_root, 'dataset/sequences', 
                             seq_id, "velodyne", filename.replace(".png", ".bin"))

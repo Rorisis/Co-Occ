@@ -28,7 +28,7 @@ import copy
 # import mayavi.mlab as mlab
 
 @DETECTORS.register_module()
-class MoEOccupancyScale(BEVDepth):
+class MoEOccupancyScale_Lidar(BEVDepth):
     def __init__(self, 
                 voxel_size,
                 n_voxels,
@@ -300,6 +300,7 @@ class MoEOccupancyScale(BEVDepth):
             points_occ=None,
             img_metas=None,
             img_feats=None,
+            gt_depth=None,
             points_uv=None,
             **kwargs,
         ):
@@ -329,6 +330,7 @@ class MoEOccupancyScale(BEVDepth):
             points=None,
             img_metas=None,
             img_inputs=None,
+            gt_depth=None,
             gt_occ=None,
             points_occ=None,
             points_uv=None,
@@ -480,13 +482,14 @@ class MoEOccupancyScale(BEVDepth):
     def forward_test(self,
             img_metas=None,
             img_inputs=None,
+            gt_depth=None,
             **kwargs,
         ):
         
         return self.simple_test(img_metas, img_inputs, **kwargs)
     
     def simple_test(self, img_metas, img=None, points=None, rescale=False, points_occ=None, 
-            gt_occ=None, visible_mask=None, points_uv=None):
+            gt_occ=None, visible_mask=None, gt_depth=None, points_uv=None):
         
         voxel_feats, img_feats, pts_feats, depth, gemo = self.extract_feat(points, img=img, img_metas=img_metas)       
         output = self.pts_bbox_head.simple_test(
