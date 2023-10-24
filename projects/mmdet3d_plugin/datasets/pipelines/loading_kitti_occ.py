@@ -48,9 +48,22 @@ class LoadSemKittiAnnotation():
         # annotated_data = np.fromfile(results['lidarseg_filename'],dtype=np.uint32).reshape((-1, 1))
         # annotated_data = annotated_data & 0xFFFF  # delete high 16 digits binary
         # annotated_data = np.vectorize(self.learning_map.__getitem__)(annotated_data)
-        # points = np.fromfile(results['pts_filename'], dtype=np.float32, count=-1).reshape(-1, 4)[..., :3]
+        points = np.fromfile(results['pts_filename'], dtype=np.float32, count=-1).reshape(-1, 4)[..., :3]
         # lidarseg = np.concatenate([points, annotated_data], axis=-1)
+        # get *.label path from *.bin path
+        label_path = results['pts_filename'].replace("velodyne", "labels").replace(".bin", ".label")
+        # all_labels = np.fromfile(label_path, dtype=np.int32).reshape(-1)
+        annotated_data = np.fromfile(label_path, dtype=np.uint32).reshape((-1, 1))
+        
+        # semantic labels
+        sem_labels = annotated_data & 0xFFFF
+        # instance labels
+        # inst_labels = annotated_data 
+        inst_labels = annotated_data.astype(np.float32) 
 
+        # label mapping 
+        sem_labels = (np.vectorize(self.learning_map.__getitem__)(sem_labels)).astype(np.float32)
+        lidarseg = np.concatenate([points, sem_labels], axis=-1)
         
         if self.is_train:
             rotate_bda, scale_bda, flip_dx, flip_dy, flip_dz = self.sample_bda_augmentation()
@@ -59,13 +72,14 @@ class LoadSemKittiAnnotation():
         else:
             bda_rot = torch.eye(4).float()
         
-        # points = points @ bda_rot[:3,:3].t().numpy()
-        # lidarseg[:, :3] = points
+        points = points @ bda_rot[:3,:3].t().numpy()
+        lidarseg[:, :3] = points
+        
         
         imgs, rots, trans, intrins, post_rots, post_trans, gt_depths, sensor2sensors, denorm_imgs, intrin_nerf, c2ws, img_size = results['img_inputs']
         results['img_inputs'] = (imgs, rots, trans, intrins, post_rots, post_trans, bda_rot, gt_depths, sensor2sensors, denorm_imgs, intrin_nerf, c2ws, img_size)
         results['gt_occ'] = gt_occ.long()
-        # results['points_occ'] = torch.from_numpy(lidarseg).float()
+        results['points_occ'] = torch.from_numpy(lidarseg).float()
         
         return results
 

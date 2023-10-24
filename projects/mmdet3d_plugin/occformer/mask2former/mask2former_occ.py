@@ -20,6 +20,7 @@ from .base.anchor_free_head import AnchorFreeHead
 from .base.maskformer_head import MaskFormerHead
 from projects.mmdet3d_plugin.utils.semkitti import semantic_kitti_class_frequencies
 import pdb
+from projects.mmdet3d_plugin.utils import per_class_iu, fast_hist_crop
 
 
 # Mask2former for 3D Occupancy Segmentation
@@ -153,6 +154,7 @@ class Mask2FormerOccHead(MaskFormerHead):
         self.pooling_attn_mask = pooling_attn_mask
         
         # align_corners
+        self.padding_mode = 'border'
         self.align_corners = align_corners
 
     def get_sampling_weights(self):
@@ -526,6 +528,7 @@ class Mask2FormerOccHead(MaskFormerHead):
             voxel_feats,
             img_metas,
             gt_occ,
+            points=None,
             **kwargs,
         ):
         """Forward function for training mode.
@@ -563,6 +566,8 @@ class Mask2FormerOccHead(MaskFormerHead):
 
         # loss
         losses = self.loss(all_cls_scores, all_mask_preds, gt_labels, gt_masks, img_metas)
+        losses_lidarseg = self.forward_lidarseg(all_cls_scores[-1], all_mask_preds[-1], points, img_metas)
+        losses.update(losses_lidarseg)
         
         return losses
 
@@ -701,3 +706,43 @@ class Mask2FormerOccHead(MaskFormerHead):
         }
 
         return res
+
+    def forward_lidarseg(self, cls_preds, mask_preds, points, img_metas=None):
+        pc_range = torch.tensor(img_metas[0]['pc_range']).type_as(mask_preds)
+        pc_range_min = pc_range[:3]
+        pc_range = pc_range[3:] - pc_range_min
+        
+        voxel_preds = self.format_results(cls_preds, mask_preds)
+        # sample the corresponding predictions from the voxel predictions for lidarseg evaluation
+        point_logits = []
+        for batch_index, points_i in enumerate(points):
+            points_i = (points_i[:, :3].float() - pc_range_min) / pc_range
+            points_i = (points_i * 2) - 1
+            points_i = points_i[..., [2, 1, 0]]
+            
+            out_of_range_mask = (points_i < -1) | (points_i > 1)
+            out_of_range_mask = out_of_range_mask.any(dim=1)
+            points_i = points_i.view(1, 1, 1, -1, 3)
+            point_logits_i = F.grid_sample(voxel_preds[batch_index : batch_index + 1], points_i, mode='bilinear', 
+                                    padding_mode=self.padding_mode, align_corners=self.align_corners)
+            point_logits_i = point_logits_i.squeeze().t().contiguous() # [b, n, c]
+            point_logits.append(point_logits_i)
+        
+        point_logits = torch.cat(point_logits, dim=0)
+        
+        if self.training:
+            point_labels = torch.cat([x[:, -1] for x in points]).long()
+            # compute the lidarseg metric
+            output_clses = torch.argmax(point_logits[:, 1:], dim=1) + 1
+            target_points_np = point_labels.cpu().numpy()
+            output_clses_np = output_clses.cpu().numpy()
+            
+            unique_label = np.arange(20)
+            hist = fast_hist_crop(output_clses_np, target_points_np, unique_label)
+            iou = per_class_iu(hist)
+            loss_dict = {}
+            loss_dict['point_mean_iou'] = torch.tensor(np.nanmean(iou)).cuda()
+            loss_dict['loss_lidarseg'] = F.cross_entropy(point_logits, point_labels, ignore_index=255)
+            return loss_dict
+        else:
+            return torch.softmax(point_logits, dim=1)

@@ -36,7 +36,7 @@ data_config = {
     'resize_test': 0.00,
 }
 
-scale = 32
+scale = 16
 grid_config = {
     'xbound': [point_cloud_range[0], point_cloud_range[3], voxel_x * lss_downsample[0]],
     'ybound': [point_cloud_range[1], point_cloud_range[4], voxel_y * lss_downsample[1]],
@@ -300,7 +300,7 @@ train_pipeline = [
     dict(type='LoadSemKittiAnnotation', bda_aug_conf=bda_aug_conf, 
             is_train=True, point_cloud_range=point_cloud_range, cls_metas=kitti_class_metas),
     dict(type='OccDefaultFormatBundle3D', class_names=class_names),
-    dict(type='Collect3D', keys=['img_inputs', 'points', 'gt_occ'], 
+    dict(type='Collect3D', keys=['img_inputs', 'points', 'gt_occ', 'points_occ'], 
             meta_keys=['pc_range', 'occ_size']),
 ]
 
@@ -314,7 +314,7 @@ test_pipeline = [
     dict(type='LoadSemKittiAnnotation', bda_aug_conf=bda_aug_conf,
             is_train=False, point_cloud_range=point_cloud_range, cls_metas=kitti_class_metas),
     dict(type='OccDefaultFormatBundle3D', class_names=class_names, with_label=False), 
-    dict(type='Collect3D', keys=['img_inputs', 'gt_occ', 'points'], 
+    dict(type='Collect3D', keys=['img_inputs', 'gt_occ', 'points', 'points_occ'], 
             meta_keys=['pc_range', 'occ_size', 'sequence', 'frame_id', 'raw_img']),
 ]
 
