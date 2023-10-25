@@ -566,9 +566,9 @@ class Mask2FormerOccHead(MaskFormerHead):
 
         # loss
         losses = self.loss(all_cls_scores, all_mask_preds, gt_labels, gt_masks, img_metas)
-        if points[0].shape[-1] == 4:
-            losses_lidarseg = self.forward_lidarseg(all_cls_scores[-1], all_mask_preds[-1], points, img_metas)
-            losses.update(losses_lidarseg)
+
+        losses_lidarseg = self.forward_lidarseg(all_cls_scores[-1], all_mask_preds[-1], points, img_metas)
+        losses.update(losses_lidarseg)
         
         return losses
 

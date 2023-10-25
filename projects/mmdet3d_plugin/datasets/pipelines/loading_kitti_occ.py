@@ -53,7 +53,7 @@ class LoadSemKittiAnnotation():
         # get *.label path from *.bin path
         label_path = results['pts_filename'].replace("velodyne", "labels").replace(".bin", ".label")
         # all_labels = np.fromfile(label_path, dtype=np.int32).reshape(-1)
-        annotated_data = np.fromfile(label_path, dtype=np.uint32).reshape((-1, 1))
+        annotated_data = np.fromfile(label_path, dtype=np.uint32).reshape(-1)
         
         # semantic labels
         sem_labels = annotated_data & 0xFFFF
@@ -63,8 +63,10 @@ class LoadSemKittiAnnotation():
 
         # label mapping 
         sem_labels = (np.vectorize(self.learning_map.__getitem__)(sem_labels)).astype(np.float32)
-        if points.shape[0] == sem_labels.shape[0]:
-            lidarseg = np.concatenate([points, sem_labels], axis=-1)
+
+        idx = np.arange(points.shape[0])
+        sem_labels = sem_labels[idx]
+        lidarseg = np.concatenate([points, sem_labels[:, None]], axis=-1)
         
         if self.is_train:
             rotate_bda, scale_bda, flip_dx, flip_dy, flip_dz = self.sample_bda_augmentation()
@@ -73,11 +75,9 @@ class LoadSemKittiAnnotation():
         else:
             bda_rot = torch.eye(4).float()
         
-        if points.shape[0] == sem_labels.shape[0]:
-            points = points @ bda_rot[:3,:3].t().numpy()
-            lidarseg[:, :3] = points
-        else:
-            lidarseg = points
+
+        points = points @ bda_rot[:3,:3].t().numpy()
+        lidarseg[:, :3] = points
 
         
         
