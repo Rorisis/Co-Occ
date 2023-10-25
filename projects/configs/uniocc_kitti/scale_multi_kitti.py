@@ -36,7 +36,7 @@ data_config = {
     'resize_test': 0.00,
 }
 
-scale = 16
+scale = 8
 grid_config = {
     'xbound': [point_cloud_range[0], point_cloud_range[3], voxel_x * lss_downsample[0]],
     'ybound': [point_cloud_range[1], point_cloud_range[4], voxel_y * lss_downsample[1]],
@@ -76,7 +76,7 @@ model = dict(
     near_far_range=[0.2, 51.2],
     N_samples=64,
     N_rand=2048,
-    depth_supervise=False,
+    depth_supervise=True,
     use_nerf_mask=True,
     nerf_sample_view=6,
     squeeze_scale=4,

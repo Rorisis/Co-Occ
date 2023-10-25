@@ -63,7 +63,8 @@ class LoadSemKittiAnnotation():
 
         # label mapping 
         sem_labels = (np.vectorize(self.learning_map.__getitem__)(sem_labels)).astype(np.float32)
-        lidarseg = np.concatenate([points, sem_labels], axis=-1)
+        if points.shape[0] == sem_labels.shape[0]:
+            lidarseg = np.concatenate([points, sem_labels], axis=-1)
         
         if self.is_train:
             rotate_bda, scale_bda, flip_dx, flip_dy, flip_dz = self.sample_bda_augmentation()
@@ -72,14 +73,20 @@ class LoadSemKittiAnnotation():
         else:
             bda_rot = torch.eye(4).float()
         
-        points = points @ bda_rot[:3,:3].t().numpy()
-        lidarseg[:, :3] = points
+        if points.shape[0] == sem_labels.shape[0]:
+            points = points @ bda_rot[:3,:3].t().numpy()
+            lidarseg[:, :3] = points
+        else:
+            lidarseg = points
+
         
         
         imgs, rots, trans, intrins, post_rots, post_trans, gt_depths, sensor2sensors, denorm_imgs, intrin_nerf, c2ws, img_size = results['img_inputs']
         results['img_inputs'] = (imgs, rots, trans, intrins, post_rots, post_trans, bda_rot, gt_depths, sensor2sensors, denorm_imgs, intrin_nerf, c2ws, img_size)
         results['gt_occ'] = gt_occ.long()
+        
         results['points_occ'] = torch.from_numpy(lidarseg).float()
+
         
         return results
 

@@ -1,0 +1,92 @@
+/hpc2hdd/home/jpan305/miniconda3/envs/openocc/lib/python3.7/site-packages/setuptools/command/easy_install.py:159: EasyInstallDeprecationWarning: easy_install command is deprecated. Use build and pip and other standards-based tools.
+  EasyInstallDeprecationWarning,
+/hpc2hdd/home/jpan305/miniconda3/envs/openocc/lib/python3.7/site-packages/setuptools/command/install.py:37: SetuptoolsDeprecationWarning: setup.py install is deprecated. Use build and pip and other standards-based tools.
+  setuptools.SetuptoolsDeprecationWarning,
+warning: no files found matching '*.cpp' under directory 'mmdet3d/.mim/ops'
+warning: no files found matching '*.cu' under directory 'mmdet3d/.mim/ops'
+warning: no files found matching '*.h' under directory 'mmdet3d/.mim/ops'
+warning: no files found matching '*.cc' under directory 'mmdet3d/.mim/ops'
+/hpc2hdd/home/jpan305/miniconda3/envs/openocc/compiler_compat/ld: warning: /hpc2hdd/home/jpan305/miniconda3/envs/openocc/lib/libstdc++.so: unsupported GNU_PROPERTY_TYPE (5) type: 0xc0010001
+/hpc2hdd/home/jpan305/miniconda3/envs/openocc/compiler_compat/ld: warning: /hpc2hdd/home/jpan305/miniconda3/envs/openocc/lib/libstdc++.so: unsupported GNU_PROPERTY_TYPE (5) type: 0xc0010002
+/hpc2hdd/home/jpan305/miniconda3/envs/openocc/compiler_compat/ld: warning: /hpc2hdd/home/jpan305/miniconda3/envs/openocc/lib/libgcc_s.so.1: unsupported GNU_PROPERTY_TYPE (5) type: 0xc0010001
+/hpc2hdd/home/jpan305/miniconda3/envs/openocc/compiler_compat/ld: warning: /hpc2hdd/home/jpan305/miniconda3/envs/openocc/lib/libgcc_s.so.1: unsupported GNU_PROPERTY_TYPE (5) type: 0xc0010002
+/hpc2hdd/home/jpan305/miniconda3/envs/openocc/compiler_compat/ld: warning: /hpc2hdd/home/jpan305/miniconda3/envs/openocc/lib/libgcc_s.so.1: unsupported GNU_PROPERTY_TYPE (5) type: 0xc0010001
+/hpc2hdd/home/jpan305/miniconda3/envs/openocc/compiler_compat/ld: warning: /hpc2hdd/home/jpan305/miniconda3/envs/openocc/lib/libgcc_s.so.1: unsupported GNU_PROPERTY_TYPE (5) type: 0xc0010002
+/hpc2hdd/home/jpan305/miniconda3/envs/openocc/compiler_compat/ld: warning: /hpc2hdd/home/jpan305/miniconda3/envs/openocc/lib/libstdc++.so: unsupported GNU_PROPERTY_TYPE (5) type: 0xc0010001
+/hpc2hdd/home/jpan305/miniconda3/envs/openocc/compiler_compat/ld: warning: /hpc2hdd/home/jpan305/miniconda3/envs/openocc/lib/libstdc++.so: unsupported GNU_PROPERTY_TYPE (5) type: 0xc0010002
+/hpc2hdd/home/jpan305/miniconda3/envs/openocc/compiler_compat/ld: warning: /hpc2hdd/home/jpan305/miniconda3/envs/openocc/lib/libgcc_s.so.1: unsupported GNU_PROPERTY_TYPE (5) type: 0xc0010001
+/hpc2hdd/home/jpan305/miniconda3/envs/openocc/compiler_compat/ld: warning: /hpc2hdd/home/jpan305/miniconda3/envs/openocc/lib/libgcc_s.so.1: unsupported GNU_PROPERTY_TYPE (5) type: 0xc0010002
+/hpc2hdd/home/jpan305/miniconda3/envs/openocc/compiler_compat/ld: warning: /hpc2hdd/home/jpan305/miniconda3/envs/openocc/lib/libgcc_s.so.1: unsupported GNU_PROPERTY_TYPE (5) type: 0xc0010001
+/hpc2hdd/home/jpan305/miniconda3/envs/openocc/compiler_compat/ld: warning: /hpc2hdd/home/jpan305/miniconda3/envs/openocc/lib/libgcc_s.so.1: unsupported GNU_PROPERTY_TYPE (5) type: 0xc0010002
+/hpc2hdd/home/jpan305/miniconda3/envs/openocc/compiler_compat/ld: warning: /hpc2hdd/home/jpan305/miniconda3/envs/openocc/lib/libstdc++.so: unsupported GNU_PROPERTY_TYPE (5) type: 0xc0010001
+/hpc2hdd/home/jpan305/miniconda3/envs/openocc/compiler_compat/ld: warning: /hpc2hdd/home/jpan305/miniconda3/envs/openocc/lib/libstdc++.so: unsupported GNU_PROPERTY_TYPE (5) type: 0xc0010002
+/hpc2hdd/home/jpan305/miniconda3/envs/openocc/compiler_compat/ld: warning: /hpc2hdd/home/jpan305/miniconda3/envs/openocc/lib/libgcc_s.so.1: unsupported GNU_PROPERTY_TYPE (5) type: 0xc0010001
+/hpc2hdd/home/jpan305/miniconda3/envs/openocc/compiler_compat/ld: warning: /hpc2hdd/home/jpan305/miniconda3/envs/openocc/lib/libgcc_s.so.1: unsupported GNU_PROPERTY_TYPE (5) type: 0xc0010002
+/hpc2hdd/home/jpan305/miniconda3/envs/openocc/compiler_compat/ld: warning: /hpc2hdd/home/jpan305/miniconda3/envs/openocc/lib/libgcc_s.so.1: unsupported GNU_PROPERTY_TYPE (5) type: 0xc0010001
+/hpc2hdd/home/jpan305/miniconda3/envs/openocc/compiler_compat/ld: warning: /hpc2hdd/home/jpan305/miniconda3/envs/openocc/lib/libgcc_s.so.1: unsupported GNU_PROPERTY_TYPE (5) type: 0xc0010002
+/hpc2hdd/home/jpan305/miniconda3/envs/openocc/compiler_compat/ld: warning: /hpc2hdd/home/jpan305/miniconda3/envs/openocc/lib/libstdc++.so: unsupported GNU_PROPERTY_TYPE (5) type: 0xc0010001
+/hpc2hdd/home/jpan305/miniconda3/envs/openocc/compiler_compat/ld: warning: /hpc2hdd/home/jpan305/miniconda3/envs/openocc/lib/libstdc++.so: unsupported GNU_PROPERTY_TYPE (5) type: 0xc0010002
+/hpc2hdd/home/jpan305/miniconda3/envs/openocc/compiler_compat/ld: warning: /hpc2hdd/home/jpan305/miniconda3/envs/openocc/lib/libgcc_s.so.1: unsupported GNU_PROPERTY_TYPE (5) type: 0xc0010001
+/hpc2hdd/home/jpan305/miniconda3/envs/openocc/compiler_compat/ld: warning: /hpc2hdd/home/jpan305/miniconda3/envs/openocc/lib/libgcc_s.so.1: unsupported GNU_PROPERTY_TYPE (5) type: 0xc0010002
+/hpc2hdd/home/jpan305/miniconda3/envs/openocc/compiler_compat/ld: warning: /hpc2hdd/home/jpan305/miniconda3/envs/openocc/lib/libgcc_s.so.1: unsupported GNU_PROPERTY_TYPE (5) type: 0xc0010001
+/hpc2hdd/home/jpan305/miniconda3/envs/openocc/compiler_compat/ld: warning: /hpc2hdd/home/jpan305/miniconda3/envs/openocc/lib/libgcc_s.so.1: unsupported GNU_PROPERTY_TYPE (5) type: 0xc0010002
+/hpc2hdd/home/jpan305/miniconda3/envs/openocc/compiler_compat/ld: warning: /hpc2hdd/home/jpan305/miniconda3/envs/openocc/lib/libstdc++.so: unsupported GNU_PROPERTY_TYPE (5) type: 0xc0010001
+/hpc2hdd/home/jpan305/miniconda3/envs/openocc/compiler_compat/ld: warning: /hpc2hdd/home/jpan305/miniconda3/envs/openocc/lib/libstdc++.so: unsupported GNU_PROPERTY_TYPE (5) type: 0xc0010002
+/hpc2hdd/home/jpan305/miniconda3/envs/openocc/compiler_compat/ld: warning: /hpc2hdd/home/jpan305/miniconda3/envs/openocc/lib/libgcc_s.so.1: unsupported GNU_PROPERTY_TYPE (5) type: 0xc0010001
+/hpc2hdd/home/jpan305/miniconda3/envs/openocc/compiler_compat/ld: warning: /hpc2hdd/home/jpan305/miniconda3/envs/openocc/lib/libgcc_s.so.1: unsupported GNU_PROPERTY_TYPE (5) type: 0xc0010002
+/hpc2hdd/home/jpan305/miniconda3/envs/openocc/compiler_compat/ld: warning: /hpc2hdd/home/jpan305/miniconda3/envs/openocc/lib/libgcc_s.so.1: unsupported GNU_PROPERTY_TYPE (5) type: 0xc0010001
+/hpc2hdd/home/jpan305/miniconda3/envs/openocc/compiler_compat/ld: warning: /hpc2hdd/home/jpan305/miniconda3/envs/openocc/lib/libgcc_s.so.1: unsupported GNU_PROPERTY_TYPE (5) type: 0xc0010002
+/hpc2hdd/home/jpan305/miniconda3/envs/openocc/compiler_compat/ld: warning: /hpc2hdd/home/jpan305/miniconda3/envs/openocc/lib/libstdc++.so: unsupported GNU_PROPERTY_TYPE (5) type: 0xc0010001
+/hpc2hdd/home/jpan305/miniconda3/envs/openocc/compiler_compat/ld: warning: /hpc2hdd/home/jpan305/miniconda3/envs/openocc/lib/libstdc++.so: unsupported GNU_PROPERTY_TYPE (5) type: 0xc0010002
+/hpc2hdd/home/jpan305/miniconda3/envs/openocc/compiler_compat/ld: warning: /hpc2hdd/home/jpan305/miniconda3/envs/openocc/lib/libgcc_s.so.1: unsupported GNU_PROPERTY_TYPE (5) type: 0xc0010001
+/hpc2hdd/home/jpan305/miniconda3/envs/openocc/compiler_compat/ld: warning: /hpc2hdd/home/jpan305/miniconda3/envs/openocc/lib/libgcc_s.so.1: unsupported GNU_PROPERTY_TYPE (5) type: 0xc0010002
+/hpc2hdd/home/jpan305/miniconda3/envs/openocc/compiler_compat/ld: warning: /hpc2hdd/home/jpan305/miniconda3/envs/openocc/lib/libgcc_s.so.1: unsupported GNU_PROPERTY_TYPE (5) type: 0xc0010001
+/hpc2hdd/home/jpan305/miniconda3/envs/openocc/compiler_compat/ld: warning: /hpc2hdd/home/jpan305/miniconda3/envs/openocc/lib/libgcc_s.so.1: unsupported GNU_PROPERTY_TYPE (5) type: 0xc0010002
+/hpc2hdd/home/jpan305/miniconda3/envs/openocc/compiler_compat/ld: warning: /hpc2hdd/home/jpan305/miniconda3/envs/openocc/lib/libstdc++.so: unsupported GNU_PROPERTY_TYPE (5) type: 0xc0010001
+/hpc2hdd/home/jpan305/miniconda3/envs/openocc/compiler_compat/ld: warning: /hpc2hdd/home/jpan305/miniconda3/envs/openocc/lib/libstdc++.so: unsupported GNU_PROPERTY_TYPE (5) type: 0xc0010002
+/hpc2hdd/home/jpan305/miniconda3/envs/openocc/compiler_compat/ld: warning: /hpc2hdd/home/jpan305/miniconda3/envs/openocc/lib/libgcc_s.so.1: unsupported GNU_PROPERTY_TYPE (5) type: 0xc0010001
+/hpc2hdd/home/jpan305/miniconda3/envs/openocc/compiler_compat/ld: warning: /hpc2hdd/home/jpan305/miniconda3/envs/openocc/lib/libgcc_s.so.1: unsupported GNU_PROPERTY_TYPE (5) type: 0xc0010002
+/hpc2hdd/home/jpan305/miniconda3/envs/openocc/compiler_compat/ld: warning: /hpc2hdd/home/jpan305/miniconda3/envs/openocc/lib/libgcc_s.so.1: unsupported GNU_PROPERTY_TYPE (5) type: 0xc0010001
+/hpc2hdd/home/jpan305/miniconda3/envs/openocc/compiler_compat/ld: warning: /hpc2hdd/home/jpan305/miniconda3/envs/openocc/lib/libgcc_s.so.1: unsupported GNU_PROPERTY_TYPE (5) type: 0xc0010002
+/hpc2hdd/home/jpan305/miniconda3/envs/openocc/compiler_compat/ld: warning: /hpc2hdd/home/jpan305/miniconda3/envs/openocc/lib/libstdc++.so: unsupported GNU_PROPERTY_TYPE (5) type: 0xc0010001
+/hpc2hdd/home/jpan305/miniconda3/envs/openocc/compiler_compat/ld: warning: /hpc2hdd/home/jpan305/miniconda3/envs/openocc/lib/libstdc++.so: unsupported GNU_PROPERTY_TYPE (5) type: 0xc0010002
+/hpc2hdd/home/jpan305/miniconda3/envs/openocc/compiler_compat/ld: warning: /hpc2hdd/home/jpan305/miniconda3/envs/openocc/lib/libgcc_s.so.1: unsupported GNU_PROPERTY_TYPE (5) type: 0xc0010001
+/hpc2hdd/home/jpan305/miniconda3/envs/openocc/compiler_compat/ld: warning: /hpc2hdd/home/jpan305/miniconda3/envs/openocc/lib/libgcc_s.so.1: unsupported GNU_PROPERTY_TYPE (5) type: 0xc0010002
+/hpc2hdd/home/jpan305/miniconda3/envs/openocc/compiler_compat/ld: warning: /hpc2hdd/home/jpan305/miniconda3/envs/openocc/lib/libgcc_s.so.1: unsupported GNU_PROPERTY_TYPE (5) type: 0xc0010001
+/hpc2hdd/home/jpan305/miniconda3/envs/openocc/compiler_compat/ld: warning: /hpc2hdd/home/jpan305/miniconda3/envs/openocc/lib/libgcc_s.so.1: unsupported GNU_PROPERTY_TYPE (5) type: 0xc0010002
+/hpc2hdd/home/jpan305/miniconda3/envs/openocc/compiler_compat/ld: warning: /hpc2hdd/home/jpan305/miniconda3/envs/openocc/lib/libstdc++.so: unsupported GNU_PROPERTY_TYPE (5) type: 0xc0010001
+/hpc2hdd/home/jpan305/miniconda3/envs/openocc/compiler_compat/ld: warning: /hpc2hdd/home/jpan305/miniconda3/envs/openocc/lib/libstdc++.so: unsupported GNU_PROPERTY_TYPE (5) type: 0xc0010002
+/hpc2hdd/home/jpan305/miniconda3/envs/openocc/compiler_compat/ld: warning: /hpc2hdd/home/jpan305/miniconda3/envs/openocc/lib/libgcc_s.so.1: unsupported GNU_PROPERTY_TYPE (5) type: 0xc0010001
+/hpc2hdd/home/jpan305/miniconda3/envs/openocc/compiler_compat/ld: warning: /hpc2hdd/home/jpan305/miniconda3/envs/openocc/lib/libgcc_s.so.1: unsupported GNU_PROPERTY_TYPE (5) type: 0xc0010002
+/hpc2hdd/home/jpan305/miniconda3/envs/openocc/compiler_compat/ld: warning: /hpc2hdd/home/jpan305/miniconda3/envs/openocc/lib/libgcc_s.so.1: unsupported GNU_PROPERTY_TYPE (5) type: 0xc0010001
+/hpc2hdd/home/jpan305/miniconda3/envs/openocc/compiler_compat/ld: warning: /hpc2hdd/home/jpan305/miniconda3/envs/openocc/lib/libgcc_s.so.1: unsupported GNU_PROPERTY_TYPE (5) type: 0xc0010002
+/hpc2hdd/home/jpan305/miniconda3/envs/openocc/compiler_compat/ld: warning: /hpc2hdd/home/jpan305/miniconda3/envs/openocc/lib/libstdc++.so: unsupported GNU_PROPERTY_TYPE (5) type: 0xc0010001
+/hpc2hdd/home/jpan305/miniconda3/envs/openocc/compiler_compat/ld: warning: /hpc2hdd/home/jpan305/miniconda3/envs/openocc/lib/libstdc++.so: unsupported GNU_PROPERTY_TYPE (5) type: 0xc0010002
+/hpc2hdd/home/jpan305/miniconda3/envs/openocc/compiler_compat/ld: warning: /hpc2hdd/home/jpan305/miniconda3/envs/openocc/lib/libgcc_s.so.1: unsupported GNU_PROPERTY_TYPE (5) type: 0xc0010001
+/hpc2hdd/home/jpan305/miniconda3/envs/openocc/compiler_compat/ld: warning: /hpc2hdd/home/jpan305/miniconda3/envs/openocc/lib/libgcc_s.so.1: unsupported GNU_PROPERTY_TYPE (5) type: 0xc0010002
+/hpc2hdd/home/jpan305/miniconda3/envs/openocc/compiler_compat/ld: warning: /hpc2hdd/home/jpan305/miniconda3/envs/openocc/lib/libgcc_s.so.1: unsupported GNU_PROPERTY_TYPE (5) type: 0xc0010001
+/hpc2hdd/home/jpan305/miniconda3/envs/openocc/compiler_compat/ld: warning: /hpc2hdd/home/jpan305/miniconda3/envs/openocc/lib/libgcc_s.so.1: unsupported GNU_PROPERTY_TYPE (5) type: 0xc0010002
+/hpc2hdd/home/jpan305/miniconda3/envs/openocc/compiler_compat/ld: warning: /hpc2hdd/home/jpan305/miniconda3/envs/openocc/lib/libstdc++.so: unsupported GNU_PROPERTY_TYPE (5) type: 0xc0010001
+/hpc2hdd/home/jpan305/miniconda3/envs/openocc/compiler_compat/ld: warning: /hpc2hdd/home/jpan305/miniconda3/envs/openocc/lib/libstdc++.so: unsupported GNU_PROPERTY_TYPE (5) type: 0xc0010002
+/hpc2hdd/home/jpan305/miniconda3/envs/openocc/compiler_compat/ld: warning: /hpc2hdd/home/jpan305/miniconda3/envs/openocc/lib/libgcc_s.so.1: unsupported GNU_PROPERTY_TYPE (5) type: 0xc0010001
+/hpc2hdd/home/jpan305/miniconda3/envs/openocc/compiler_compat/ld: warning: /hpc2hdd/home/jpan305/miniconda3/envs/openocc/lib/libgcc_s.so.1: unsupported GNU_PROPERTY_TYPE (5) type: 0xc0010002
+/hpc2hdd/home/jpan305/miniconda3/envs/openocc/compiler_compat/ld: warning: /hpc2hdd/home/jpan305/miniconda3/envs/openocc/lib/libgcc_s.so.1: unsupported GNU_PROPERTY_TYPE (5) type: 0xc0010001
+/hpc2hdd/home/jpan305/miniconda3/envs/openocc/compiler_compat/ld: warning: /hpc2hdd/home/jpan305/miniconda3/envs/openocc/lib/libgcc_s.so.1: unsupported GNU_PROPERTY_TYPE (5) type: 0xc0010002
+/hpc2hdd/home/jpan305/miniconda3/envs/openocc/compiler_compat/ld: warning: /hpc2hdd/home/jpan305/miniconda3/envs/openocc/lib/libstdc++.so: unsupported GNU_PROPERTY_TYPE (5) type: 0xc0010001
+/hpc2hdd/home/jpan305/miniconda3/envs/openocc/compiler_compat/ld: warning: /hpc2hdd/home/jpan305/miniconda3/envs/openocc/lib/libstdc++.so: unsupported GNU_PROPERTY_TYPE (5) type: 0xc0010002
+/hpc2hdd/home/jpan305/miniconda3/envs/openocc/compiler_compat/ld: warning: /hpc2hdd/home/jpan305/miniconda3/envs/openocc/lib/libgcc_s.so.1: unsupported GNU_PROPERTY_TYPE (5) type: 0xc0010001
+/hpc2hdd/home/jpan305/miniconda3/envs/openocc/compiler_compat/ld: warning: /hpc2hdd/home/jpan305/miniconda3/envs/openocc/lib/libgcc_s.so.1: unsupported GNU_PROPERTY_TYPE (5) type: 0xc0010002
+/hpc2hdd/home/jpan305/miniconda3/envs/openocc/compiler_compat/ld: warning: /hpc2hdd/home/jpan305/miniconda3/envs/openocc/lib/libgcc_s.so.1: unsupported GNU_PROPERTY_TYPE (5) type: 0xc0010001
+/hpc2hdd/home/jpan305/miniconda3/envs/openocc/compiler_compat/ld: warning: /hpc2hdd/home/jpan305/miniconda3/envs/openocc/lib/libgcc_s.so.1: unsupported GNU_PROPERTY_TYPE (5) type: 0xc0010002
+/hpc2hdd/home/jpan305/miniconda3/envs/openocc/compiler_compat/ld: warning: /hpc2hdd/home/jpan305/miniconda3/envs/openocc/lib/libstdc++.so: unsupported GNU_PROPERTY_TYPE (5) type: 0xc0010001
+/hpc2hdd/home/jpan305/miniconda3/envs/openocc/compiler_compat/ld: warning: /hpc2hdd/home/jpan305/miniconda3/envs/openocc/lib/libstdc++.so: unsupported GNU_PROPERTY_TYPE (5) type: 0xc0010002
+/hpc2hdd/home/jpan305/miniconda3/envs/openocc/compiler_compat/ld: warning: /hpc2hdd/home/jpan305/miniconda3/envs/openocc/lib/libgcc_s.so.1: unsupported GNU_PROPERTY_TYPE (5) type: 0xc0010001
+/hpc2hdd/home/jpan305/miniconda3/envs/openocc/compiler_compat/ld: warning: /hpc2hdd/home/jpan305/miniconda3/envs/openocc/lib/libgcc_s.so.1: unsupported GNU_PROPERTY_TYPE (5) type: 0xc0010002
+/hpc2hdd/home/jpan305/miniconda3/envs/openocc/compiler_compat/ld: warning: /hpc2hdd/home/jpan305/miniconda3/envs/openocc/lib/libgcc_s.so.1: unsupported GNU_PROPERTY_TYPE (5) type: 0xc0010001
+/hpc2hdd/home/jpan305/miniconda3/envs/openocc/compiler_compat/ld: warning: /hpc2hdd/home/jpan305/miniconda3/envs/openocc/lib/libgcc_s.so.1: unsupported GNU_PROPERTY_TYPE (5) type: 0xc0010002
+/hpc2hdd/home/jpan305/miniconda3/envs/openocc/compiler_compat/ld: warning: /hpc2hdd/home/jpan305/miniconda3/envs/openocc/lib/libstdc++.so: unsupported GNU_PROPERTY_TYPE (5) type: 0xc0010001
+/hpc2hdd/home/jpan305/miniconda3/envs/openocc/compiler_compat/ld: warning: /hpc2hdd/home/jpan305/miniconda3/envs/openocc/lib/libstdc++.so: unsupported GNU_PROPERTY_TYPE (5) type: 0xc0010002
+/hpc2hdd/home/jpan305/miniconda3/envs/openocc/compiler_compat/ld: warning: /hpc2hdd/home/jpan305/miniconda3/envs/openocc/lib/libgcc_s.so.1: unsupported GNU_PROPERTY_TYPE (5) type: 0xc0010001
+/hpc2hdd/home/jpan305/miniconda3/envs/openocc/compiler_compat/ld: warning: /hpc2hdd/home/jpan305/miniconda3/envs/openocc/lib/libgcc_s.so.1: unsupported GNU_PROPERTY_TYPE (5) type: 0xc0010002
+/hpc2hdd/home/jpan305/miniconda3/envs/openocc/compiler_compat/ld: warning: /hpc2hdd/home/jpan305/miniconda3/envs/openocc/lib/libgcc_s.so.1: unsupported GNU_PROPERTY_TYPE (5) type: 0xc0010001
+/hpc2hdd/home/jpan305/miniconda3/envs/openocc/compiler_compat/ld: warning: /hpc2hdd/home/jpan305/miniconda3/envs/openocc/lib/libgcc_s.so.1: unsupported GNU_PROPERTY_TYPE (5) type: 0xc0010002

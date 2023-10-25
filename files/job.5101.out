@@ -1,0 +1,7 @@
+Loading mkl version 2023.1.0
+Loading tbb version 2021.9.0
+Loading compiler-rt version 2023.1.0
+Loading mpi version 2021.9.0
+
+Loading vasp/6.3.2
+  Loading requirement: tbb/latest compiler-rt/latest mkl/2023.1.0 mpi/2021.9.0
