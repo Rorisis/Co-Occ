@@ -28,7 +28,7 @@ import copy
 # import mayavi.mlab as mlab
 
 @DETECTORS.register_module()
-class MoEOccupancyScale(BEVDepth):
+class MoEOccupancyScale_Ray(BEVDepth):
     def __init__(self, 
                 voxel_size,
                 n_voxels,
@@ -292,22 +292,6 @@ class MoEOccupancyScale(BEVDepth):
 
         return (voxel_feats, img_feats, pts_feats, depth, geom)
     
-    def get_weights(self, sigma, z_vals):
-        sigma = sigma.squeeze(-1)
-        sigma2alpha = lambda sigma, dists: 1. - torch.exp(-sigma)
-
-        dists = z_vals[:, 1:] - z_vals[:, :-1]
-        dists = torch.cat((dists, dists[:, -1:]), dim=-1)  # [N_rays, N_samples]
-
-        alpha = sigma2alpha(sigma, dists)  # [N_rays, N_samples]
-
-        T = torch.cumprod(1. - alpha + 1e-10, dim=-1)[:, :-1]   # [N_rays, N_samples-1]
-        T = torch.cat((torch.ones_like(T[:, 0:1]), T), dim=-1)
-
-        weights = alpha * T 
-
-        return weights
-    
     @force_fp32(apply_to=('pts_feats'))
     def forward_pts_train(
             self,
@@ -420,6 +404,7 @@ class MoEOccupancyScale(BEVDepth):
 
             cam_intrins = img_inputs[3][0]
 
+            
             for i in range(gemo.shape[0]):
 
                 dir_coord_2d = dir_coord_2d * img_inputs[0].shape[-1] // gemo.shape[-2] #img: b, n, c, h, w gemo: b, d, h, w, c
@@ -428,12 +413,10 @@ class MoEOccupancyScale(BEVDepth):
                     dir_coord_3d = unproject_image_to_rect(dir_coord_2d, cam_intrins[i][:3,:]).float()
                 else:
                     dir_coord_3d = unproject_image_to_rect(dir_coord_2d, torch.cat((cam_intrins[i], torch.zeros(3, 1).to(cam_intrins.device)), dim=1).float())
-                # raise ValueError('')
-                # direction = dir_coord_3d[:, :, 1, :] - dir_coord_3d[:, :, 0, :]
-                direction = dir_coord_2d[:, :, 1, :] - dir_coord_2d[:, :, 0, :]
-                # direction /= img_inputs[0].shape[-1] // gemo.shape[-2]
+                direction = dir_coord_3d[:, :, 1, :] - dir_coord_3d[:, :, 0, :]
+                direction /= img_inputs[0].shape[-1] // gemo.shape[-2]
 
-                directions.append(direction.to(density.device))
+                directions.append(direction)
 
             directions = torch.stack(directions, dim=0)
             weights, tdist = compute_alpha_weights(density, s_vals, directions, s_to_t)
@@ -459,9 +442,7 @@ class MoEOccupancyScale(BEVDepth):
 
             gt_depths = img_inputs[7][0]
             gt_imgs = img_inputs[0][0]
-            # print(gt_imgs.shape)
             losses["loss_color"] = F.mse_loss(rgb_values, gt_imgs)
-            
 
             if self.depth_supervise:
                 fg_mask = torch.max(gt_depths.reshape(gt_depths.shape[0], -1), dim=1).values > 0.0
@@ -473,7 +454,6 @@ class MoEOccupancyScale(BEVDepth):
             gt_opacity = (gt_depths != 0).to(gt_depths.dtype)
             losses["loss_opacity"] = torch.mean(-gt_opacity * torch.log(rendered_opacity + 1e-6) - (1 - gt_opacity) * torch.log(1 - rendered_opacity +1e-6)) # BCE lo
 
-            print(losses['loss_color'].item(), losses["loss_render_depth"].item())
 
 
         if self.loss_norm:

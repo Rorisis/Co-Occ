@@ -70,7 +70,7 @@ class LoadSemKittiAnnotation():
         
         if self.is_train:
             rotate_bda, scale_bda, flip_dx, flip_dy, flip_dz = self.sample_bda_augmentation()
-            gt_occ, bda_rot = voxel_transform(gt_occ, rotate_bda, scale_bda, 
+            _, bda_rot = voxel_transform(None, rotate_bda, scale_bda, 
                         flip_dx, flip_dy, flip_dz, self.transform_center)
         else:
             bda_rot = torch.eye(4).float()
@@ -135,20 +135,21 @@ def voxel_transform(voxel_labels, rotate_angle, scale_ratio, flip_dx, flip_dy, f
     # denorm @ flip_x @ flip_y @ flip_z @ rotation @ normalize
     bda_mat = trans_denorm @ flip_mat @ rot_mat @ trans_norm
     
-    voxel_labels = voxel_labels.numpy().astype(np.uint8)
-    
-    if not np.isclose(rotate_degree, 0):
-        voxel_labels = custom_rotate_3d(voxel_labels, rotate_degree)
-    
-    if flip_dz:
-        voxel_labels = voxel_labels[:, :, ::-1]
-    
-    if flip_dy:
-        voxel_labels = voxel_labels[:, ::-1]
-    
-    if flip_dx:
-        voxel_labels = voxel_labels[::-1]
-    
-    voxel_labels = torch.from_numpy(voxel_labels.copy()).long()
-    
+    if voxel_labels is not None:
+        voxel_labels = voxel_labels.numpy().astype(np.uint8)
+        
+        if not np.isclose(rotate_degree, 0):
+            voxel_labels = custom_rotate_3d(voxel_labels, rotate_degree)
+        
+        if flip_dz:
+            voxel_labels = voxel_labels[:, :, ::-1]
+        
+        if flip_dy:
+            voxel_labels = voxel_labels[:, ::-1]
+        
+        if flip_dx:
+            voxel_labels = voxel_labels[::-1]
+        
+        voxel_labels = torch.from_numpy(voxel_labels.copy()).long()
+        
     return voxel_labels, bda_mat

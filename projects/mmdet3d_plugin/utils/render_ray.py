@@ -614,6 +614,20 @@ def unproject_image_to_rect(pts_image, P):
     pts_3d = torch.matmul(pts_3d.to(invP.device), torch.transpose(invP, 0, 1))
     return pts_3d[..., :3]
 
+def lidar_to_rect(self, pts_lidar, lidar2img):
+        """
+        :param pts_lidar: (N, 3)
+        :return pts_rect: (N, 3)
+        """
+        if self.flipped:
+            raise NotImplementedError
+        pts_lidar_hom = np.hstack((pts_lidar, np.ones((pts_lidar.shape[0], 1), dtype=np.float32)))
+        # pts_rect = np.dot(pts_lidar_hom, np.dot(self.V2C.T, self.R0.T))
+        pts_rect = np.dot(pts_lidar_hom, self.V2C.T)
+        pts_rect = np.dot(pts_rect, self.R0.T)
+        # pts_rect = reduce(np.dot, (pts_lidar_hom, self.V2C.T, self.R0.T))
+        return pts_rect
+
 def construct_ray_warps(t_near=2, t_far=1e6, uniform=False):
     """Construct a bijection between metric distances and normalized distances.
         See the text around Equation 11 in https://arxiv.org/abs/2111.12077 for a

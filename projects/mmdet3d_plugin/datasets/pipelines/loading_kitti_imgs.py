@@ -133,9 +133,13 @@ class LoadMultiViewImageFromFiles_SemanticKitti(object):
             post_rot = torch.eye(3)
             post_tran[:2] = post_tran2
             post_rot[:2, :2] = post_rot2
-            
+
             # intrins
             intrin = torch.Tensor(results['cam_intrinsic'][0])
+            intrin_nerf_ = torch.Tensor(results['cam_intrinsic'][0])
+            intrin_nerf_[:2] = intrin_nerf_[:2] * resize
+            intrin_nerf_[0,2] -= crop[0]
+            intrin_nerf_[1,2] -= crop[1]
             
             # extrins
             lidar2cam = torch.Tensor(results['lidar2cam'][0])
@@ -157,7 +161,7 @@ class LoadMultiViewImageFromFiles_SemanticKitti(object):
             post_trans.append(post_tran)
             gt_depths.append(torch.zeros(1))
             denorm_imgs.append(torch.zeros(1))
-            intrin_nerf.append(torch.zeros(1))
+            intrin_nerf.append(intrin_nerf_)
             c2ws.append(torch.zeros(1))
             # only placeholder currently, to be used for video-based methods
             sensor2sensors.append(cam2lidar)

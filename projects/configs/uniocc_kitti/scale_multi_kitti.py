@@ -36,7 +36,7 @@ data_config = {
     'resize_test': 0.00,
 }
 
-scale = 8
+scale = 32
 grid_config = {
     'xbound': [point_cloud_range[0], point_cloud_range[3], voxel_x * lss_downsample[0]],
     'ybound': [point_cloud_range[1], point_cloud_range[4], voxel_y * lss_downsample[1]],
@@ -69,7 +69,7 @@ sample_from_img = True
 
 model = dict(
     type='MoEOccupancyScale',
-    loss_norm=True,
+    loss_norm=False,
     voxel_size=voxel_size,
     n_voxels=occ_size,
     aabb=([0, -25.6, -2], [51.2, 25.6, 4.4]),

@@ -377,9 +377,9 @@ class CustomSemanticKITTILssDataset_Scale(SemanticKITTIDataset):
             calib = self.read_calib(
                 os.path.join(self.data_root, "dataset", "sequences", sequence, "calib.txt")
             )
-            P2 = calib["P2"]
+            P2 = calib["P2"] # camera intrincs
             P3 = calib["P3"]
-            T_velo_2_cam = calib["Tr"]
+            T_velo_2_cam = calib["Tr"] #lidar2camera
             proj_matrix_2 = P2 @ T_velo_2_cam
             proj_matrix_3 = P3 @ T_velo_2_cam
 
