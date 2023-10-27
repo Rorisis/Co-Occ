@@ -28,7 +28,7 @@ voxel_x = (point_cloud_range[3] - point_cloud_range[0]) / occ_size[0]
 voxel_y = (point_cloud_range[4] - point_cloud_range[1]) / occ_size[1]
 voxel_z = (point_cloud_range[5] - point_cloud_range[2]) / occ_size[2]
 voxel_size = [voxel_x, voxel_y, voxel_z] # (0.4, 0.4, 0.25)
-
+pts_voxel_size = [0.125, 0.125, 0.125]
 scale = 16
 grid_config = {
     'xbound': [point_cloud_range[0], point_cloud_range[3], voxel_x * lss_downsample[0]],
@@ -52,7 +52,7 @@ data_config={
     'resize_test': 0.00,
 }
 
-numC_Trans = 128
+numC_Trans = 256
 voxel_channels = [128, 256, 512, 1024]
 voxel_channels_half = [64, 128, 256, 512]
 voxel_num_layer = [2, 2, 2, 2]
@@ -81,13 +81,13 @@ model = dict(
     near_far_range=[0.2, 50],
     N_samples=64,
     N_rand=2048,
-    depth_supervise=True,
+    depth_supervise=False,
     use_nerf_mask=True,
     nerf_sample_view=6,
     squeeze_scale=4,
     scale=scale,
     nerf_density=True,
-    use_rendering=True,
+    use_rendering=False,
     test_rendering=False,
     loss_voxel_ce_weight=1.0,
     loss_voxel_sem_scal_weight=1.0,
@@ -96,45 +96,42 @@ model = dict(
     pts_voxel_layer=dict(
         max_num_points=10, 
         point_cloud_range=point_cloud_range,
-        voxel_size=[0.1, 0.1, 0.1],  # xy size follow centerpoint
+        voxel_size=pts_voxel_size,  # xy size follow centerpoint
         max_voxels=(90000, 120000)),
     pts_voxel_encoder=dict(type='HardSimpleVFE', num_features=5),
-    # pts_middle_encoder=dict(
-    #     type='SparseLiDAREnc8x',
-    #     input_channel=4,
-    #     base_channel=16,
-    #     out_channel=numC_Trans,
-    #     norm_cfg=dict(type='SyncBN', requires_grad=True),
-    #     sparse_shape_xyz=[800, 800, 64],  # hardcode, xy size follow centerpoint
-    #     ),
     pts_middle_encoder=dict(
-        type='SparseEncoderHD',
-        in_channels=4,
-        sparse_shape=[65, 800, 800],
-        output_channels=128,
-        order=('conv', 'norm', 'act'),
-        encoder_channels=((16, 16, 32), (32, 32, 64), (64, 64, 128), (128, 128)),
-        encoder_paddings=((0, 0, 1), (0, 0, 1), (0, 0, [0, 1, 1]), (0, 0)),
-        block_type='basicblock',
-        fp16_enabled=False), # not enable FP16 here
-    pts_backbone=dict(
-        type='SECOND3D',
-        in_channels=[128, 128, 128],
-        out_channels=[128, 256, 512],
-        layer_nums=[5, 5, 5],
-        layer_strides=[1, 2, 4],
-        is_cascade=False,
-        norm_cfg=dict(type='BN3d', eps=1e-3, momentum=0.01),
-        conv_cfg=dict(type='Conv3d', kernel=(1,3,3), bias=False)),
-    pts_neck=dict(
-        type='SECOND3DFPN',
-        in_channels=[128, 256, 512],
-        out_channels=[128, 128, 128],
-        upsample_strides=[1, 2, 4],
-        norm_cfg=dict(type='BN3d', eps=1e-3, momentum=0.01),
-        upsample_cfg=dict(type='deconv3d', bias=False),
-        extra_conv=dict(type='Conv3d', num_conv=3, bias=False),
-        use_conv_for_no_stride=True),
+        type='SparseLiDAREnc8x',
+        input_channel=4,
+        base_channel=16,
+        out_channel=numC_Trans,
+        norm_cfg=dict(type='SyncBN', requires_grad=True),
+        sparse_shape_xyz=[800, 800, 64],  # hardcode, xy size follow centerpoint
+        ),
+    # pts_middle_encoder=dict(
+    #     type='SparseEncoder1',
+    #     in_channels=4,
+    #     sparse_shape=[200, 200, 17],
+    #     output_channels=128,
+    #     order=('conv', 'norm', 'act'),
+    #     encoder_channels=((16, 16, 32), (32, 32, 64), (64, 64, 128), (128, 128)),
+    #     encoder_paddings=((0, 0, 1), (0, 0, 1), (0, 0, [0, 1, 1]), (0, 0)),
+    #     block_type='basicblock'),
+    # pts_backbone=dict(
+    #     type='SECOND',
+    #     in_channels=256,
+    #     out_channels=[128, 256],
+    #     layer_nums=[5, 5],
+    #     layer_strides=[1, 2],
+    #     norm_cfg=dict(type='BN', eps=0.001, momentum=0.01),
+    #     conv_cfg=dict(type='Conv2d', bias=False)),
+    # pts_neck=dict(
+    #     type='SECONDFPN',
+    #     in_channels=[128, 256],
+    #     out_channels=[256, 256],
+    #     upsample_strides=[1, 2],
+    #     norm_cfg=dict(type='BN', eps=0.001, momentum=0.01),
+    #     upsample_cfg=dict(type='deconv', bias=False),
+    #     use_conv_for_no_stride=True),
     density_encoder=dict(
         type='FPN3D_Render',
         with_cp=True,

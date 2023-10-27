@@ -110,7 +110,7 @@ class BiFuser(nn.Module):
         inds_pts = torch.nonzero(pts_voxel_feats.sum(1))
 
         img_voxel_feats, pts_voxel_feats = img_voxel_feats.permute(0, 2, 3, 4, 1), pts_voxel_feats.permute(0, 2, 3, 4, 1)
-        print(inds_pts.shape)
+        # print(inds_pts.shape)
         # print(pts_voxel_feats.shape)
         # print(pts_voxel_feats[inds_pts[:2]].shape)
         pts_voxel_feats = pts_voxel_feats

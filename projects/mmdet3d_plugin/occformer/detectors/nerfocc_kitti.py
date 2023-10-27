@@ -470,12 +470,17 @@ class NeRFOcc_KITTI(BEVDepth):
                 gt_depths = img_inputs[7][0]
                 gt_imgs = img_inputs[0][0]
                 losses["loss_color"] = F.mse_loss(rgb_values, gt_imgs)
+                print(losses["loss_color"].item())
             else: 
                 gt_depths = gt_depths[-1][0]
-            fg_mask = torch.max(gt_depths.reshape(gt_depths.shape[0], -1), dim=1).values > 0.0
-            gt_depths = gt_depths[fg_mask]
-            depth_values = depth_values[fg_mask]
-            losses["loss_render_depth"] = F.smooth_l1_loss(depth_values, gt_depths, reduction='none').mean()
+
+            if self.depth_supervise:
+                losses["loss_render_depth"] = 0.0 
+                for idx in range(gt_depths.shape[0]):
+                    fg_mask = gt_depths[idx] > 0.0
+                    target = gt_depths[idx][fg_mask]
+                    pred = depth_values[idx][fg_mask]
+                    losses["loss_render_depth"] += F.smooth_l1_loss(pred, target, reduction='none').mean()
             if pts_feats != None:
                 rendered_opacity = F.interpolate(weights, scale_factor=self.scale).sum(dim=1)
                 gt_opacity = (gt_depths != 0).to(gt_depths.dtype)

@@ -26,6 +26,7 @@ voxel_x = (point_cloud_range[3] - point_cloud_range[0]) / occ_size[0]
 voxel_y = (point_cloud_range[4] - point_cloud_range[1]) / occ_size[1]
 voxel_z = (point_cloud_range[5] - point_cloud_range[2]) / occ_size[2]
 voxel_size = [voxel_x, voxel_y, voxel_z]
+pts_voxel_size = [0.05, 0.05, 0.05]
 
 data_config = {
     'input_size': (384, 1280),
@@ -60,7 +61,7 @@ visible_mask = False
 
 cascade_ratio = 2
 sample_from_voxel = True
-sample_from_img = False
+sample_from_img = True
 
 model = dict(
     type='NeRFOcc_KITTI',
@@ -111,7 +112,7 @@ model = dict(
     pts_voxel_layer=dict(
         max_num_points=10, 
         point_cloud_range=point_cloud_range,
-        voxel_size=[0.1, 0.1, 0.1],  # xy size follow centerpoint
+        voxel_size=pts_voxel_size,  # xy size follow centerpoint
         max_voxels=(90000, 120000)),
     pts_voxel_encoder=dict(type='HardSimpleVFE', num_features=5),
     pts_middle_encoder=dict(
@@ -212,6 +213,7 @@ model = dict(
 dataset_type = 'CustomSemanticKITTILssDataset'
 data_root = 'data/SemanticKITTI'
 ann_file = 'data/SemanticKITTI/labels'
+kitti_class_metas = 'projects/configs/_base_/semantickitti.yaml'
 
 bda_aug_conf = dict(
     rot_lim=(0, 0),
@@ -231,7 +233,7 @@ train_pipeline = [
             data_config=data_config, img_norm_cfg=img_norm_cfg),
     dict(type='CreateDepthFromLiDAR', data_root=data_root, dataset='kitti'),
     dict(type='LoadSemKittiAnnotation', bda_aug_conf=bda_aug_conf, 
-            is_train=True, point_cloud_range=point_cloud_range),
+            is_train=True, point_cloud_range=point_cloud_range, cls_metas=kitti_class_metas),
     dict(type='OccDefaultFormatBundle3D', class_names=class_names),
     dict(type='Collect3D', keys=['img_inputs', 'points', 'gt_occ'], 
             meta_keys=['pc_range', 'occ_size']),
@@ -245,7 +247,7 @@ test_pipeline = [
     dict(type='LoadMultiViewImageFromFiles_SemanticKitti', is_train=False, 
          data_config=data_config, img_norm_cfg=img_norm_cfg),
     dict(type='LoadSemKittiAnnotation', bda_aug_conf=bda_aug_conf,
-            is_train=False, point_cloud_range=point_cloud_range),
+            is_train=False, point_cloud_range=point_cloud_range, cls_metas=kitti_class_metas),
     dict(type='OccDefaultFormatBundle3D', class_names=class_names, with_label=False), 
     dict(type='Collect3D', keys=['img_inputs', 'points', 'gt_occ'], 
             meta_keys=['pc_range', 'occ_size', 'sequence', 'frame_id', 'raw_img']),

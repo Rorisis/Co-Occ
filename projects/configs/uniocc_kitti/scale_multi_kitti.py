@@ -26,6 +26,7 @@ voxel_x = (point_cloud_range[3] - point_cloud_range[0]) / occ_size[0]
 voxel_y = (point_cloud_range[4] - point_cloud_range[1]) / occ_size[1]
 voxel_z = (point_cloud_range[5] - point_cloud_range[2]) / occ_size[2]
 voxel_size = [voxel_x, voxel_y, voxel_z]
+pts_voxel_size = [0.05, 0.05, 0.05]
 
 data_config = {
     'input_size': (384, 1280),
@@ -36,7 +37,7 @@ data_config = {
     'resize_test': 0.00,
 }
 
-scale = 32
+scale = 8
 grid_config = {
     'xbound': [point_cloud_range[0], point_cloud_range[3], voxel_x * lss_downsample[0]],
     'ybound': [point_cloud_range[1], point_cloud_range[4], voxel_y * lss_downsample[1]],
@@ -116,7 +117,7 @@ model = dict(
     pts_voxel_layer=dict(
         max_num_points=20, 
         point_cloud_range=point_cloud_range,
-        voxel_size=[0.1, 0.1, 0.1],  # xy size follow centerpoint
+        voxel_size=pts_voxel_size,  # xy size follow centerpoint
         max_voxels=(90000, 120000)),
     pts_voxel_encoder=dict(type='HardSimpleVFE', num_features=5),
     pts_middle_encoder=dict(
@@ -146,7 +147,7 @@ model = dict(
         extra_conv=dict(type='Conv3d', num_conv=3, bias=False),
         use_conv_for_no_stride=True),
     occ_fuser=dict(
-        type='ConvFuser',
+        type='BiFuser',
         in_channels=numC_Trans,
         out_channels=numC_Trans,
     ),

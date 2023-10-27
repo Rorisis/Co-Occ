@@ -79,10 +79,13 @@ class LoadSemKittiAnnotation():
         points = points @ bda_rot[:3,:3].t().numpy()
         lidarseg[:, :3] = points
 
-        
+        aabb_min = torch.Tensor([points[:, 0].min(), points[:, 1].min(), points[:, 2].min()])
+        aabb_max = torch.Tensor([points[:, 0].max(), points[:, 1].max(), points[:, 2].max()])
+        aabb = torch.stack([aabb_min, aabb_max])
+
         
         imgs, rots, trans, intrins, post_rots, post_trans, gt_depths, sensor2sensors, denorm_imgs, intrin_nerf, c2ws, img_size = results['img_inputs']
-        results['img_inputs'] = (imgs, rots, trans, intrins, post_rots, post_trans, bda_rot, gt_depths, sensor2sensors, denorm_imgs, intrin_nerf, c2ws, img_size)
+        results['img_inputs'] = (imgs, rots, trans, intrins, post_rots, post_trans, bda_rot, gt_depths, sensor2sensors, denorm_imgs, aabb, intrin_nerf, c2ws, img_size)
         results['gt_occ'] = gt_occ.long()
         
         results['points_occ'] = torch.from_numpy(lidarseg).float()

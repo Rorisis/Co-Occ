@@ -115,7 +115,9 @@ class LoadMultiViewImageFromFiles_SemanticKitti(object):
             
             img = mmcv.imread(img_filename, 'unchanged')
             results['raw_img'] = img
-            img = Image.fromarray(img)
+            img = Image.open(img_filename).convert("RGB")
+            # img = Image.fromarray(img)
+            
             
             # perform image-view augmentation
             post_rot = torch.eye(2)
@@ -149,8 +151,9 @@ class LoadMultiViewImageFromFiles_SemanticKitti(object):
             
             results['canvas'] = np.array(img)[None]
             
+            img = np.array(img, dtype=np.float32, copy=False) / 255.0
             # img = self.normalize_img(img, img_norm_cfg=self.img_norm_cfg)
-            img = torch.tensor(np.array(img)).float().permute(2, 0, 1).contiguous()/255.
+            img = torch.tensor(img).permute(2, 0, 1).contiguous()
             depth = torch.zeros(1)
 
             imgs.append(img)
