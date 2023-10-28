@@ -744,7 +744,7 @@ class Mask2FormerOccHead(MaskFormerHead):
             iou = per_class_iu(hist)
             loss_dict = {}
             loss_dict['point_mean_iou'] = torch.tensor(np.nanmean(iou)).cuda()
-            loss_dict['loss_lidarseg'] = F.cross_entropy(point_logits, point_labels, ignore_index=255)
+            # loss_dict['loss_lidarseg'] = F.cross_entropy(point_logits, point_labels, ignore_index=255)
             return loss_dict
         else:
             return torch.softmax(point_logits, dim=1)

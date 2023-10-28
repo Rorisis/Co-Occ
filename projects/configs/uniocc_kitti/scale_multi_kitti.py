@@ -37,7 +37,7 @@ data_config = {
     'resize_test': 0.00,
 }
 
-scale = 8
+scale = 1
 grid_config = {
     'xbound': [point_cloud_range[0], point_cloud_range[3], voxel_x * lss_downsample[0]],
     'ybound': [point_cloud_range[1], point_cloud_range[4], voxel_y * lss_downsample[1]],
@@ -76,7 +76,7 @@ model = dict(
     aabb=([0, -25.6, -2], [51.2, 25.6, 4.4]),
     near_far_range=[0.2, 51.2],
     N_samples=64,
-    N_rand=2048,
+    N_rand=4096,
     depth_supervise=True,
     use_nerf_mask=True,
     nerf_sample_view=6,
@@ -128,24 +128,24 @@ model = dict(
         norm_cfg=dict(type='SyncBN', requires_grad=True),
         sparse_shape_xyz=[1024, 1024, 128],  # hardcode, xy size follow centerpoint
         ),
-    pts_backbone=dict(
-        type='SECOND3D',
-        in_channels=[128, 128, 128],
-        out_channels=[128, 256, 512],
-        layer_nums=[5, 5, 5],
-        layer_strides=[1, 2, 4],
-        is_cascade=False,
-        norm_cfg=dict(type='BN3d', eps=1e-3, momentum=0.01),
-        conv_cfg=dict(type='Conv3d', kernel=(1,3,3), bias=False)),
-    pts_neck=dict(
-        type='SECOND3DFPN',
-        in_channels=[128, 256, 512],
-        out_channels=[128, 128, 128],
-        upsample_strides=[1, 2, 4],
-        norm_cfg=dict(type='BN3d', eps=1e-3, momentum=0.01),
-        upsample_cfg=dict(type='deconv3d', bias=False),
-        extra_conv=dict(type='Conv3d', num_conv=3, bias=False),
-        use_conv_for_no_stride=True),
+    # pts_backbone=dict(
+    #     type='SECOND3D',
+    #     in_channels=[128, 128, 128],
+    #     out_channels=[128, 256, 512],
+    #     layer_nums=[5, 5, 5],
+    #     layer_strides=[1, 2, 4],
+    #     is_cascade=False,
+    #     norm_cfg=dict(type='BN3d', eps=1e-3, momentum=0.01),
+    #     conv_cfg=dict(type='Conv3d', kernel=(1,3,3), bias=False)),
+    # pts_neck=dict(
+    #     type='SECOND3DFPN',
+    #     in_channels=[128, 256, 512],
+    #     out_channels=[128, 128, 128],
+    #     upsample_strides=[1, 2, 4],
+    #     norm_cfg=dict(type='BN3d', eps=1e-3, momentum=0.01),
+    #     upsample_cfg=dict(type='deconv3d', bias=False),
+    #     extra_conv=dict(type='Conv3d', num_conv=3, bias=False),
+    #     use_conv_for_no_stride=True),
     occ_fuser=dict(
         type='BiFuser',
         in_channels=numC_Trans,

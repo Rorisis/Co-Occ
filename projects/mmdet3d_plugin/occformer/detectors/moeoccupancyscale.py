@@ -25,6 +25,7 @@ import time
 import pdb
 import cv2
 import copy
+import pandas as pd
 # import mayavi.mlab as mlab
 
 @DETECTORS.register_module()
@@ -370,11 +371,13 @@ class MoEOccupancyScale(BEVDepth):
                 ray_d = rays_d_all[b].reshape(-1, 3) #N, 3
                 # ray_d = (ray_d - ray_d.min())/(ray_d.max() - ray_d.min())
                 ray_o = rays_o_all[b].reshape(-1, 3)
-
-                rand_indices = np.random.choice(range(ray_o.shape[0]), self.N_rand)
+                
+                d = img_inputs[7][0][b].reshape(-1)
+                rand_indices = np.random.choice(torch.where(d>0)[0].cpu().numpy(), self.N_rand)
                 ray_o, ray_d = ray_o[rand_indices], ray_d[rand_indices]
                 gt_img = img_inputs[0][0][b].reshape(-1,3)[rand_indices]
                 gt_depth = img_inputs[7][0][b].reshape(-1)[rand_indices]
+                # print(gt_depth.shape, gt_depth.max(), gt_depth.min())
                 gt_imgs.append(gt_img)
                 gt_depths.append(gt_depth)
 
@@ -429,14 +432,13 @@ class MoEOccupancyScale(BEVDepth):
             losses["loss_opacity"] = torch.mean(-gt_opacity * torch.log(rendered_opacity + 1e-6) - (1 - gt_opacity) * torch.log(1 - rendered_opacity +1e-6)) # BCE loss
 
             if self.depth_supervise:
-                losses["loss_render_depth"] = 0.0 
-                for idx in range(gt_depths.shape[0]):
-                    fg_mask = gt_depths[idx] > 0.0
-                    target = gt_depths[idx][fg_mask]
-                    pred = depths[idx][fg_mask]
-                    losses["loss_render_depth"] += F.smooth_l1_loss(pred, target, reduction='none').mean()
+  
+                # print(pred.shape, target.shape)
+                d = torch.log(depths) - torch.log(gt_depths)
+                losses["loss_render_depth"] = torch.sqrt((d ** 2).mean() - 0.85 * (d.mean() ** 2))
 
-            print(losses['loss_color'].item())
+            print("color:", losses['loss_color'].item(), "depth:", losses["loss_render_depth"].item())
+            # print("color:", losses['loss_color'].item())
 
 
         if self.loss_norm:
