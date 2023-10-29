@@ -115,8 +115,8 @@ class LoadMultiViewImageFromFiles_SemanticKitti(object):
             
             img = mmcv.imread(img_filename, 'unchanged')
             results['raw_img'] = img
-            img = Image.open(img_filename).convert("RGB")
-            # img = Image.fromarray(img)
+            # img = Image.open(img_filename).convert("RGB")
+            img = Image.fromarray(img)
             
             
             # perform image-view augmentation

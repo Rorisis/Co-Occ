@@ -480,7 +480,75 @@ class MoEOccupancyScale(BEVDepth):
             img_feats=img_feats,
             points_uv=points_uv,
         )
-        
+
+        if self.use_rendering and self.test_rendering:
+            t_to_s, s_to_t = construct_ray_warps(self.near_far_range[0], self.near_far_range[1], uniform=True)
+            B,N,D,H,W,_ = gemo.shape
+            assert B == 1
+            gemo = gemo.reshape(B*N, D, H, W, 3)
+
+            rays_o_all = gemo[:, 0, : , :, :]
+            rays_d_all = gemo[:, 1, : , :, :] - gemo[:, 0, : , :, :]
+            magnitude = torch.norm(rays_d_all, dim=-1, keepdim=True)  # calculate magnitude
+            rays_d_all = rays_d_all / magnitude
+
+            rgbs = []
+            depths = []
+
+            rays_d = rays_d_all.reshape(-1, 3) #N, H, W, 3
+            rays_o = rays_o_all.reshape(-1, 3)
+
+            # print("rays_o:", rays_o.shape, "rays_d:", rays_d.shape)
+            for i in range(0, rays_o.shape[0], self.N_rand):
+                rays_o_chunck = rays_o[i: i+self.N_rand]
+                rays_d_chunck = rays_d[i: i+self.N_rand]
+                pts, z_vals = sample_along_camera_ray(ray_o=rays_o_chunck,   
+                                                ray_d=rays_d_chunck,
+                                                depth_range=self.near_far_range,
+                                                N_samples=self.N_samples,
+                                                inv_uniform=False,
+                                                det=False)
+
+                aabb = torch.tensor([[0, -25.6, -2], [51.2, 25.6, 4.4]]).to(pts.device)
+
+                pts = pts.reshape(1, pts.shape[0],pts.shape[1],1,3)
+
+
+                aabbSize = aabb[1] - aabb[0]
+                invgridSize = 1.0/aabbSize * 2
+                norm_pts = (pts-aabb[0]) * invgridSize - 1
+                # print(norm_pts.shape, norm_pts.max(), norm_pts.min())
+
+                density_feature = F.grid_sample(voxel_feats[0].permute(0,1,4,3,2), norm_pts, mode='bilinear', padding_mode='zeros', align_corners=False).squeeze(0).squeeze(-1).permute(1,2,0)
+                color_feature = F.grid_sample(voxel_feats[0].permute(0,1,4,3,2), norm_pts, mode='bilinear', padding_mode='zeros', align_corners=False).squeeze(0).squeeze(-1).permute(1,2,0)
+
+                density = F.relu(self.density_head(density_feature))
+                color = torch.sigmoid(self.color_head(color_feature))
+                
+                weights = self.get_weights(density, z_vals)
+
+                color_2d = torch.sum(weights.unsqueeze(2) * color, dim=1)
+
+                if self.white_bkgd:
+                    color_2d = color_2d + (1. - torch.sum(weights, dim=-1, keepdim=True))
+
+                depth_2d = torch.sum(weights * z_vals, dim=-1) / (torch.sum(weights, dim=-1) + 1e-8)
+                depth_2d = torch.clamp(depth_2d, z_vals.min(), z_vals.max())
+                rgbs.append(color_2d)
+                depths.append(depth_2d)
+            rgbs = torch.cat(rgbs, dim=0).view(self.nerf_sample_view,H,W,3)
+            depths = torch.cat(depths, dim=0).view(self.nerf_sample_view,H,W,1)
+            psnr_total = 0
+            for v in range(rgbs.shape[0]):
+                # print("pred:", rgbs[v].var(), "gt:", img[-5][0][v].var())
+                depth_ = ((depths[v]-depths[v].min()) / (depths[v].max() - depths[v].min()+1e-8)).repeat(1, 1, 3)
+                img_to_save = torch.cat([rgbs[v], img[0][0][v].permute(1,2,0), depth_], dim=1).clip(0, 1)
+                img_to_save = np.uint8(img_to_save.cpu().numpy()* 255.0)
+                psnr = compute_psnr(rgbs[v], img[0][0][v].permute(1,2,0), mask=None)
+                psnr_total += psnr
+                cv2.imwrite("./img_"+str(v)+'.png', img_to_save)
+            print("psnr:", psnr_total/rgbs.shape[0])
+    
         # evaluate nusc lidar-seg
         if output['output_points'] is not None and points_occ is not None:
             output['output_points'] = torch.argmax(output['output_points'][:, 1:], dim=1) + 1
