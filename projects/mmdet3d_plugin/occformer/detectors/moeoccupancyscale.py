@@ -14,7 +14,7 @@ from .bevdepth import BEVDepth
 
 from projects.mmdet3d_plugin.utils import render_rays, sample_along_camera_ray, get_ray_direction_with_intrinsics, get_rays, sample_along_rays, \
     grid_generation, unproject_image_to_rect, compute_alpha_weights, construct_ray_warps
-from projects.mmdet3d_plugin.utils import VanillaNeRFRadianceField, MLP
+from projects.mmdet3d_plugin.utils import VanillaNeRFRadianceField, MLP, ResnetFC, SSIM, NerfMLP
 from projects.mmdet3d_plugin.utils import save_rendered_img, compute_psnr
 from projects.mmdet3d_plugin.utils.semkitti import geo_scal_loss, sem_scal_loss, CE_ssc_loss
 from ..dense_heads.lovasz_softmax import lovasz_softmax
@@ -103,6 +103,8 @@ class MoEOccupancyScale(BEVDepth):
         self.loss_voxel_sem_scal_weight = loss_voxel_sem_scal_weight
         self.loss_voxel_geo_scal_weight = loss_voxel_geo_scal_weight
         self.loss_voxel_lovasz_weight = loss_voxel_lovasz_weight
+
+        self.ssim = SSIM(size_average=True).cuda()
         
 
         self.rendering_test = rendering_test
@@ -114,9 +116,31 @@ class MoEOccupancyScale(BEVDepth):
             # self.density_neck = builder.build_neck(density_neck)
 
                 # self.color_encoder = builder.build_neck(color_encoder)
-            self.color_head = MLP(input_dim=192, output_dim=3,net_depth=3,skip_layer=None)#torch.nn.Linear(256, 3)#MLP(input_dim=256, output_dim=3,net_depth=3,skip_layer=0)
+            # layer1 = torch.nn.Linear(192, 192)
+            # layer2 = torch.nn.Linear(192, 192)
+            # layer3 = torch.nn.Linear(192, 3)
+
+            self.color_head = MLP(input_dim=128, output_dim=4,net_depth=4,skip_layer=None)
+            # self.color_head = torch.nn.Linear(128, 3)
+            # self.mlp = torch.nn.Sequential(layer1, torch.nn.ReLU(inplace=True), layer2, torch.nn.ReLU(inplace=True), layer3)
+            # self.color_head = torch.nn.Sequential(layer1, torch.nn.ReLU(inplace=True), layer2, torch.nn.ReLU(inplace=True), layer3)#torch.nn.Linear(256, 3)#MLP(input_dim=256, output_dim=3,net_depth=3,skip_layer=0)
+            # self.color_head = ResnetFC(
+            # d_in=128,
+            # d_out=3,
+            # n_blocks=3,
+            # d_hidden=512,
+            # d_latent=0)
+            # self.color_head = VanillaNeRFRadianceField(
+            # net_depth=4,  # The depth of the MLP.
+            # net_width=256,  # The width of the MLP.
+            # skip_layer=None,  # The layer to add skip layers to.
+            # feature_dim=128, # + RGB original img
+            # net_depth_condition=1,  # The depth of the second part of MLP.
+            # net_width_condition=128
+            # )
+            # self.color_head2 = torch.nn.Linear(3, 3)
             # self.color_neck = builder.build_neck(color_neck)
-            self.density_head = torch.nn.Linear(192, 1)
+            # self.density_head = torch.nn.Linear(128, 1)
             
         
         coord_x, coord_y, coord_z = torch.meshgrid(torch.arange(self.n_voxels[0]),torch.arange(self.n_voxels[1]), torch.arange(self.n_voxels[2]))
@@ -239,17 +263,17 @@ class MoEOccupancyScale(BEVDepth):
             t0 = time.time()
 
         if self.occ_fuser is not None:
-            voxel_feats = self.occ_fuser(img_voxel_feats, pts_voxel_feats)
+            voxel_feats1 = self.occ_fuser(img_voxel_feats, pts_voxel_feats)
         else:
             assert (img_voxel_feats is None) or (pts_voxel_feats is None)
-            voxel_feats = img_voxel_feats if pts_voxel_feats is None else pts_voxel_feats
+            voxel_feats1 = img_voxel_feats if pts_voxel_feats is None else pts_voxel_feats
 
         if self.record_time:
             torch.cuda.synchronize()
             t1 = time.time()
             self.time_stats['occ_fuser'].append(t1 - t0)
 
-        voxel_feats = self.bev_encoder(voxel_feats)
+        voxel_feats = self.bev_encoder(voxel_feats1)
 
         if type(voxel_feats) is not list:
             voxel_feats = [voxel_feats]
@@ -263,7 +287,7 @@ class MoEOccupancyScale(BEVDepth):
         #     t2 = time.time()
         #     self.time_stats['occ_encoder'].append(t2 - t1)
 
-        return (voxel_feats, img_feats, pts_feats, depth, geom)
+        return (voxel_feats, img_feats, pts_feats, depth, geom, voxel_feats1)
     
     def get_weights(self, sigma, z_vals):
         sigma = sigma.squeeze(-1)
@@ -325,7 +349,7 @@ class MoEOccupancyScale(BEVDepth):
         ):
 
         # extract bird-eye-view features from perspective images
-        voxel_feats, img_feats, pts_feats, depth, gemo = self.extract_feat(
+        voxel_feats, img_feats, pts_feats, depth, gemo, voxel_feat1 = self.extract_feat(
             points, img=img_inputs, img_metas=img_metas)
         # training losses
         losses = dict()
@@ -357,7 +381,7 @@ class MoEOccupancyScale(BEVDepth):
             weight = []
             t_to_s, s_to_t = construct_ray_warps(self.near_far_range[0], self.near_far_range[1], uniform=True)
             if gemo == None:
-                gemo = get_frustum(gt_depths[0], gt_depths[1], gt_depths[2], gt_depths[3], gt_depths[4], gt_depths[5], gt_depths[6], self.scale)
+                gemo = get_frustum(img_inputs[1], img_inputs[2], img_inputs[3], img_inputs[4], img_inputs[5], img_inputs[6], img_inputs[-1], self.scale)
             B,N,D,H,W,_ = gemo.shape
             assert B == 1
             gemo = gemo.reshape(B*N, D, H, W, 3)
@@ -375,9 +399,13 @@ class MoEOccupancyScale(BEVDepth):
                 d = img_inputs[7][0][b].reshape(-1)
                 rand_indices = np.random.choice(torch.where(d>0)[0].cpu().numpy(), self.N_rand)
                 ray_o, ray_d = ray_o[rand_indices], ray_d[rand_indices]
-                gt_img = img_inputs[0][0][b].reshape(-1,3)[rand_indices]
+                gt_img = img_inputs[-5][0][b].reshape(-1,3)[rand_indices]
                 gt_depth = img_inputs[7][0][b].reshape(-1)[rand_indices]
                 # print(gt_depth.shape, gt_depth.max(), gt_depth.min())
+
+                # img_to_save = np.uint8(img_inputs[0][0][b].permute(1,2,0).cpu().numpy()* 255.0)
+                # cv2.imwrite("./gt.png", img_to_save)
+
                 gt_imgs.append(gt_img)
                 gt_depths.append(gt_depth)
 
@@ -399,12 +427,12 @@ class MoEOccupancyScale(BEVDepth):
                 norm_pts = (pts-aabb[0]) * invgridSize - 1
                 # print(norm_pts.shape, norm_pts.max(), norm_pts.min())
 
-                density_feature = F.grid_sample(voxel_feats[0].permute(0,1,4,3,2), norm_pts, mode='bilinear', padding_mode='zeros', align_corners=False).squeeze(0).squeeze(-1).permute(1,2,0)
-                color_feature = F.grid_sample(voxel_feats[0].permute(0,1,4,3,2), norm_pts, mode='bilinear', padding_mode='zeros', align_corners=False).squeeze(0).squeeze(-1).permute(1,2,0)
-
-                density = F.relu(self.density_head(density_feature))
-                color = torch.sigmoid(self.color_head(color_feature))
-                
+                # density_feature = F.grid_sample(voxel_feat1.permute(0,1,4,3,2), norm_pts, mode='bilinear', padding_mode='zeros', align_corners=False).squeeze(0).squeeze(-1).permute(1,2,0)
+                color_feature = F.grid_sample(voxel_feat1.permute(0,1,4,3,2), norm_pts, mode='bilinear', padding_mode='zeros', align_corners=False).squeeze(0).squeeze(-1).permute(1,2,0)
+                # print("color_features:", color_feature.shape)
+                density = F.relu(self.density_head(density_feature[...,3:4]))
+                color = torch.sigmoid(self.color_head(color_feature[...,:3]))
+ 
                 weights = self.get_weights(density, z_vals)
 
                 color_2d = torch.sum(weights.unsqueeze(2) * color, dim=1)
@@ -423,21 +451,24 @@ class MoEOccupancyScale(BEVDepth):
             gt_depths = torch.stack(gt_depths)
             weight = torch.stack(weight)
 
-            losses["loss_color"] = F.mse_loss(rgbs, gt_imgs)
+            # losses["loss_color"] = F.mse_loss(rgbs, gt_imgs)
+            losses["loss_color"] = F.smooth_l1_loss(rgbs, gt_imgs) #+ (1 - self.ssim(rgbs, gt_imgs)).mean()
+            print(losses["loss_color"].item())
             
             # if pts_feats != None:
-            rendered_opacity = weight.sum(dim=2)
-            # print(rendered_opacity.shape, weight.shape)
-            gt_opacity = (gt_depths != 0).to(gt_depths.dtype)
-            losses["loss_opacity"] = torch.mean(-gt_opacity * torch.log(rendered_opacity + 1e-6) - (1 - gt_opacity) * torch.log(1 - rendered_opacity +1e-6)) # BCE loss
+            # rendered_opacity = weight.sum(dim=2)
+            # # print(rendered_opacity.shape, weight.shape)
+            # gt_opacity = (gt_depths != 0).to(gt_depths.dtype)
+            # losses["loss_opacity"] = torch.mean(-gt_opacity * torch.log(rendered_opacity + 1e-6) - (1 - gt_opacity) * torch.log(1 - rendered_opacity +1e-6)) # BCE loss
 
             if self.depth_supervise:
   
                 # print(pred.shape, target.shape)
                 d = torch.log(depths) - torch.log(gt_depths)
                 losses["loss_render_depth"] = torch.sqrt((d ** 2).mean() - 0.85 * (d.mean() ** 2))
+                # losses['loss_render_depth'] = F.mse_loss(depths, gt_depths)
 
-            print("color:", losses['loss_color'].item(), "depth:", losses["loss_render_depth"].item())
+            # print("color:", losses['loss_color'].item(), "depth:", losses["loss_render_depth"].item())
             # print("color:", losses['loss_color'].item())
 
 
@@ -472,7 +503,7 @@ class MoEOccupancyScale(BEVDepth):
     def simple_test(self, img_metas, img=None, points=None, rescale=False, points_occ=None, 
             gt_occ=None, visible_mask=None, points_uv=None):
         
-        voxel_feats, img_feats, pts_feats, depth, gemo = self.extract_feat(points, img=img, img_metas=img_metas)       
+        voxel_feats, img_feats, pts_feats, depth, gemo, voxel_feat1 = self.extract_feat(points, img=img, img_metas=img_metas)       
         output = self.pts_bbox_head.simple_test(
             voxel_feats=voxel_feats,
             points=points_occ,
@@ -519,14 +550,13 @@ class MoEOccupancyScale(BEVDepth):
                 norm_pts = (pts-aabb[0]) * invgridSize - 1
                 # print(norm_pts.shape, norm_pts.max(), norm_pts.min())
 
-                density_feature = F.grid_sample(voxel_feats[0].permute(0,1,4,3,2), norm_pts, mode='bilinear', padding_mode='zeros', align_corners=False).squeeze(0).squeeze(-1).permute(1,2,0)
-                color_feature = F.grid_sample(voxel_feats[0].permute(0,1,4,3,2), norm_pts, mode='bilinear', padding_mode='zeros', align_corners=False).squeeze(0).squeeze(-1).permute(1,2,0)
-
-                density = F.relu(self.density_head(density_feature))
-                color = torch.sigmoid(self.color_head(color_feature))
+                color_feature = F.grid_sample(voxel_feat1.permute(0,1,4,3,2), norm_pts, mode='bilinear', padding_mode='zeros', align_corners=False).squeeze(0).squeeze(-1).permute(1,2,0)
+                # print("color_features:", color_feature.shape)
+                density = F.relu(self.density_head(density_feature[...,3:4]))
+                color = torch.sigmoid(self.color_head(color_feature[...,:3]))
                 
                 weights = self.get_weights(density, z_vals)
-
+                
                 color_2d = torch.sum(weights.unsqueeze(2) * color, dim=1)
 
                 if self.white_bkgd:
@@ -539,14 +569,17 @@ class MoEOccupancyScale(BEVDepth):
             rgbs = torch.cat(rgbs, dim=0).view(self.nerf_sample_view,H,W,3)
             depths = torch.cat(depths, dim=0).view(self.nerf_sample_view,H,W,1)
             psnr_total = 0
+            
             for v in range(rgbs.shape[0]):
+                gt_img = img[-5][0][v].permute(1,2,0)
                 # print("pred:", rgbs[v].var(), "gt:", img[-5][0][v].var())
                 depth_ = ((depths[v]-depths[v].min()) / (depths[v].max() - depths[v].min()+1e-8)).repeat(1, 1, 3)
-                img_to_save = torch.cat([rgbs[v], img[0][0][v].permute(1,2,0), depth_], dim=1).clip(0, 1)
-                img_to_save = np.uint8(img_to_save.cpu().numpy()* 255.0)
-                psnr = compute_psnr(rgbs[v], img[0][0][v].permute(1,2,0), mask=None)
+                img_to_save = torch.cat([rgbs[v], gt_img, depth_], dim=1).clip(0, 1)
+                # img_to_save = np.uint8(img_to_save.cpu().numpy()* 255.0)
+                psnr = compute_psnr(rgbs[v], gt_img, mask=None)
                 psnr_total += psnr
-                cv2.imwrite("./img_"+str(v)+'.png', img_to_save)
+                # cv2.imwrite("./img_"+str(v)+'.png', img_to_save)
+                plt.imsave("./img_"+str(v)+'.png', img_to_save.cpu().numpy())
             print("psnr:", psnr_total/rgbs.shape[0])
     
         # evaluate nusc lidar-seg
@@ -643,6 +676,52 @@ def fast_hist(pred, label, max_label=18):
     bin_count = np.bincount(max_label * label.astype(int) + pred, minlength=max_label ** 2)
     return bin_count[:max_label ** 2].reshape(max_label, max_label)
 
+
+def get_frustum(rots, trans, intrins, post_rots, post_trans, bda, input_size, scale):
+        """Determine the (x,y,z) locations (in the ego frame)
+        of the points in the point cloud.
+        Returns B x N x D x H/downsample x W/downsample x 3
+        """
+        B, N, _ = trans.shape
+        ogfH, ogfW = input_size[0].item(), input_size[1].item()
+        
+        fH, fW = ogfH // scale, ogfW // scale
+        ds = torch.arange(2.0, 58.0, 0.5, dtype=torch.float).view(-1, 1, 1).expand(-1, fH, fW)
+        D, _, _ = ds.shape
+        xs = torch.linspace(0, ogfW - 1, fW, dtype=torch.float).view(1, 1, fW).expand(D, fH, fW)
+        ys = torch.linspace(0, ogfH - 1, fH, dtype=torch.float).view(1, fH, 1).expand(D, fH, fW)
+        
+        # D x H x W x 3
+        frustum = torch.stack((xs, ys, ds), -1)
+        frustum = torch.nn.Parameter(frustum, requires_grad=False).to(post_trans.device)
+
+        # undo post-transformation
+        # B x N x D x H x W x 3
+        points = frustum - post_trans.view(B, N, 1, 1, 1, 3)
+        points = torch.inverse(post_rots).view(B, N, 1, 1, 1, 3, 3).matmul(points.unsqueeze(-1))
+        # cam_to_ego
+        points = torch.cat((points[:, :, :, :, :, :2] * points[:, :, :, :, :, 2:3],
+                            points[:, :, :, :, :, 2:3]
+                            ), 5)
+        
+        if intrins.shape[3] == 4: # for KITTI
+            shift = intrins[:, :, :3, 3]
+            points = points - shift.view(B, N, 1, 1, 1, 3, 1)
+            intrins = intrins[:, :, :3, :3]
+        
+        combine = rots.matmul(torch.inverse(intrins))
+        points = combine.view(B, N, 1, 1, 1, 3, 3).matmul(points).squeeze(-1)
+        points += trans.view(B, N, 1, 1, 1, 3)
+        
+        
+        if bda.shape[-1] == 4:
+            points = torch.cat((points, torch.ones(*points.shape[:-1], 1).type_as(points)), dim=-1)
+            points = bda.view(B, 1, 1, 1, 1, 4, 4).matmul(points.unsqueeze(-1)).squeeze(-1)
+            points = points[..., :3]
+        else:
+            points = bda.view(B, 1, 1, 1, 1, 3, 3).matmul(points.unsqueeze(-1)).squeeze(-1)
+        
+        return points
 # @DETECTORS.register_module()
 # class OccupancyFormer4D(OccupancyFormer):
 #     def prepare_voxel_feat(self, img, rot, tran, intrin, 

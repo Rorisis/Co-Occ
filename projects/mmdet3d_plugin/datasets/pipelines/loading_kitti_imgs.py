@@ -6,7 +6,11 @@ from mmdet.datasets.builder import PIPELINES
 
 import torch
 from PIL import Image
-from .loading_nusc_imgs import mmlabNormalize
+# from .loading_nusc_imgs import mmlabNormalize
+from torchvision import transforms
+from skimage import io
+import cv2
+import matplotlib.pyplot as plt
 
 @PIPELINES.register_module()
 class LoadMultiViewImageFromFiles_SemanticKitti(object):
@@ -25,6 +29,22 @@ class LoadMultiViewImageFromFiles_SemanticKitti(object):
         self.data_config = data_config
         self.normalize_img = mmlabNormalize
         self.img_norm_cfg = img_norm_cfg
+        self.mean = np.array([123.675, 116.28, 103.53], dtype=np.float32)
+        self.std = np.array([58.395, 57.12, 57.375], dtype=np.float32)
+    
+        self.to_tensor_normalized = transforms.Compose(
+            [
+                transforms.ToTensor(),
+                transforms.Normalize(
+                    mean=[0.485, 0.456, 0.406], std=[0.229, 0.224, 0.225]
+                ),
+            ]
+        )
+        self.to_tensor = transforms.Compose(
+            [
+                transforms.ToTensor(),
+            ]
+        )
 
     def get_rot(self,h):
         return torch.Tensor([
@@ -113,11 +133,13 @@ class LoadMultiViewImageFromFiles_SemanticKitti(object):
         for i in range(len(img_filenames)):
             img_filename = img_filenames[i]
             
-            img = mmcv.imread(img_filename, 'unchanged')
+            # img = io.imread(img_filename)
+            # img = mmcv.imread(img_filename, 'unchanged')
+            img = Image.open(img_filename).convert("RGB")
+  
             results['raw_img'] = img
-            # img = Image.open(img_filename).convert("RGB")
-            img = Image.fromarray(img)
             
+            # img = Image.fromarray(img)
             
             # perform image-view augmentation
             post_rot = torch.eye(2)
@@ -151,9 +173,27 @@ class LoadMultiViewImageFromFiles_SemanticKitti(object):
             
             results['canvas'] = np.array(img)[None]
             
-            img = np.array(img, dtype=np.float32, copy=False) / 255.0
+            # img = np.array(img) 
+            # denorm_img = torch.tensor(np.array(img)).float().permute(2, 0, 1).contiguous()/ 255.0
+            
             # img = self.normalize_img(img, img_norm_cfg=self.img_norm_cfg)
-            img = torch.tensor(img).permute(2, 0, 1).contiguous()
+            # img = torch.tensor(img).float().permute(2, 0, 1).contiguous()/ 255.0
+            # denorm_img = mmcv.imdenormalize(img, self.mean, self.std, to_bgr=True).astype(np.uint8) 
+            # print(denorm_img.shape, denorm_img.mean(), img.mean())
+            # cv2.imwrite('check.png', denorm_img)
+            
+            # img = torch.tensor(img).float().permute(2, 0, 1).contiguous()
+            # denorm_img = torch.tensor(np.array(denorm_img)).float().permute(2, 0, 1).contiguous() / 255.
+
+            # print(denorm_img.shape, img.mean())
+            img = np.array(img, dtype=np.float32, copy=False) / 255.0 
+            plt.imsave('./check.png', img)
+            denorm_img = self.to_tensor(img)
+            img = self.to_tensor(img) 
+            # print(denorm_img.mean(), img.mean(), denorm_img.shape)
+
+            
+            # print(img.shape, img.mean())
             depth = torch.zeros(1)
 
             imgs.append(img)
@@ -163,7 +203,7 @@ class LoadMultiViewImageFromFiles_SemanticKitti(object):
             post_rots.append(post_rot)
             post_trans.append(post_tran)
             gt_depths.append(torch.zeros(1))
-            denorm_imgs.append(torch.zeros(1))
+            denorm_imgs.append(denorm_img)
             intrin_nerf.append(intrin_nerf_)
             c2ws.append(torch.zeros(1))
             # only placeholder currently, to be used for video-based methods
@@ -186,7 +226,24 @@ class LoadMultiViewImageFromFiles_SemanticKitti(object):
         
         return imgs, rots, trans, intrins, post_rots, post_trans, gt_depths, sensor2sensors, denorm_imgs, intrin_nerf, c2ws, imgs.shape[-2:]
 
+
     def __call__(self, results):
         results['img_inputs'] = self.get_inputs(results)
         
         return results
+
+def mmlabNormalize(img, img_norm_cfg=None):
+        from mmcv.image.photometric import imnormalize
+        if img_norm_cfg is None:
+            mean = np.array([123.675, 116.28, 103.53], dtype=np.float32)
+            std = np.array([58.395, 57.12, 57.375], dtype=np.float32)
+            to_rgb = True
+        else:
+            mean = np.array(img_norm_cfg['mean'], dtype=np.float32)
+            std = np.array(img_norm_cfg['std'], dtype=np.float32)
+            to_rgb = img_norm_cfg['to_rgb']
+        
+        img = imnormalize(np.array(img), mean, std, to_rgb)
+        # img = torch.tensor(img).float().permute(2, 0, 1).contiguous()
+    
+        return img

@@ -408,7 +408,7 @@ class NeRFOcc(BEVDepth):
                 density_feature = F.grid_sample(density_voxel[0].permute(0,1,4,3,2), norm_coord_frustum[i].unsqueeze(0), mode='bilinear', padding_mode='zeros', align_corners=False).permute(0,4,2,3,1)
                 if img_feats:
                     color_feature = F.grid_sample(color_voxel[0].permute(0,1,4,3,2), norm_coord_frustum[i].unsqueeze(0), mode='bilinear', padding_mode='zeros', align_corners=False).permute(0,4,2,3,1) # b, h, w, d, c
-                    color_features .append(color_feature)
+                    color_features.append(color_feature)
                 density_features.append(density_feature)
                 
             

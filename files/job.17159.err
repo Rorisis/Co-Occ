@@ -1,0 +1,1954 @@
+/hpc2hdd/home/jpan305/miniconda3/envs/openocc/lib/python3.7/site-packages/torch/distributed/launch.py:186: FutureWarning: The module torch.distributed.launch is deprecated
+and will be removed in future. Use torchrun.
+Note that --use_env is set by default in torchrun.
+If your script expects `--local_rank` argument to be set, please
+change it to read from `os.environ['LOCAL_RANK']` instead. See 
+https://pytorch.org/docs/stable/distributed.html#launch-utility for 
+further instructions
+
+  FutureWarning,
+WARNING:torch.distributed.run:
+*****************************************
+Setting OMP_NUM_THREADS environment variable for each process to be 1 in default, to avoid your system being overloaded, please further tune the variable for optimal performance in your application as needed. 
+*****************************************
+2023-11-01 16:57:29,920 - mmdet - INFO - Environment info:
+------------------------------------------------------------
+sys.platform: linux
+Python: 3.7.0 (default, Oct  9 2018, 10:31:47) [GCC 7.3.0]
+CUDA available: True
+GPU 0,1,2,3,4,5,6,7: NVIDIA A40
+CUDA_HOME: /hpc2ssd/softwares/cuda/cuda-11.3
+NVCC: Build cuda_11.3.r11.3/compiler.29920130_0
+GCC: gcc (Ubuntu 9.4.0-1ubuntu1~20.04.2) 9.4.0
+PyTorch: 1.10.1
+PyTorch compiling details: PyTorch built with:
+  - GCC 7.3
+  - C++ Version: 201402
+  - Intel(R) oneAPI Math Kernel Library Version 2021.4-Product Build 20210904 for Intel(R) 64 architecture applications
+  - Intel(R) MKL-DNN v2.2.3 (Git Hash 7336ca9f055cf1bfa13efb658fe15dc9b41f0740)
+  - OpenMP 201511 (a.k.a. OpenMP 4.5)
+  - LAPACK is enabled (usually provided by MKL)
+  - NNPACK is enabled
+  - CPU capability usage: AVX512
+  - CUDA Runtime 11.3
+  - NVCC architecture flags: -gencode;arch=compute_37,code=sm_37;-gencode;arch=compute_50,code=sm_50;-gencode;arch=compute_60,code=sm_60;-gencode;arch=compute_61,code=sm_61;-gencode;arch=compute_70,code=sm_70;-gencode;arch=compute_75,code=sm_75;-gencode;arch=compute_80,code=sm_80;-gencode;arch=compute_86,code=sm_86;-gencode;arch=compute_37,code=compute_37
+  - CuDNN 8.2
+  - Magma 2.5.2
+  - Build settings: BLAS_INFO=mkl, BUILD_TYPE=Release, CUDA_VERSION=11.3, CUDNN_VERSION=8.2.0, CXX_COMPILER=/opt/rh/devtoolset-7/root/usr/bin/c++, CXX_FLAGS= -Wno-deprecated -fvisibility-inlines-hidden -DUSE_PTHREADPOOL -fopenmp -DNDEBUG -DUSE_KINETO -DUSE_FBGEMM -DUSE_QNNPACK -DUSE_PYTORCH_QNNPACK -DUSE_XNNPACK -DSYMBOLICATE_MOBILE_DEBUG_HANDLE -DEDGE_PROFILER_USE_KINETO -O2 -fPIC -Wno-narrowing -Wall -Wextra -Werror=return-type -Wno-missing-field-initializers -Wno-type-limits -Wno-array-bounds -Wno-unknown-pragmas -Wno-sign-compare -Wno-unused-parameter -Wno-unused-variable -Wno-unused-function -Wno-unused-result -Wno-unused-local-typedefs -Wno-strict-overflow -Wno-strict-aliasing -Wno-error=deprecated-declarations -Wno-stringop-overflow -Wno-psabi -Wno-error=pedantic -Wno-error=redundant-decls -Wno-error=old-style-cast -fdiagnostics-color=always -faligned-new -Wno-unused-but-set-variable -Wno-maybe-uninitialized -fno-math-errno -fno-trapping-math -Werror=format -Wno-stringop-overflow, LAPACK_INFO=mkl, PERF_WITH_AVX=1, PERF_WITH_AVX2=1, PERF_WITH_AVX512=1, TORCH_VERSION=1.10.1, USE_CUDA=ON, USE_CUDNN=ON, USE_EXCEPTION_PTR=1, USE_GFLAGS=OFF, USE_GLOG=OFF, USE_MKL=ON, USE_MKLDNN=ON, USE_MPI=OFF, USE_NCCL=ON, USE_NNPACK=ON, USE_OPENMP=ON, 
+
+TorchVision: 0.11.2
+OpenCV: 4.8.0
+MMCV: 1.4.0
+MMCV Compiler: GCC 7.3
+MMCV CUDA Compiler: 11.3
+MMDetection: 2.14.0
+MMSegmentation: 0.14.1
+MMDetection3D: 0.17.1+346db75
+------------------------------------------------------------
+
+2023-11-01 16:57:31,132 - mmdet - INFO - Distributed training: True
+2023-11-01 16:57:32,328 - mmdet - INFO - Config:
+point_cloud_range = [0, -25.6, -2, 51.2, 25.6, 4.4]
+class_names = [
+    'unlabeled', 'car', 'bicycle', 'motorcycle', 'truck', 'other-vehicle',
+    'person', 'bicyclist', 'motorcyclist', 'road', 'parking', 'sidewalk',
+    'other-ground', 'building', 'fence', 'vegetation', 'trunk', 'terrain',
+    'pole', 'traffic-sign'
+]
+dataset_type = 'CustomSemanticKITTILssDataset'
+data_root = 'data/SemanticKITTI'
+input_modality = dict(
+    use_lidar=True,
+    use_camera=True,
+    use_radar=False,
+    use_map=False,
+    use_external=False)
+file_client_args = dict(backend='disk')
+train_pipeline = [
+    dict(type='LoadPointsFromFile', coord_type='LIDAR', load_dim=4, use_dim=4),
+    dict(
+        type='LoadMultiViewImageFromFiles_SemanticKitti',
+        is_train=True,
+        data_config=dict(
+            input_size=(384, 1280),
+            resize=(0, 0),
+            rot=(0, 0),
+            flip=False,
+            crop_h=(0.0, 0.0),
+            resize_test=0.0),
+        img_norm_cfg=dict(
+            mean=[123.675, 116.28, 103.53],
+            std=[58.395, 57.12, 57.375],
+            to_rgb=True)),
+    dict(
+        type='CreateDepthFromLiDAR',
+        data_root='data/SemanticKITTI',
+        dataset='kitti'),
+    dict(
+        type='LoadSemKittiAnnotation',
+        bda_aug_conf=dict(
+            rot_lim=(0, 0),
+            scale_lim=(1, 1),
+            flip_dx_ratio=0,
+            flip_dy_ratio=0,
+            flip_dz_ratio=0),
+        is_train=True,
+        point_cloud_range=[0, -25.6, -2, 51.2, 25.6, 4.4],
+        cls_metas='projects/configs/_base_/semantickitti.yaml'),
+    dict(
+        type='OccDefaultFormatBundle3D',
+        class_names=[
+            'unlabeled', 'car', 'bicycle', 'motorcycle', 'truck',
+            'other-vehicle', 'person', 'bicyclist', 'motorcyclist', 'road',
+            'parking', 'sidewalk', 'other-ground', 'building', 'fence',
+            'vegetation', 'trunk', 'terrain', 'pole', 'traffic-sign'
+        ]),
+    dict(
+        type='Collect3D',
+        keys=['img_inputs', 'points', 'gt_occ'],
+        meta_keys=['pc_range', 'occ_size'])
+]
+test_pipeline = [
+    dict(type='LoadPointsFromFile', coord_type='LIDAR', load_dim=4, use_dim=4),
+    dict(
+        type='LoadMultiViewImageFromFiles_SemanticKitti',
+        is_train=False,
+        data_config=dict(
+            input_size=(384, 1280),
+            resize=(0, 0),
+            rot=(0, 0),
+            flip=False,
+            crop_h=(0.0, 0.0),
+            resize_test=0.0),
+        img_norm_cfg=dict(
+            mean=[123.675, 116.28, 103.53],
+            std=[58.395, 57.12, 57.375],
+            to_rgb=True)),
+    dict(
+        type='LoadSemKittiAnnotation',
+        bda_aug_conf=dict(
+            rot_lim=(0, 0),
+            scale_lim=(1, 1),
+            flip_dx_ratio=0,
+            flip_dy_ratio=0,
+            flip_dz_ratio=0),
+        is_train=False,
+        point_cloud_range=[0, -25.6, -2, 51.2, 25.6, 4.4],
+        cls_metas='projects/configs/_base_/semantickitti.yaml'),
+    dict(
+        type='OccDefaultFormatBundle3D',
+        class_names=[
+            'unlabeled', 'car', 'bicycle', 'motorcycle', 'truck',
+            'other-vehicle', 'person', 'bicyclist', 'motorcyclist', 'road',
+            'parking', 'sidewalk', 'other-ground', 'building', 'fence',
+            'vegetation', 'trunk', 'terrain', 'pole', 'traffic-sign'
+        ],
+        with_label=False),
+    dict(
+        type='Collect3D',
+        keys=['img_inputs', 'points', 'gt_occ'],
+        meta_keys=['pc_range', 'occ_size', 'sequence', 'frame_id', 'raw_img'])
+]
+eval_pipeline = [
+    dict(
+        type='LoadPointsFromFile',
+        coord_type='LIDAR',
+        load_dim=5,
+        use_dim=5,
+        file_client_args=dict(backend='disk')),
+    dict(
+        type='LoadPointsFromMultiSweeps',
+        sweeps_num=10,
+        file_client_args=dict(backend='disk')),
+    dict(
+        type='DefaultFormatBundle3D',
+        class_names=[
+            'car', 'truck', 'trailer', 'bus', 'construction_vehicle',
+            'bicycle', 'motorcycle', 'pedestrian', 'traffic_cone', 'barrier'
+        ],
+        with_label=False),
+    dict(type='Collect3D', keys=['points'])
+]
+data = dict(
+    samples_per_gpu=1,
+    workers_per_gpu=4,
+    train=dict(
+        type='CustomSemanticKITTILssDataset',
+        data_root='data/SemanticKITTI',
+        ann_file='data/SemanticKITTI/labels',
+        pipeline=[
+            dict(
+                type='LoadPointsFromFile',
+                coord_type='LIDAR',
+                load_dim=4,
+                use_dim=4),
+            dict(
+                type='LoadMultiViewImageFromFiles_SemanticKitti',
+                is_train=True,
+                data_config=dict(
+                    input_size=(384, 1280),
+                    resize=(0, 0),
+                    rot=(0, 0),
+                    flip=False,
+                    crop_h=(0.0, 0.0),
+                    resize_test=0.0),
+                img_norm_cfg=dict(
+                    mean=[123.675, 116.28, 103.53],
+                    std=[58.395, 57.12, 57.375],
+                    to_rgb=True)),
+            dict(
+                type='CreateDepthFromLiDAR',
+                data_root='data/SemanticKITTI',
+                dataset='kitti'),
+            dict(
+                type='LoadSemKittiAnnotation',
+                bda_aug_conf=dict(
+                    rot_lim=(0, 0),
+                    scale_lim=(1, 1),
+                    flip_dx_ratio=0,
+                    flip_dy_ratio=0,
+                    flip_dz_ratio=0),
+                is_train=True,
+                point_cloud_range=[0, -25.6, -2, 51.2, 25.6, 4.4],
+                cls_metas='projects/configs/_base_/semantickitti.yaml'),
+            dict(
+                type='OccDefaultFormatBundle3D',
+                class_names=[
+                    'unlabeled', 'car', 'bicycle', 'motorcycle', 'truck',
+                    'other-vehicle', 'person', 'bicyclist', 'motorcyclist',
+                    'road', 'parking', 'sidewalk', 'other-ground', 'building',
+                    'fence', 'vegetation', 'trunk', 'terrain', 'pole',
+                    'traffic-sign'
+                ]),
+            dict(
+                type='Collect3D',
+                keys=['img_inputs', 'points', 'gt_occ'],
+                meta_keys=['pc_range', 'occ_size'])
+        ],
+        classes=[
+            'unlabeled', 'car', 'bicycle', 'motorcycle', 'truck',
+            'other-vehicle', 'person', 'bicyclist', 'motorcyclist', 'road',
+            'parking', 'sidewalk', 'other-ground', 'building', 'fence',
+            'vegetation', 'trunk', 'terrain', 'pole', 'traffic-sign'
+        ],
+        modality=dict(
+            use_lidar=True,
+            use_camera=True,
+            use_radar=False,
+            use_map=False,
+            use_external=False),
+        test_mode=False,
+        box_type_3d='LiDAR',
+        split='train',
+        camera_used=['left', 'right'],
+        lidar_used=True,
+        occ_size=[256, 256, 32],
+        pc_range=[0, -25.6, -2, 51.2, 25.6, 4.4]),
+    val=dict(
+        type='CustomSemanticKITTILssDataset',
+        ann_file='data/SemanticKITTI/labels',
+        pipeline=[
+            dict(
+                type='LoadPointsFromFile',
+                coord_type='LIDAR',
+                load_dim=4,
+                use_dim=4),
+            dict(
+                type='LoadMultiViewImageFromFiles_SemanticKitti',
+                is_train=False,
+                data_config=dict(
+                    input_size=(384, 1280),
+                    resize=(0, 0),
+                    rot=(0, 0),
+                    flip=False,
+                    crop_h=(0.0, 0.0),
+                    resize_test=0.0),
+                img_norm_cfg=dict(
+                    mean=[123.675, 116.28, 103.53],
+                    std=[58.395, 57.12, 57.375],
+                    to_rgb=True)),
+            dict(
+                type='LoadSemKittiAnnotation',
+                bda_aug_conf=dict(
+                    rot_lim=(0, 0),
+                    scale_lim=(1, 1),
+                    flip_dx_ratio=0,
+                    flip_dy_ratio=0,
+                    flip_dz_ratio=0),
+                is_train=False,
+                point_cloud_range=[0, -25.6, -2, 51.2, 25.6, 4.4],
+                cls_metas='projects/configs/_base_/semantickitti.yaml'),
+            dict(
+                type='OccDefaultFormatBundle3D',
+                class_names=[
+                    'unlabeled', 'car', 'bicycle', 'motorcycle', 'truck',
+                    'other-vehicle', 'person', 'bicyclist', 'motorcyclist',
+                    'road', 'parking', 'sidewalk', 'other-ground', 'building',
+                    'fence', 'vegetation', 'trunk', 'terrain', 'pole',
+                    'traffic-sign'
+                ],
+                with_label=False),
+            dict(
+                type='Collect3D',
+                keys=['img_inputs', 'points', 'gt_occ'],
+                meta_keys=[
+                    'pc_range', 'occ_size', 'sequence', 'frame_id', 'raw_img'
+                ])
+        ],
+        classes=[
+            'unlabeled', 'car', 'bicycle', 'motorcycle', 'truck',
+            'other-vehicle', 'person', 'bicyclist', 'motorcyclist', 'road',
+            'parking', 'sidewalk', 'other-ground', 'building', 'fence',
+            'vegetation', 'trunk', 'terrain', 'pole', 'traffic-sign'
+        ],
+        modality=dict(
+            use_lidar=True,
+            use_camera=True,
+            use_radar=False,
+            use_map=False,
+            use_external=False),
+        test_mode=True,
+        box_type_3d='LiDAR',
+        data_root='data/SemanticKITTI',
+        split='test',
+        camera_used=['left', 'right'],
+        lidar_used=True,
+        occ_size=[256, 256, 32],
+        pc_range=[0, -25.6, -2, 51.2, 25.6, 4.4]),
+    test=dict(
+        type='CustomSemanticKITTILssDataset',
+        data_root='data/SemanticKITTI',
+        ann_file='data/SemanticKITTI/labels',
+        pipeline=[
+            dict(
+                type='LoadPointsFromFile',
+                coord_type='LIDAR',
+                load_dim=4,
+                use_dim=4),
+            dict(
+                type='LoadMultiViewImageFromFiles_SemanticKitti',
+                is_train=False,
+                data_config=dict(
+                    input_size=(384, 1280),
+                    resize=(0, 0),
+                    rot=(0, 0),
+                    flip=False,
+                    crop_h=(0.0, 0.0),
+                    resize_test=0.0),
+                img_norm_cfg=dict(
+                    mean=[123.675, 116.28, 103.53],
+                    std=[58.395, 57.12, 57.375],
+                    to_rgb=True)),
+            dict(
+                type='LoadSemKittiAnnotation',
+                bda_aug_conf=dict(
+                    rot_lim=(0, 0),
+                    scale_lim=(1, 1),
+                    flip_dx_ratio=0,
+                    flip_dy_ratio=0,
+                    flip_dz_ratio=0),
+                is_train=False,
+                point_cloud_range=[0, -25.6, -2, 51.2, 25.6, 4.4],
+                cls_metas='projects/configs/_base_/semantickitti.yaml'),
+            dict(
+                type='OccDefaultFormatBundle3D',
+                class_names=[
+                    'unlabeled', 'car', 'bicycle', 'motorcycle', 'truck',
+                    'other-vehicle', 'person', 'bicyclist', 'motorcyclist',
+                    'road', 'parking', 'sidewalk', 'other-ground', 'building',
+                    'fence', 'vegetation', 'trunk', 'terrain', 'pole',
+                    'traffic-sign'
+                ],
+                with_label=False),
+            dict(
+                type='Collect3D',
+                keys=['img_inputs', 'points', 'gt_occ'],
+                meta_keys=[
+                    'pc_range', 'occ_size', 'sequence', 'frame_id', 'raw_img'
+                ])
+        ],
+        classes=[
+            'unlabeled', 'car', 'bicycle', 'motorcycle', 'truck',
+            'other-vehicle', 'person', 'bicyclist', 'motorcyclist', 'road',
+            'parking', 'sidewalk', 'other-ground', 'building', 'fence',
+            'vegetation', 'trunk', 'terrain', 'pole', 'traffic-sign'
+        ],
+        modality=dict(
+            use_lidar=True,
+            use_camera=True,
+            use_radar=False,
+            use_map=False,
+            use_external=False),
+        test_mode=True,
+        box_type_3d='LiDAR',
+        split='test',
+        camera_used=['left', 'right'],
+        lidar_used=True,
+        occ_size=[256, 256, 32],
+        pc_range=[0, -25.6, -2, 51.2, 25.6, 4.4]),
+    shuffler_sampler=dict(type='DistributedGroupSampler'),
+    nonshuffler_sampler=dict(type='DistributedSampler'))
+evaluation = dict(
+    interval=1,
+    pipeline=[
+        dict(
+            type='LoadPointsFromFile',
+            coord_type='LIDAR',
+            load_dim=4,
+            use_dim=4),
+        dict(
+            type='LoadMultiViewImageFromFiles_SemanticKitti',
+            is_train=False,
+            data_config=dict(
+                input_size=(384, 1280),
+                resize=(0, 0),
+                rot=(0, 0),
+                flip=False,
+                crop_h=(0.0, 0.0),
+                resize_test=0.0),
+            img_norm_cfg=dict(
+                mean=[123.675, 116.28, 103.53],
+                std=[58.395, 57.12, 57.375],
+                to_rgb=True)),
+        dict(
+            type='LoadSemKittiAnnotation',
+            bda_aug_conf=dict(
+                rot_lim=(0, 0),
+                scale_lim=(1, 1),
+                flip_dx_ratio=0,
+                flip_dy_ratio=0,
+                flip_dz_ratio=0),
+            is_train=False,
+            point_cloud_range=[0, -25.6, -2, 51.2, 25.6, 4.4],
+            cls_metas='projects/configs/_base_/semantickitti.yaml'),
+        dict(
+            type='OccDefaultFormatBundle3D',
+            class_names=[
+                'unlabeled', 'car', 'bicycle', 'motorcycle', 'truck',
+                'other-vehicle', 'person', 'bicyclist', 'motorcyclist', 'road',
+                'parking', 'sidewalk', 'other-ground', 'building', 'fence',
+                'vegetation', 'trunk', 'terrain', 'pole', 'traffic-sign'
+            ],
+            with_label=False),
+        dict(
+            type='Collect3D',
+            keys=['img_inputs', 'points', 'gt_occ'],
+            meta_keys=[
+                'pc_range', 'occ_size', 'sequence', 'frame_id', 'raw_img'
+            ])
+    ],
+    save_best='semkitti_SSC_mIoU',
+    rule='greater')
+checkpoint_config = dict(interval=1, max_keep_ckpts=1)
+log_config = dict(
+    interval=50,
+    hooks=[dict(type='TextLoggerHook'),
+           dict(type='TensorboardLoggerHook')])
+dist_params = dict(backend='nccl')
+log_level = 'INFO'
+work_dir = './work_dirs/cascade_multi_kitti'
+load_from = None
+resume_from = None
+workflow = [('train', 1)]
+sync_bn = True
+plugin = True
+plugin_dir = 'projects/mmdet3d_plugin/'
+img_norm_cfg = dict(
+    mean=[123.675, 116.28, 103.53], std=[58.395, 57.12, 57.375], to_rgb=True)
+camera_used = ['left', 'right']
+num_class = 20
+occ_size = [256, 256, 32]
+lss_downsample = [2, 2, 2]
+voxel_x = 0.2
+voxel_y = 0.2
+voxel_z = 0.2
+voxel_size = [0.2, 0.2, 0.2]
+pts_voxel_size = [0.05, 0.05, 0.05]
+data_config = dict(
+    input_size=(384, 1280),
+    resize=(0, 0),
+    rot=(0, 0),
+    flip=False,
+    crop_h=(0.0, 0.0),
+    resize_test=0.0)
+scale = 16
+grid_config = dict(
+    xbound=[0, 51.2, 0.4],
+    ybound=[-25.6, 25.6, 0.4],
+    zbound=[-2, 4.4, 0.4],
+    dbound=[2.0, 58.0, 0.5])
+numC_Trans = 256
+voxel_channels = [128, 256, 512, 1024]
+voxel_channels_half = [64, 128, 256, 512]
+voxel_num_layer = [2, 2, 2, 2]
+voxel_strides = [1, 2, 2, 2]
+voxel_out_indices = (0, 1, 2, 3)
+voxel_out_channel = 256
+voxel_out_channel_half = 128
+norm_cfg = dict(type='GN', num_groups=32, requires_grad=True)
+empty_idx = 0
+num_cls = 20
+visible_mask = False
+cascade_ratio = 2
+sample_from_voxel = True
+sample_from_img = True
+model = dict(
+    type='NeRFOcc_KITTI',
+    loss_norm=True,
+    voxel_size=[0.2, 0.2, 0.2],
+    n_voxels=[256, 256, 32],
+    aabb=([0, -25.6, -2], [51.2, 25.6, 4.4]),
+    near_far_range=[0.2, 51.2],
+    N_samples=64,
+    N_rand=2048,
+    depth_supervise=True,
+    use_nerf_mask=True,
+    nerf_sample_view=6,
+    squeeze_scale=4,
+    scale=16,
+    nerf_density=True,
+    use_rendering=False,
+    test_rendering=False,
+    loss_voxel_ce_weight=1.0,
+    loss_voxel_sem_scal_weight=1.0,
+    loss_voxel_geo_scal_weight=1.0,
+    loss_voxel_lovasz_weight=1.0,
+    img_backbone=dict(
+        pretrained='ckpts/resnet50-0676ba61.pth',
+        type='ResNet',
+        depth=50,
+        num_stages=4,
+        out_indices=(0, 1, 2, 3),
+        frozen_stages=0,
+        norm_cfg=dict(type='BN', requires_grad=True),
+        norm_eval=False,
+        style='pytorch'),
+    img_neck=dict(
+        type='SECONDFPN',
+        in_channels=[256, 512, 1024, 2048],
+        upsample_strides=[0.25, 0.5, 1, 2],
+        out_channels=[128, 128, 128, 128]),
+    img_view_transformer=dict(
+        type='ViewTransformerLiftSplatShootVoxel',
+        numC_input=512,
+        cam_channels=33,
+        scale=16,
+        loss_depth_weight=1.0,
+        grid_config=dict(
+            xbound=[0, 51.2, 0.4],
+            ybound=[-25.6, 25.6, 0.4],
+            zbound=[-2, 4.4, 0.4],
+            dbound=[2.0, 58.0, 0.5]),
+        data_config=dict(
+            input_size=(384, 1280),
+            resize=(0, 0),
+            rot=(0, 0),
+            flip=False,
+            crop_h=(0.0, 0.0),
+            resize_test=0.0),
+        numC_Trans=256,
+        vp_megvii=False),
+    pts_voxel_layer=dict(
+        max_num_points=10,
+        point_cloud_range=[0, -25.6, -2, 51.2, 25.6, 4.4],
+        voxel_size=[0.05, 0.05, 0.05],
+        max_voxels=(90000, 120000)),
+    pts_voxel_encoder=dict(type='HardSimpleVFE', num_features=5),
+    pts_middle_encoder=dict(
+        type='SparseLiDAREnc8x',
+        input_channel=4,
+        base_channel=16,
+        out_channel=256,
+        norm_cfg=dict(type='SyncBN', requires_grad=True),
+        sparse_shape_xyz=[1024, 1024, 128]),
+    occ_fuser=dict(type='BiFuser', in_channels=256, out_channels=256),
+    density_encoder=dict(
+        type='FPN3D_Render',
+        with_cp=True,
+        in_channels=[128, 256, 512, 1024],
+        out_channels=256,
+        norm_cfg=dict(type='SyncBN', requires_grad=True)),
+    color_encoder=dict(
+        type='FPN3D_Render',
+        with_cp=True,
+        in_channels=[128, 256, 512, 1024],
+        out_channels=256,
+        norm_cfg=dict(type='SyncBN', requires_grad=True)),
+    semantic_encoder=dict(
+        type='CustomResNet3D',
+        depth=18,
+        n_input_channels=256,
+        block_inplanes=[128, 256, 512, 1024],
+        out_indices=(0, 1, 2, 3),
+        norm_cfg=dict(type='SyncBN', requires_grad=True)),
+    semantic_neck=dict(
+        type='FPN3D',
+        with_cp=True,
+        in_channels=[128, 256, 512, 1024],
+        out_channels=256,
+        norm_cfg=dict(type='SyncBN', requires_grad=True)),
+    pts_bbox_head=dict(
+        type='OccHead_kitti',
+        norm_cfg=dict(type='SyncBN', requires_grad=True),
+        soft_weights=True,
+        cascade_ratio=2,
+        sample_from_voxel=True,
+        sample_from_img=True,
+        final_occ_size=[256, 256, 32],
+        fine_topk=15000,
+        empty_idx=0,
+        num_level=4,
+        in_channels=[256, 256, 256, 256],
+        out_channel=20,
+        point_cloud_range=[0, -25.6, -2, 51.2, 25.6, 4.4],
+        data_type='kitti',
+        loss_weight_cfg=dict(
+            loss_voxel_ce_weight=2.0,
+            loss_voxel_sem_scal_weight=1.0,
+            loss_voxel_geo_scal_weight=1.0,
+            loss_voxel_lovasz_weight=1.0)),
+    empty_idx=0)
+ann_file = 'data/SemanticKITTI/labels'
+kitti_class_metas = 'projects/configs/_base_/semantickitti.yaml'
+bda_aug_conf = dict(
+    rot_lim=(0, 0),
+    scale_lim=(1, 1),
+    flip_dx_ratio=0,
+    flip_dy_ratio=0,
+    flip_dz_ratio=0)
+test_config = dict(
+    type='CustomSemanticKITTILssDataset',
+    data_root='data/SemanticKITTI',
+    ann_file='data/SemanticKITTI/labels',
+    pipeline=[
+        dict(
+            type='LoadPointsFromFile',
+            coord_type='LIDAR',
+            load_dim=4,
+            use_dim=4),
+        dict(
+            type='LoadMultiViewImageFromFiles_SemanticKitti',
+            is_train=False,
+            data_config=dict(
+                input_size=(384, 1280),
+                resize=(0, 0),
+                rot=(0, 0),
+                flip=False,
+                crop_h=(0.0, 0.0),
+                resize_test=0.0),
+            img_norm_cfg=dict(
+                mean=[123.675, 116.28, 103.53],
+                std=[58.395, 57.12, 57.375],
+                to_rgb=True)),
+        dict(
+            type='LoadSemKittiAnnotation',
+            bda_aug_conf=dict(
+                rot_lim=(0, 0),
+                scale_lim=(1, 1),
+                flip_dx_ratio=0,
+                flip_dy_ratio=0,
+                flip_dz_ratio=0),
+            is_train=False,
+            point_cloud_range=[0, -25.6, -2, 51.2, 25.6, 4.4],
+            cls_metas='projects/configs/_base_/semantickitti.yaml'),
+        dict(
+            type='OccDefaultFormatBundle3D',
+            class_names=[
+                'unlabeled', 'car', 'bicycle', 'motorcycle', 'truck',
+                'other-vehicle', 'person', 'bicyclist', 'motorcyclist', 'road',
+                'parking', 'sidewalk', 'other-ground', 'building', 'fence',
+                'vegetation', 'trunk', 'terrain', 'pole', 'traffic-sign'
+            ],
+            with_label=False),
+        dict(
+            type='Collect3D',
+            keys=['img_inputs', 'points', 'gt_occ'],
+            meta_keys=[
+                'pc_range', 'occ_size', 'sequence', 'frame_id', 'raw_img'
+            ])
+    ],
+    classes=[
+        'unlabeled', 'car', 'bicycle', 'motorcycle', 'truck', 'other-vehicle',
+        'person', 'bicyclist', 'motorcyclist', 'road', 'parking', 'sidewalk',
+        'other-ground', 'building', 'fence', 'vegetation', 'trunk', 'terrain',
+        'pole', 'traffic-sign'
+    ],
+    modality=dict(
+        use_lidar=True,
+        use_camera=True,
+        use_radar=False,
+        use_map=False,
+        use_external=False),
+    split='test',
+    camera_used=['left', 'right'],
+    lidar_used=True,
+    occ_size=[256, 256, 32],
+    pc_range=[0, -25.6, -2, 51.2, 25.6, 4.4])
+embed_multi = dict(lr_mult=1.0, decay_mult=0.0)
+optimizer = dict(
+    type='AdamW',
+    lr=0.001,
+    weight_decay=0.001,
+    eps=1e-08,
+    betas=(0.9, 0.999),
+    paramwise_cfg=dict(
+        custom_keys=dict(
+            query_embed=dict(lr_mult=1.0, decay_mult=0.0),
+            query_feat=dict(lr_mult=1.0, decay_mult=0.0),
+            level_embed=dict(lr_mult=1.0, decay_mult=0.0),
+            absolute_pos_embed=dict(decay_mult=0.0),
+            relative_position_bias_table=dict(decay_mult=0.0)),
+        norm_decay_mult=0.0))
+optimizer_config = dict(grad_clip=dict(max_norm=20, norm_type=2))
+lr_config = dict(policy='step', step=[20, 25])
+runner = dict(type='EpochBasedRunner', max_epochs=30)
+gpu_ids = range(0, 8)
+
+2023-11-01 16:57:32,332 - mmdet - INFO - Set random seed to 0, deterministic: False
+/hpc2hdd/home/jpan305/miniconda3/envs/openocc/lib/python3.7/site-packages/mmdet/models/backbones/resnet.py:400: UserWarning: DeprecationWarning: pretrained is deprecated, please use "init_cfg" instead
+  warnings.warn('DeprecationWarning: pretrained is deprecated, '
+/hpc2hdd/home/jpan305/miniconda3/envs/openocc/lib/python3.7/site-packages/mmdet/models/backbones/resnet.py:400: UserWarning: DeprecationWarning: pretrained is deprecated, please use "init_cfg" instead
+  warnings.warn('DeprecationWarning: pretrained is deprecated, '
+/hpc2hdd/home/jpan305/miniconda3/envs/openocc/lib/python3.7/site-packages/mmdet/models/backbones/resnet.py:400: UserWarning: DeprecationWarning: pretrained is deprecated, please use "init_cfg" instead
+  warnings.warn('DeprecationWarning: pretrained is deprecated, '
+/hpc2hdd/home/jpan305/miniconda3/envs/openocc/lib/python3.7/site-packages/mmdet/models/backbones/resnet.py:400: UserWarning: DeprecationWarning: pretrained is deprecated, please use "init_cfg" instead
+  warnings.warn('DeprecationWarning: pretrained is deprecated, '
+/hpc2hdd/home/jpan305/miniconda3/envs/openocc/lib/python3.7/site-packages/mmdet/models/backbones/resnet.py:400: UserWarning: DeprecationWarning: pretrained is deprecated, please use "init_cfg" instead
+  warnings.warn('DeprecationWarning: pretrained is deprecated, '
+/hpc2hdd/home/jpan305/miniconda3/envs/openocc/lib/python3.7/site-packages/mmdet/models/backbones/resnet.py:400: UserWarning: DeprecationWarning: pretrained is deprecated, please use "init_cfg" instead
+  warnings.warn('DeprecationWarning: pretrained is deprecated, '
+/hpc2hdd/home/jpan305/miniconda3/envs/openocc/lib/python3.7/site-packages/mmdet/models/backbones/resnet.py:400: UserWarning: DeprecationWarning: pretrained is deprecated, please use "init_cfg" instead
+  warnings.warn('DeprecationWarning: pretrained is deprecated, '
+/hpc2hdd/home/jpan305/miniconda3/envs/openocc/lib/python3.7/site-packages/mmdet/models/backbones/resnet.py:400: UserWarning: DeprecationWarning: pretrained is deprecated, please use "init_cfg" instead
+  warnings.warn('DeprecationWarning: pretrained is deprecated, '
+/hpc2hdd/home/jpan305/miniconda3/envs/openocc/lib/python3.7/site-packages/torch/functional.py:445: UserWarning: torch.meshgrid: in an upcoming release, it will be required to pass the indexing argument. (Triggered internally at  /opt/conda/conda-bld/pytorch_1639180594101/work/aten/src/ATen/native/TensorShape.cpp:2157.)
+  return _VF.meshgrid(tensors, **kwargs)  # type: ignore[attr-defined]
+/hpc2hdd/home/jpan305/miniconda3/envs/openocc/lib/python3.7/site-packages/torch/functional.py:445: UserWarning: torch.meshgrid: in an upcoming release, it will be required to pass the indexing argument. (Triggered internally at  /opt/conda/conda-bld/pytorch_1639180594101/work/aten/src/ATen/native/TensorShape.cpp:2157.)
+  return _VF.meshgrid(tensors, **kwargs)  # type: ignore[attr-defined]
+/hpc2hdd/home/jpan305/miniconda3/envs/openocc/lib/python3.7/site-packages/torch/functional.py:445: UserWarning: torch.meshgrid: in an upcoming release, it will be required to pass the indexing argument. (Triggered internally at  /opt/conda/conda-bld/pytorch_1639180594101/work/aten/src/ATen/native/TensorShape.cpp:2157.)
+  return _VF.meshgrid(tensors, **kwargs)  # type: ignore[attr-defined]
+/hpc2hdd/home/jpan305/miniconda3/envs/openocc/lib/python3.7/site-packages/torch/functional.py:445: UserWarning: torch.meshgrid: in an upcoming release, it will be required to pass the indexing argument. (Triggered internally at  /opt/conda/conda-bld/pytorch_1639180594101/work/aten/src/ATen/native/TensorShape.cpp:2157.)
+  return _VF.meshgrid(tensors, **kwargs)  # type: ignore[attr-defined]
+/hpc2hdd/home/jpan305/miniconda3/envs/openocc/lib/python3.7/site-packages/torch/functional.py:445: UserWarning: torch.meshgrid: in an upcoming release, it will be required to pass the indexing argument. (Triggered internally at  /opt/conda/conda-bld/pytorch_1639180594101/work/aten/src/ATen/native/TensorShape.cpp:2157.)
+  return _VF.meshgrid(tensors, **kwargs)  # type: ignore[attr-defined]
+/hpc2hdd/home/jpan305/miniconda3/envs/openocc/lib/python3.7/site-packages/torch/functional.py:445: UserWarning: torch.meshgrid: in an upcoming release, it will be required to pass the indexing argument. (Triggered internally at  /opt/conda/conda-bld/pytorch_1639180594101/work/aten/src/ATen/native/TensorShape.cpp:2157.)
+  return _VF.meshgrid(tensors, **kwargs)  # type: ignore[attr-defined]
+/hpc2hdd/home/jpan305/miniconda3/envs/openocc/lib/python3.7/site-packages/torch/functional.py:445: UserWarning: torch.meshgrid: in an upcoming release, it will be required to pass the indexing argument. (Triggered internally at  /opt/conda/conda-bld/pytorch_1639180594101/work/aten/src/ATen/native/TensorShape.cpp:2157.)
+  return _VF.meshgrid(tensors, **kwargs)  # type: ignore[attr-defined]
+/hpc2hdd/home/jpan305/miniconda3/envs/openocc/lib/python3.7/site-packages/torch/functional.py:445: UserWarning: torch.meshgrid: in an upcoming release, it will be required to pass the indexing argument. (Triggered internally at  /opt/conda/conda-bld/pytorch_1639180594101/work/aten/src/ATen/native/TensorShape.cpp:2157.)
+  return _VF.meshgrid(tensors, **kwargs)  # type: ignore[attr-defined]
+2023-11-01 16:57:34,451 - mmdet - INFO - initialize ResNet with init_cfg {'type': 'Pretrained', 'checkpoint': 'ckpts/resnet50-0676ba61.pth'}
+2023-11-01 16:57:34,451 - mmcv - INFO - load model from: ckpts/resnet50-0676ba61.pth
+2023-11-01 16:57:34,451 - mmcv - INFO - load checkpoint from local path: ckpts/resnet50-0676ba61.pth
+2023-11-01 16:57:35,053 - mmcv - WARNING - The model and loaded state dict do not match exactly
+
+unexpected key in source state_dict: fc.weight, fc.bias
+
+2023-11-01 16:57:35,072 - mmdet - INFO - initialize SECONDFPN with init_cfg [{'type': 'Kaiming', 'layer': 'ConvTranspose2d'}, {'type': 'Constant', 'layer': 'NaiveSyncBatchNorm2d', 'val': 1.0}]
+2023-11-01 16:57:35,147 - mmdet - INFO - Model:
+NeRFOcc_KITTI(
+  (pts_voxel_layer): Voxelization(voxel_size=[0.05, 0.05, 0.05], point_cloud_range=[0, -25.6, -2, 51.2, 25.6, 4.4], max_num_points=10, max_voxels=(90000, 120000), deterministic=True)
+  (pts_voxel_encoder): HardSimpleVFE()
+  (pts_middle_encoder): SparseLiDAREnc8x(
+    (conv_input): SparseSequential(
+      (0): SubMConv3d(4, 16, kernel_size=[3, 3, 3], stride=[1, 1, 1], padding=[0, 0, 0], dilation=[1, 1, 1], output_padding=[0, 0, 0], algo=ConvAlgo.MaskImplicitGemm)
+      (1): GroupNorm(16, 16, eps=1e-05, affine=True)
+      (2): ReLU(inplace=True)
+    )
+    (conv1): SparseSequential(
+      (0): SparseSequential(
+        (0): SparseConv3d(16, 32, kernel_size=[3, 3, 3], stride=[2, 2, 2], padding=[1, 1, 1], dilation=[1, 1, 1], output_padding=[0, 0, 0], bias=False, algo=ConvAlgo.MaskImplicitGemm)
+        (1): SyncBatchNorm(32, eps=1e-05, momentum=0.1, affine=True, track_running_stats=True)
+        (2): ReLU(inplace=True)
+      )
+      (1): SparseBasicBlock(
+        (net): SparseSequential(
+          (0): SubMConv3d(32, 32, kernel_size=[3, 3, 3], stride=[1, 1, 1], padding=[1, 1, 1], dilation=[1, 1, 1], output_padding=[0, 0, 0], bias=False, algo=ConvAlgo.MaskImplicitGemm)
+          (1): SyncBatchNorm(32, eps=1e-05, momentum=0.1, affine=True, track_running_stats=True)
+          (2): ReLU(inplace=True)
+          (3): SubMConv3d(32, 32, kernel_size=[3, 3, 3], stride=[1, 1, 1], padding=[1, 1, 1], dilation=[1, 1, 1], output_padding=[0, 0, 0], bias=False, algo=ConvAlgo.MaskImplicitGemm)
+          (4): SyncBatchNorm(32, eps=1e-05, momentum=0.1, affine=True, track_running_stats=True)
+        )
+        (relu): ReLU(inplace=True)
+      )
+      (2): SparseBasicBlock(
+        (net): SparseSequential(
+          (0): SubMConv3d(32, 32, kernel_size=[3, 3, 3], stride=[1, 1, 1], padding=[1, 1, 1], dilation=[1, 1, 1], output_padding=[0, 0, 0], bias=False, algo=ConvAlgo.MaskImplicitGemm)
+          (1): SyncBatchNorm(32, eps=1e-05, momentum=0.1, affine=True, track_running_stats=True)
+          (2): ReLU(inplace=True)
+          (3): SubMConv3d(32, 32, kernel_size=[3, 3, 3], stride=[1, 1, 1], padding=[1, 1, 1], dilation=[1, 1, 1], output_padding=[0, 0, 0], bias=False, algo=ConvAlgo.MaskImplicitGemm)
+          (4): SyncBatchNorm(32, eps=1e-05, momentum=0.1, affine=True, track_running_stats=True)
+        )
+        (relu): ReLU(inplace=True)
+      )
+    )
+    (conv2): SparseSequential(
+      (0): SparseSequential(
+        (0): SparseConv3d(32, 64, kernel_size=[3, 3, 3], stride=[2, 2, 2], padding=[1, 1, 1], dilation=[1, 1, 1], output_padding=[0, 0, 0], bias=False, algo=ConvAlgo.MaskImplicitGemm)
+        (1): SyncBatchNorm(64, eps=1e-05, momentum=0.1, affine=True, track_running_stats=True)
+        (2): ReLU(inplace=True)
+      )
+      (1): SparseBasicBlock(
+        (net): SparseSequential(
+          (0): SubMConv3d(64, 64, kernel_size=[3, 3, 3], stride=[1, 1, 1], padding=[1, 1, 1], dilation=[1, 1, 1], output_padding=[0, 0, 0], bias=False, algo=ConvAlgo.MaskImplicitGemm)
+          (1): SyncBatchNorm(64, eps=1e-05, momentum=0.1, affine=True, track_running_stats=True)
+          (2): ReLU(inplace=True)
+          (3): SubMConv3d(64, 64, kernel_size=[3, 3, 3], stride=[1, 1, 1], padding=[1, 1, 1], dilation=[1, 1, 1], output_padding=[0, 0, 0], bias=False, algo=ConvAlgo.MaskImplicitGemm)
+          (4): SyncBatchNorm(64, eps=1e-05, momentum=0.1, affine=True, track_running_stats=True)
+        )
+        (relu): ReLU(inplace=True)
+      )
+      (2): SparseBasicBlock(
+        (net): SparseSequential(
+          (0): SubMConv3d(64, 64, kernel_size=[3, 3, 3], stride=[1, 1, 1], padding=[1, 1, 1], dilation=[1, 1, 1], output_padding=[0, 0, 0], bias=False, algo=ConvAlgo.MaskImplicitGemm)
+          (1): SyncBatchNorm(64, eps=1e-05, momentum=0.1, affine=True, track_running_stats=True)
+          (2): ReLU(inplace=True)
+          (3): SubMConv3d(64, 64, kernel_size=[3, 3, 3], stride=[1, 1, 1], padding=[1, 1, 1], dilation=[1, 1, 1], output_padding=[0, 0, 0], bias=False, algo=ConvAlgo.MaskImplicitGemm)
+          (4): SyncBatchNorm(64, eps=1e-05, momentum=0.1, affine=True, track_running_stats=True)
+        )
+        (relu): ReLU(inplace=True)
+      )
+    )
+    (conv3): SparseSequential(
+      (0): SparseSequential(
+        (0): SparseConv3d(64, 128, kernel_size=[3, 3, 3], stride=[2, 2, 2], padding=[1, 1, 1], dilation=[1, 1, 1], output_padding=[0, 0, 0], bias=False, algo=ConvAlgo.MaskImplicitGemm)
+        (1): SyncBatchNorm(128, eps=1e-05, momentum=0.1, affine=True, track_running_stats=True)
+        (2): ReLU(inplace=True)
+      )
+      (1): SparseBasicBlock(
+        (net): SparseSequential(
+          (0): SubMConv3d(128, 128, kernel_size=[3, 3, 3], stride=[1, 1, 1], padding=[1, 1, 1], dilation=[1, 1, 1], output_padding=[0, 0, 0], bias=False, algo=ConvAlgo.MaskImplicitGemm)
+          (1): SyncBatchNorm(128, eps=1e-05, momentum=0.1, affine=True, track_running_stats=True)
+          (2): ReLU(inplace=True)
+          (3): SubMConv3d(128, 128, kernel_size=[3, 3, 3], stride=[1, 1, 1], padding=[1, 1, 1], dilation=[1, 1, 1], output_padding=[0, 0, 0], bias=False, algo=ConvAlgo.MaskImplicitGemm)
+          (4): SyncBatchNorm(128, eps=1e-05, momentum=0.1, affine=True, track_running_stats=True)
+        )
+        (relu): ReLU(inplace=True)
+      )
+      (2): SparseBasicBlock(
+        (net): SparseSequential(
+          (0): SubMConv3d(128, 128, kernel_size=[3, 3, 3], stride=[1, 1, 1], padding=[1, 1, 1], dilation=[1, 1, 1], output_padding=[0, 0, 0], bias=False, algo=ConvAlgo.MaskImplicitGemm)
+          (1): SyncBatchNorm(128, eps=1e-05, momentum=0.1, affine=True, track_running_stats=True)
+          (2): ReLU(inplace=True)
+          (3): SubMConv3d(128, 128, kernel_size=[3, 3, 3], stride=[1, 1, 1], padding=[1, 1, 1], dilation=[1, 1, 1], output_padding=[0, 0, 0], bias=False, algo=ConvAlgo.MaskImplicitGemm)
+          (4): SyncBatchNorm(128, eps=1e-05, momentum=0.1, affine=True, track_running_stats=True)
+        )
+        (relu): ReLU(inplace=True)
+      )
+    )
+    (conv_out): SparseSequential(
+      (0): SubMConv3d(128, 256, kernel_size=[3, 3, 3], stride=[1, 1, 1], padding=[0, 0, 0], dilation=[1, 1, 1], output_padding=[0, 0, 0], algo=ConvAlgo.MaskImplicitGemm)
+      (1): GroupNorm(16, 256, eps=1e-05, affine=True)
+      (2): ReLU(inplace=True)
+    )
+  )
+  (pts_bbox_head): OccHead_kitti(
+    (img_mlp_0): Sequential(
+      (0): Conv2d(512, 128, kernel_size=(1, 1), stride=(1, 1))
+      (1): GroupNorm(16, 128, eps=1e-05, affine=True)
+      (2): ReLU(inplace=True)
+    )
+    (img_mlp): Sequential(
+      (0): Linear(in_features=128, out_features=64, bias=True)
+      (1): GroupNorm(16, 64, eps=1e-05, affine=True)
+      (2): ReLU(inplace=True)
+    )
+    (fine_mlp): Sequential(
+      (0): Linear(in_features=192, out_features=64, bias=True)
+      (1): GroupNorm(16, 64, eps=1e-05, affine=True)
+      (2): ReLU(inplace=True)
+      (3): Linear(in_features=64, out_features=20, bias=True)
+    )
+    (occ_convs): ModuleList(
+      (0): Sequential(
+        (0): Conv3d(256, 128, kernel_size=(3, 3, 3), stride=(1, 1, 1), padding=(1, 1, 1), bias=False)
+        (1): SyncBatchNorm(128, eps=1e-05, momentum=0.1, affine=True, track_running_stats=True)
+        (2): ReLU(inplace=True)
+      )
+      (1): Sequential(
+        (0): Conv3d(256, 128, kernel_size=(3, 3, 3), stride=(1, 1, 1), padding=(1, 1, 1), bias=False)
+        (1): SyncBatchNorm(128, eps=1e-05, momentum=0.1, affine=True, track_running_stats=True)
+        (2): ReLU(inplace=True)
+      )
+      (2): Sequential(
+        (0): Conv3d(256, 128, kernel_size=(3, 3, 3), stride=(1, 1, 1), padding=(1, 1, 1), bias=False)
+        (1): SyncBatchNorm(128, eps=1e-05, momentum=0.1, affine=True, track_running_stats=True)
+        (2): ReLU(inplace=True)
+      )
+      (3): Sequential(
+        (0): Conv3d(256, 128, kernel_size=(3, 3, 3), stride=(1, 1, 1), padding=(1, 1, 1), bias=False)
+        (1): SyncBatchNorm(128, eps=1e-05, momentum=0.1, affine=True, track_running_stats=True)
+        (2): ReLU(inplace=True)
+      )
+    )
+    (occ_pred_conv): Sequential(
+      (0): Conv3d(128, 64, kernel_size=(1, 1, 1), stride=(1, 1, 1), bias=False)
+      (1): SyncBatchNorm(64, eps=1e-05, momentum=0.1, affine=True, track_running_stats=True)
+      (2): ReLU(inplace=True)
+      (3): Conv3d(64, 20, kernel_size=(1, 1, 1), stride=(1, 1, 1), bias=False)
+    )
+    (voxel_soft_weights): Sequential(
+      (0): Conv3d(128, 64, kernel_size=(1, 1, 1), stride=(1, 1, 1), bias=False)
+      (1): SyncBatchNorm(64, eps=1e-05, momentum=0.1, affine=True, track_running_stats=True)
+      (2): ReLU(inplace=True)
+      (3): Conv3d(64, 4, kernel_size=(1, 1, 1), stride=(1, 1, 1), bias=False)
+    )
+  )
+  (img_backbone): ResNet(
+    (conv1): Conv2d(3, 64, kernel_size=(7, 7), stride=(2, 2), padding=(3, 3), bias=False)
+    (bn1): SyncBatchNorm(64, eps=1e-05, momentum=0.1, affine=True, track_running_stats=True)
+    (relu): ReLU(inplace=True)
+    (maxpool): MaxPool2d(kernel_size=3, stride=2, padding=1, dilation=1, ceil_mode=False)
+    (layer1): ResLayer(
+      (0): Bottleneck(
+        (conv1): Conv2d(64, 64, kernel_size=(1, 1), stride=(1, 1), bias=False)
+        (bn1): SyncBatchNorm(64, eps=1e-05, momentum=0.1, affine=True, track_running_stats=True)
+        (conv2): Conv2d(64, 64, kernel_size=(3, 3), stride=(1, 1), padding=(1, 1), bias=False)
+        (bn2): SyncBatchNorm(64, eps=1e-05, momentum=0.1, affine=True, track_running_stats=True)
+        (conv3): Conv2d(64, 256, kernel_size=(1, 1), stride=(1, 1), bias=False)
+        (bn3): SyncBatchNorm(256, eps=1e-05, momentum=0.1, affine=True, track_running_stats=True)
+        (relu): ReLU(inplace=True)
+        (downsample): Sequential(
+          (0): Conv2d(64, 256, kernel_size=(1, 1), stride=(1, 1), bias=False)
+          (1): SyncBatchNorm(256, eps=1e-05, momentum=0.1, affine=True, track_running_stats=True)
+        )
+      )
+      (1): Bottleneck(
+        (conv1): Conv2d(256, 64, kernel_size=(1, 1), stride=(1, 1), bias=False)
+        (bn1): SyncBatchNorm(64, eps=1e-05, momentum=0.1, affine=True, track_running_stats=True)
+        (conv2): Conv2d(64, 64, kernel_size=(3, 3), stride=(1, 1), padding=(1, 1), bias=False)
+        (bn2): SyncBatchNorm(64, eps=1e-05, momentum=0.1, affine=True, track_running_stats=True)
+        (conv3): Conv2d(64, 256, kernel_size=(1, 1), stride=(1, 1), bias=False)
+        (bn3): SyncBatchNorm(256, eps=1e-05, momentum=0.1, affine=True, track_running_stats=True)
+        (relu): ReLU(inplace=True)
+      )
+      (2): Bottleneck(
+        (conv1): Conv2d(256, 64, kernel_size=(1, 1), stride=(1, 1), bias=False)
+        (bn1): SyncBatchNorm(64, eps=1e-05, momentum=0.1, affine=True, track_running_stats=True)
+        (conv2): Conv2d(64, 64, kernel_size=(3, 3), stride=(1, 1), padding=(1, 1), bias=False)
+        (bn2): SyncBatchNorm(64, eps=1e-05, momentum=0.1, affine=True, track_running_stats=True)
+        (conv3): Conv2d(64, 256, kernel_size=(1, 1), stride=(1, 1), bias=False)
+        (bn3): SyncBatchNorm(256, eps=1e-05, momentum=0.1, affine=True, track_running_stats=True)
+        (relu): ReLU(inplace=True)
+      )
+    )
+    (layer2): ResLayer(
+      (0): Bottleneck(
+        (conv1): Conv2d(256, 128, kernel_size=(1, 1), stride=(1, 1), bias=False)
+        (bn1): SyncBatchNorm(128, eps=1e-05, momentum=0.1, affine=True, track_running_stats=True)
+        (conv2): Conv2d(128, 128, kernel_size=(3, 3), stride=(2, 2), padding=(1, 1), bias=False)
+        (bn2): SyncBatchNorm(128, eps=1e-05, momentum=0.1, affine=True, track_running_stats=True)
+        (conv3): Conv2d(128, 512, kernel_size=(1, 1), stride=(1, 1), bias=False)
+        (bn3): SyncBatchNorm(512, eps=1e-05, momentum=0.1, affine=True, track_running_stats=True)
+        (relu): ReLU(inplace=True)
+        (downsample): Sequential(
+          (0): Conv2d(256, 512, kernel_size=(1, 1), stride=(2, 2), bias=False)
+          (1): SyncBatchNorm(512, eps=1e-05, momentum=0.1, affine=True, track_running_stats=True)
+        )
+      )
+      (1): Bottleneck(
+        (conv1): Conv2d(512, 128, kernel_size=(1, 1), stride=(1, 1), bias=False)
+        (bn1): SyncBatchNorm(128, eps=1e-05, momentum=0.1, affine=True, track_running_stats=True)
+        (conv2): Conv2d(128, 128, kernel_size=(3, 3), stride=(1, 1), padding=(1, 1), bias=False)
+        (bn2): SyncBatchNorm(128, eps=1e-05, momentum=0.1, affine=True, track_running_stats=True)
+        (conv3): Conv2d(128, 512, kernel_size=(1, 1), stride=(1, 1), bias=False)
+        (bn3): SyncBatchNorm(512, eps=1e-05, momentum=0.1, affine=True, track_running_stats=True)
+        (relu): ReLU(inplace=True)
+      )
+      (2): Bottleneck(
+        (conv1): Conv2d(512, 128, kernel_size=(1, 1), stride=(1, 1), bias=False)
+        (bn1): SyncBatchNorm(128, eps=1e-05, momentum=0.1, affine=True, track_running_stats=True)
+        (conv2): Conv2d(128, 128, kernel_size=(3, 3), stride=(1, 1), padding=(1, 1), bias=False)
+        (bn2): SyncBatchNorm(128, eps=1e-05, momentum=0.1, affine=True, track_running_stats=True)
+        (conv3): Conv2d(128, 512, kernel_size=(1, 1), stride=(1, 1), bias=False)
+        (bn3): SyncBatchNorm(512, eps=1e-05, momentum=0.1, affine=True, track_running_stats=True)
+        (relu): ReLU(inplace=True)
+      )
+      (3): Bottleneck(
+        (conv1): Conv2d(512, 128, kernel_size=(1, 1), stride=(1, 1), bias=False)
+        (bn1): SyncBatchNorm(128, eps=1e-05, momentum=0.1, affine=True, track_running_stats=True)
+        (conv2): Conv2d(128, 128, kernel_size=(3, 3), stride=(1, 1), padding=(1, 1), bias=False)
+        (bn2): SyncBatchNorm(128, eps=1e-05, momentum=0.1, affine=True, track_running_stats=True)
+        (conv3): Conv2d(128, 512, kernel_size=(1, 1), stride=(1, 1), bias=False)
+        (bn3): SyncBatchNorm(512, eps=1e-05, momentum=0.1, affine=True, track_running_stats=True)
+        (relu): ReLU(inplace=True)
+      )
+    )
+    (layer3): ResLayer(
+      (0): Bottleneck(
+        (conv1): Conv2d(512, 256, kernel_size=(1, 1), stride=(1, 1), bias=False)
+        (bn1): SyncBatchNorm(256, eps=1e-05, momentum=0.1, affine=True, track_running_stats=True)
+        (conv2): Conv2d(256, 256, kernel_size=(3, 3), stride=(2, 2), padding=(1, 1), bias=False)
+        (bn2): SyncBatchNorm(256, eps=1e-05, momentum=0.1, affine=True, track_running_stats=True)
+        (conv3): Conv2d(256, 1024, kernel_size=(1, 1), stride=(1, 1), bias=False)
+        (bn3): SyncBatchNorm(1024, eps=1e-05, momentum=0.1, affine=True, track_running_stats=True)
+        (relu): ReLU(inplace=True)
+        (downsample): Sequential(
+          (0): Conv2d(512, 1024, kernel_size=(1, 1), stride=(2, 2), bias=False)
+          (1): SyncBatchNorm(1024, eps=1e-05, momentum=0.1, affine=True, track_running_stats=True)
+        )
+      )
+      (1): Bottleneck(
+        (conv1): Conv2d(1024, 256, kernel_size=(1, 1), stride=(1, 1), bias=False)
+        (bn1): SyncBatchNorm(256, eps=1e-05, momentum=0.1, affine=True, track_running_stats=True)
+        (conv2): Conv2d(256, 256, kernel_size=(3, 3), stride=(1, 1), padding=(1, 1), bias=False)
+        (bn2): SyncBatchNorm(256, eps=1e-05, momentum=0.1, affine=True, track_running_stats=True)
+        (conv3): Conv2d(256, 1024, kernel_size=(1, 1), stride=(1, 1), bias=False)
+        (bn3): SyncBatchNorm(1024, eps=1e-05, momentum=0.1, affine=True, track_running_stats=True)
+        (relu): ReLU(inplace=True)
+      )
+      (2): Bottleneck(
+        (conv1): Conv2d(1024, 256, kernel_size=(1, 1), stride=(1, 1), bias=False)
+        (bn1): SyncBatchNorm(256, eps=1e-05, momentum=0.1, affine=True, track_running_stats=True)
+        (conv2): Conv2d(256, 256, kernel_size=(3, 3), stride=(1, 1), padding=(1, 1), bias=False)
+        (bn2): SyncBatchNorm(256, eps=1e-05, momentum=0.1, affine=True, track_running_stats=True)
+        (conv3): Conv2d(256, 1024, kernel_size=(1, 1), stride=(1, 1), bias=False)
+        (bn3): SyncBatchNorm(1024, eps=1e-05, momentum=0.1, affine=True, track_running_stats=True)
+        (relu): ReLU(inplace=True)
+      )
+      (3): Bottleneck(
+        (conv1): Conv2d(1024, 256, kernel_size=(1, 1), stride=(1, 1), bias=False)
+        (bn1): SyncBatchNorm(256, eps=1e-05, momentum=0.1, affine=True, track_running_stats=True)
+        (conv2): Conv2d(256, 256, kernel_size=(3, 3), stride=(1, 1), padding=(1, 1), bias=False)
+        (bn2): SyncBatchNorm(256, eps=1e-05, momentum=0.1, affine=True, track_running_stats=True)
+        (conv3): Conv2d(256, 1024, kernel_size=(1, 1), stride=(1, 1), bias=False)
+        (bn3): SyncBatchNorm(1024, eps=1e-05, momentum=0.1, affine=True, track_running_stats=True)
+        (relu): ReLU(inplace=True)
+      )
+      (4): Bottleneck(
+        (conv1): Conv2d(1024, 256, kernel_size=(1, 1), stride=(1, 1), bias=False)
+        (bn1): SyncBatchNorm(256, eps=1e-05, momentum=0.1, affine=True, track_running_stats=True)
+        (conv2): Conv2d(256, 256, kernel_size=(3, 3), stride=(1, 1), padding=(1, 1), bias=False)
+        (bn2): SyncBatchNorm(256, eps=1e-05, momentum=0.1, affine=True, track_running_stats=True)
+        (conv3): Conv2d(256, 1024, kernel_size=(1, 1), stride=(1, 1), bias=False)
+        (bn3): SyncBatchNorm(1024, eps=1e-05, momentum=0.1, affine=True, track_running_stats=True)
+        (relu): ReLU(inplace=True)
+      )
+      (5): Bottleneck(
+        (conv1): Conv2d(1024, 256, kernel_size=(1, 1), stride=(1, 1), bias=False)
+        (bn1): SyncBatchNorm(256, eps=1e-05, momentum=0.1, affine=True, track_running_stats=True)
+        (conv2): Conv2d(256, 256, kernel_size=(3, 3), stride=(1, 1), padding=(1, 1), bias=False)
+        (bn2): SyncBatchNorm(256, eps=1e-05, momentum=0.1, affine=True, track_running_stats=True)
+        (conv3): Conv2d(256, 1024, kernel_size=(1, 1), stride=(1, 1), bias=False)
+        (bn3): SyncBatchNorm(1024, eps=1e-05, momentum=0.1, affine=True, track_running_stats=True)
+        (relu): ReLU(inplace=True)
+      )
+    )
+    (layer4): ResLayer(
+      (0): Bottleneck(
+        (conv1): Conv2d(1024, 512, kernel_size=(1, 1), stride=(1, 1), bias=False)
+        (bn1): SyncBatchNorm(512, eps=1e-05, momentum=0.1, affine=True, track_running_stats=True)
+        (conv2): Conv2d(512, 512, kernel_size=(3, 3), stride=(2, 2), padding=(1, 1), bias=False)
+        (bn2): SyncBatchNorm(512, eps=1e-05, momentum=0.1, affine=True, track_running_stats=True)
+        (conv3): Conv2d(512, 2048, kernel_size=(1, 1), stride=(1, 1), bias=False)
+        (bn3): SyncBatchNorm(2048, eps=1e-05, momentum=0.1, affine=True, track_running_stats=True)
+        (relu): ReLU(inplace=True)
+        (downsample): Sequential(
+          (0): Conv2d(1024, 2048, kernel_size=(1, 1), stride=(2, 2), bias=False)
+          (1): SyncBatchNorm(2048, eps=1e-05, momentum=0.1, affine=True, track_running_stats=True)
+        )
+      )
+      (1): Bottleneck(
+        (conv1): Conv2d(2048, 512, kernel_size=(1, 1), stride=(1, 1), bias=False)
+        (bn1): SyncBatchNorm(512, eps=1e-05, momentum=0.1, affine=True, track_running_stats=True)
+        (conv2): Conv2d(512, 512, kernel_size=(3, 3), stride=(1, 1), padding=(1, 1), bias=False)
+        (bn2): SyncBatchNorm(512, eps=1e-05, momentum=0.1, affine=True, track_running_stats=True)
+        (conv3): Conv2d(512, 2048, kernel_size=(1, 1), stride=(1, 1), bias=False)
+        (bn3): SyncBatchNorm(2048, eps=1e-05, momentum=0.1, affine=True, track_running_stats=True)
+        (relu): ReLU(inplace=True)
+      )
+      (2): Bottleneck(
+        (conv1): Conv2d(2048, 512, kernel_size=(1, 1), stride=(1, 1), bias=False)
+        (bn1): SyncBatchNorm(512, eps=1e-05, momentum=0.1, affine=True, track_running_stats=True)
+        (conv2): Conv2d(512, 512, kernel_size=(3, 3), stride=(1, 1), padding=(1, 1), bias=False)
+        (bn2): SyncBatchNorm(512, eps=1e-05, momentum=0.1, affine=True, track_running_stats=True)
+        (conv3): Conv2d(512, 2048, kernel_size=(1, 1), stride=(1, 1), bias=False)
+        (bn3): SyncBatchNorm(2048, eps=1e-05, momentum=0.1, affine=True, track_running_stats=True)
+        (relu): ReLU(inplace=True)
+      )
+    )
+  )
+  init_cfg={'type': 'Pretrained', 'checkpoint': 'ckpts/resnet50-0676ba61.pth'}
+  (img_neck): SECONDFPN(
+    (deblocks): ModuleList(
+      (0): Sequential(
+        (0): Conv2d(256, 128, kernel_size=(4, 4), stride=(4, 4), bias=False)
+        (1): SyncBatchNorm(128, eps=0.001, momentum=0.01, affine=True, track_running_stats=True)
+        (2): ReLU(inplace=True)
+      )
+      (1): Sequential(
+        (0): Conv2d(512, 128, kernel_size=(2, 2), stride=(2, 2), bias=False)
+        (1): SyncBatchNorm(128, eps=0.001, momentum=0.01, affine=True, track_running_stats=True)
+        (2): ReLU(inplace=True)
+      )
+      (2): Sequential(
+        (0): ConvTranspose2d(1024, 128, kernel_size=(1, 1), stride=(1, 1), bias=False)
+        (1): SyncBatchNorm(128, eps=0.001, momentum=0.01, affine=True, track_running_stats=True)
+        (2): ReLU(inplace=True)
+      )
+      (3): Sequential(
+        (0): ConvTranspose2d(2048, 128, kernel_size=(2, 2), stride=(2, 2), bias=False)
+        (1): SyncBatchNorm(128, eps=0.001, momentum=0.01, affine=True, track_running_stats=True)
+        (2): ReLU(inplace=True)
+      )
+    )
+  )
+  init_cfg=[{'type': 'Kaiming', 'layer': 'ConvTranspose2d'}, {'type': 'Constant', 'layer': 'NaiveSyncBatchNorm2d', 'val': 1.0}]
+  (img_view_transformer): ViewTransformerLiftSplatShootVoxel(
+    (depth_net): DepthNet(
+      (reduce_conv): Sequential(
+        (0): Conv2d(512, 512, kernel_size=(3, 3), stride=(1, 1), padding=(1, 1))
+        (1): SyncBatchNorm(512, eps=1e-05, momentum=0.1, affine=True, track_running_stats=True)
+        (2): ReLU(inplace=True)
+      )
+      (context_conv): Conv2d(512, 256, kernel_size=(1, 1), stride=(1, 1))
+      (bn): SyncBatchNorm(33, eps=1e-05, momentum=0.1, affine=True, track_running_stats=True)
+      (depth_mlp): Mlp(
+        (fc1): Linear(in_features=33, out_features=512, bias=True)
+        (act): ReLU()
+        (drop1): Dropout(p=0.0, inplace=False)
+        (fc2): Linear(in_features=512, out_features=512, bias=True)
+        (drop2): Dropout(p=0.0, inplace=False)
+      )
+      (depth_se): SELayer(
+        (conv_reduce): Conv2d(512, 512, kernel_size=(1, 1), stride=(1, 1))
+        (act1): ReLU()
+        (conv_expand): Conv2d(512, 512, kernel_size=(1, 1), stride=(1, 1))
+        (gate): Sigmoid()
+      )
+      (context_mlp): Mlp(
+        (fc1): Linear(in_features=33, out_features=512, bias=True)
+        (act): ReLU()
+        (drop1): Dropout(p=0.0, inplace=False)
+        (fc2): Linear(in_features=512, out_features=512, bias=True)
+        (drop2): Dropout(p=0.0, inplace=False)
+      )
+      (context_se): SELayer(
+        (conv_reduce): Conv2d(512, 512, kernel_size=(1, 1), stride=(1, 1))
+        (act1): ReLU()
+        (conv_expand): Conv2d(512, 512, kernel_size=(1, 1), stride=(1, 1))
+        (gate): Sigmoid()
+      )
+      (depth_conv): Sequential(
+        (0): BasicBlock(
+          (conv1): Conv2d(512, 512, kernel_size=(3, 3), stride=(1, 1), padding=(1, 1), bias=False)
+          (bn1): SyncBatchNorm(512, eps=1e-05, momentum=0.1, affine=True, track_running_stats=True)
+          (conv2): Conv2d(512, 512, kernel_size=(3, 3), stride=(1, 1), padding=(1, 1), bias=False)
+          (bn2): SyncBatchNorm(512, eps=1e-05, momentum=0.1, affine=True, track_running_stats=True)
+          (relu): ReLU(inplace=True)
+        )
+        (1): BasicBlock(
+          (conv1): Conv2d(512, 512, kernel_size=(3, 3), stride=(1, 1), padding=(1, 1), bias=False)
+          (bn1): SyncBatchNorm(512, eps=1e-05, momentum=0.1, affine=True, track_running_stats=True)
+          (conv2): Conv2d(512, 512, kernel_size=(3, 3), stride=(1, 1), padding=(1, 1), bias=False)
+          (bn2): SyncBatchNorm(512, eps=1e-05, momentum=0.1, affine=True, track_running_stats=True)
+          (relu): ReLU(inplace=True)
+        )
+        (2): BasicBlock(
+          (conv1): Conv2d(512, 512, kernel_size=(3, 3), stride=(1, 1), padding=(1, 1), bias=False)
+          (bn1): SyncBatchNorm(512, eps=1e-05, momentum=0.1, affine=True, track_running_stats=True)
+          (conv2): Conv2d(512, 512, kernel_size=(3, 3), stride=(1, 1), padding=(1, 1), bias=False)
+          (bn2): SyncBatchNorm(512, eps=1e-05, momentum=0.1, affine=True, track_running_stats=True)
+          (relu): ReLU(inplace=True)
+        )
+        (3): ASPP(
+          (aspp1): _ASPPModule(
+            (atrous_conv): Conv2d(512, 512, kernel_size=(1, 1), stride=(1, 1), bias=False)
+            (bn): SyncBatchNorm(512, eps=1e-05, momentum=0.1, affine=True, track_running_stats=True)
+            (relu): ReLU()
+          )
+          (aspp2): _ASPPModule(
+            (atrous_conv): Conv2d(512, 512, kernel_size=(3, 3), stride=(1, 1), padding=(6, 6), dilation=(6, 6), bias=False)
+            (bn): SyncBatchNorm(512, eps=1e-05, momentum=0.1, affine=True, track_running_stats=True)
+            (relu): ReLU()
+          )
+          (aspp3): _ASPPModule(
+            (atrous_conv): Conv2d(512, 512, kernel_size=(3, 3), stride=(1, 1), padding=(12, 12), dilation=(12, 12), bias=False)
+            (bn): SyncBatchNorm(512, eps=1e-05, momentum=0.1, affine=True, track_running_stats=True)
+            (relu): ReLU()
+          )
+          (aspp4): _ASPPModule(
+            (atrous_conv): Conv2d(512, 512, kernel_size=(3, 3), stride=(1, 1), padding=(18, 18), dilation=(18, 18), bias=False)
+            (bn): SyncBatchNorm(512, eps=1e-05, momentum=0.1, affine=True, track_running_stats=True)
+            (relu): ReLU()
+          )
+          (global_avg_pool): Sequential(
+            (0): AdaptiveAvgPool2d(output_size=(1, 1))
+            (1): Conv2d(512, 512, kernel_size=(1, 1), stride=(1, 1), bias=False)
+            (2): SyncBatchNorm(512, eps=1e-05, momentum=0.1, affine=True, track_running_stats=True)
+            (3): ReLU()
+          )
+          (conv1): Conv2d(2560, 512, kernel_size=(1, 1), stride=(1, 1), bias=False)
+          (bn1): SyncBatchNorm(512, eps=1e-05, momentum=0.1, affine=True, track_running_stats=True)
+          (relu): ReLU()
+          (dropout): Dropout(p=0.5, inplace=False)
+        )
+        (4): DeformConv2dPack(in_channels=512,
+        out_channels=512,
+        kernel_size=(3, 3),
+        stride=(1, 1),
+        padding=(1, 1),
+        dilation=(1, 1),
+        groups=4,
+        deform_groups=1,
+        bias=False)
+        (5): Conv2d(512, 112, kernel_size=(1, 1), stride=(1, 1))
+      )
+    )
+  )
+  (img_bev_encoder_backbone): Identity()
+  (img_bev_encoder_neck): Identity()
+  (occ_fuser): BiFuser(
+    (con_enc): Sequential(
+      (0): Conv3d(1024, 512, kernel_size=(3, 3, 3), stride=(1, 1, 1), padding=(1, 1, 1), bias=False)
+      (1): SyncBatchNorm(512, eps=1e-05, momentum=0.1, affine=True, track_running_stats=True)
+      (2): ReLU(inplace=True)
+      (3): Conv3d(512, 256, kernel_size=(3, 3, 3), stride=(1, 1, 1), padding=(1, 1, 1), bias=False)
+      (4): SyncBatchNorm(256, eps=1e-05, momentum=0.1, affine=True, track_running_stats=True)
+      (5): ReLU(inplace=True)
+    )
+    (knn_enc): Sequential(
+      (0): Linear(in_features=256, out_features=256, bias=True)
+      (1): ReLU()
+    )
+  )
+  (semantic_encoder): CustomResNet3D(
+    (input_proj): Sequential(
+      (0): Conv3d(256, 128, kernel_size=(1, 1, 1), stride=(1, 1, 1), bias=False)
+      (1): SyncBatchNorm(128, eps=1e-05, momentum=0.1, affine=True, track_running_stats=True)
+      (2): ReLU(inplace=True)
+    )
+    (layers): ModuleList(
+      (0): Sequential(
+        (0): BasicBlock(
+          (conv1): Conv3d(128, 128, kernel_size=(3, 3, 3), stride=(1, 1, 1), padding=(1, 1, 1), bias=False)
+          (bn1): SyncBatchNorm(128, eps=1e-05, momentum=0.1, affine=True, track_running_stats=True)
+          (relu): ReLU(inplace=True)
+          (conv2): Conv3d(128, 128, kernel_size=(3, 3, 3), stride=(1, 1, 1), padding=(1, 1, 1), bias=False)
+          (bn2): SyncBatchNorm(128, eps=1e-05, momentum=0.1, affine=True, track_running_stats=True)
+        )
+        (1): BasicBlock(
+          (conv1): Conv3d(128, 128, kernel_size=(3, 3, 3), stride=(1, 1, 1), padding=(1, 1, 1), bias=False)
+          (bn1): SyncBatchNorm(128, eps=1e-05, momentum=0.1, affine=True, track_running_stats=True)
+          (relu): ReLU(inplace=True)
+          (conv2): Conv3d(128, 128, kernel_size=(3, 3, 3), stride=(1, 1, 1), padding=(1, 1, 1), bias=False)
+          (bn2): SyncBatchNorm(128, eps=1e-05, momentum=0.1, affine=True, track_running_stats=True)
+        )
+      )
+      (1): Sequential(
+        (0): BasicBlock(
+          (conv1): Conv3d(128, 256, kernel_size=(3, 3, 3), stride=(2, 2, 2), padding=(1, 1, 1), bias=False)
+          (bn1): SyncBatchNorm(256, eps=1e-05, momentum=0.1, affine=True, track_running_stats=True)
+          (relu): ReLU(inplace=True)
+          (conv2): Conv3d(256, 256, kernel_size=(3, 3, 3), stride=(1, 1, 1), padding=(1, 1, 1), bias=False)
+          (bn2): SyncBatchNorm(256, eps=1e-05, momentum=0.1, affine=True, track_running_stats=True)
+          (downsample): Sequential(
+            (0): Conv3d(128, 256, kernel_size=(1, 1, 1), stride=(2, 2, 2), bias=False)
+            (1): SyncBatchNorm(256, eps=1e-05, momentum=0.1, affine=True, track_running_stats=True)
+          )
+        )
+        (1): BasicBlock(
+          (conv1): Conv3d(256, 256, kernel_size=(3, 3, 3), stride=(1, 1, 1), padding=(1, 1, 1), bias=False)
+          (bn1): SyncBatchNorm(256, eps=1e-05, momentum=0.1, affine=True, track_running_stats=True)
+          (relu): ReLU(inplace=True)
+          (conv2): Conv3d(256, 256, kernel_size=(3, 3, 3), stride=(1, 1, 1), padding=(1, 1, 1), bias=False)
+          (bn2): SyncBatchNorm(256, eps=1e-05, momentum=0.1, affine=True, track_running_stats=True)
+        )
+      )
+      (2): Sequential(
+        (0): BasicBlock(
+          (conv1): Conv3d(256, 512, kernel_size=(3, 3, 3), stride=(2, 2, 2), padding=(1, 1, 1), bias=False)
+          (bn1): SyncBatchNorm(512, eps=1e-05, momentum=0.1, affine=True, track_running_stats=True)
+          (relu): ReLU(inplace=True)
+          (conv2): Conv3d(512, 512, kernel_size=(3, 3, 3), stride=(1, 1, 1), padding=(1, 1, 1), bias=False)
+          (bn2): SyncBatchNorm(512, eps=1e-05, momentum=0.1, affine=True, track_running_stats=True)
+          (downsample): Sequential(
+            (0): Conv3d(256, 512, kernel_size=(1, 1, 1), stride=(2, 2, 2), bias=False)
+            (1): SyncBatchNorm(512, eps=1e-05, momentum=0.1, affine=True, track_running_stats=True)
+          )
+        )
+        (1): BasicBlock(
+          (conv1): Conv3d(512, 512, kernel_size=(3, 3, 3), stride=(1, 1, 1), padding=(1, 1, 1), bias=False)
+          (bn1): SyncBatchNorm(512, eps=1e-05, momentum=0.1, affine=True, track_running_stats=True)
+          (relu): ReLU(inplace=True)
+          (conv2): Conv3d(512, 512, kernel_size=(3, 3, 3), stride=(1, 1, 1), padding=(1, 1, 1), bias=False)
+          (bn2): SyncBatchNorm(512, eps=1e-05, momentum=0.1, affine=True, track_running_stats=True)
+        )
+      )
+      (3): Sequential(
+        (0): BasicBlock(
+          (conv1): Conv3d(512, 1024, kernel_size=(3, 3, 3), stride=(2, 2, 2), padding=(1, 1, 1), bias=False)
+          (bn1): SyncBatchNorm(1024, eps=1e-05, momentum=0.1, affine=True, track_running_stats=True)
+          (relu): ReLU(inplace=True)
+          (conv2): Conv3d(1024, 1024, kernel_size=(3, 3, 3), stride=(1, 1, 1), padding=(1, 1, 1), bias=False)
+          (bn2): SyncBatchNorm(1024, eps=1e-05, momentum=0.1, affine=True, track_running_stats=True)
+          (downsample): Sequential(
+            (0): Conv3d(512, 1024, kernel_size=(1, 1, 1), stride=(2, 2, 2), bias=False)
+            (1): SyncBatchNorm(1024, eps=1e-05, momentum=0.1, affine=True, track_running_stats=True)
+          )
+        )
+        (1): BasicBlock(
+          (conv1): Conv3d(1024, 1024, kernel_size=(3, 3, 3), stride=(1, 1, 1), padding=(1, 1, 1), bias=False)
+          (bn1): SyncBatchNorm(1024, eps=1e-05, momentum=0.1, affine=True, track_running_stats=True)
+          (relu): ReLU(inplace=True)
+          (conv2): Conv3d(1024, 1024, kernel_size=(3, 3, 3), stride=(1, 1, 1), padding=(1, 1, 1), bias=False)
+          (bn2): SyncBatchNorm(1024, eps=1e-05, momentum=0.1, affine=True, track_running_stats=True)
+        )
+      )
+    )
+  )
+  (semantic_neck): FPN3D(
+    (lateral_convs): ModuleList(
+      (0): Sequential(
+        (0): ConvModule(
+          (conv): Conv3d(128, 256, kernel_size=(1, 1, 1), stride=(1, 1, 1), bias=False)
+          (bn): SyncBatchNorm(256, eps=1e-05, momentum=0.1, affine=True, track_running_stats=True)
+          (activate): ReLU(inplace=True)
+        )
+      )
+      (1): Sequential(
+        (0): ConvModule(
+          (conv): Conv3d(256, 256, kernel_size=(1, 1, 1), stride=(1, 1, 1), bias=False)
+          (bn): SyncBatchNorm(256, eps=1e-05, momentum=0.1, affine=True, track_running_stats=True)
+          (activate): ReLU(inplace=True)
+        )
+      )
+      (2): Sequential(
+        (0): ConvModule(
+          (conv): Conv3d(512, 256, kernel_size=(1, 1, 1), stride=(1, 1, 1), bias=False)
+          (bn): SyncBatchNorm(256, eps=1e-05, momentum=0.1, affine=True, track_running_stats=True)
+          (activate): ReLU(inplace=True)
+        )
+      )
+      (3): Sequential(
+        (0): ConvModule(
+          (conv): Conv3d(1024, 256, kernel_size=(1, 1, 1), stride=(1, 1, 1), bias=False)
+          (bn): SyncBatchNorm(256, eps=1e-05, momentum=0.1, affine=True, track_running_stats=True)
+          (activate): ReLU(inplace=True)
+        )
+      )
+    )
+    (fpn_convs): ModuleList(
+      (0): Sequential(
+        (0): ConvModule(
+          (conv): Conv3d(256, 256, kernel_size=(3, 3, 3), stride=(1, 1, 1), padding=(1, 1, 1), bias=False)
+          (bn): SyncBatchNorm(256, eps=1e-05, momentum=0.1, affine=True, track_running_stats=True)
+          (activate): ReLU(inplace=True)
+        )
+      )
+      (1): Sequential(
+        (0): ConvModule(
+          (conv): Conv3d(256, 256, kernel_size=(3, 3, 3), stride=(1, 1, 1), padding=(1, 1, 1), bias=False)
+          (bn): SyncBatchNorm(256, eps=1e-05, momentum=0.1, affine=True, track_running_stats=True)
+          (activate): ReLU(inplace=True)
+        )
+      )
+      (2): Sequential(
+        (0): ConvModule(
+          (conv): Conv3d(256, 256, kernel_size=(3, 3, 3), stride=(1, 1, 1), padding=(1, 1, 1), bias=False)
+          (bn): SyncBatchNorm(256, eps=1e-05, momentum=0.1, affine=True, track_running_stats=True)
+          (activate): ReLU(inplace=True)
+        )
+      )
+      (3): Sequential(
+        (0): ConvModule(
+          (conv): Conv3d(256, 256, kernel_size=(3, 3, 3), stride=(1, 1, 1), padding=(1, 1, 1), bias=False)
+          (bn): SyncBatchNorm(256, eps=1e-05, momentum=0.1, affine=True, track_running_stats=True)
+          (activate): ReLU(inplace=True)
+        )
+      )
+    )
+  )
+)
+2023-11-01 16:57:44,749 - mmdet - INFO - Start running, host: jpan305@gpu3-14, work_dir: /hpc2hdd/home/jpan305/pytorch/MoEOccupancy/work_dirs/cascade_multi_kitti
+2023-11-01 16:57:44,749 - mmdet - INFO - Hooks will be executed in the following order:
+before_run:
+(VERY_HIGH   ) StepLrUpdaterHook                  
+(NORMAL      ) CheckpointHook                     
+(NORMAL      ) OccDistEvalHook                    
+(VERY_LOW    ) TextLoggerHook                     
+(VERY_LOW    ) TensorboardLoggerHook              
+ -------------------- 
+before_train_epoch:
+(VERY_HIGH   ) StepLrUpdaterHook                  
+(NORMAL      ) DistSamplerSeedHook                
+(NORMAL      ) OccDistEvalHook                    
+(LOW         ) IterTimerHook                      
+(VERY_LOW    ) TextLoggerHook                     
+(VERY_LOW    ) TensorboardLoggerHook              
+ -------------------- 
+before_train_iter:
+(VERY_HIGH   ) StepLrUpdaterHook                  
+(NORMAL      ) OccDistEvalHook                    
+(LOW         ) IterTimerHook                      
+ -------------------- 
+after_train_iter:
+(ABOVE_NORMAL) OptimizerHook                      
+(NORMAL      ) CheckpointHook                     
+(NORMAL      ) OccDistEvalHook                    
+(LOW         ) IterTimerHook                      
+(VERY_LOW    ) TextLoggerHook                     
+(VERY_LOW    ) TensorboardLoggerHook              
+ -------------------- 
+after_train_epoch:
+(NORMAL      ) CheckpointHook                     
+(NORMAL      ) OccDistEvalHook                    
+(VERY_LOW    ) TextLoggerHook                     
+(VERY_LOW    ) TensorboardLoggerHook              
+ -------------------- 
+before_val_epoch:
+(NORMAL      ) DistSamplerSeedHook                
+(LOW         ) IterTimerHook                      
+(VERY_LOW    ) TextLoggerHook                     
+(VERY_LOW    ) TensorboardLoggerHook              
+ -------------------- 
+before_val_iter:
+(LOW         ) IterTimerHook                      
+ -------------------- 
+after_val_iter:
+(LOW         ) IterTimerHook                      
+ -------------------- 
+after_val_epoch:
+(VERY_LOW    ) TextLoggerHook                     
+(VERY_LOW    ) TensorboardLoggerHook              
+ -------------------- 
+after_run:
+(VERY_LOW    ) TextLoggerHook                     
+(VERY_LOW    ) TensorboardLoggerHook              
+ -------------------- 
+2023-11-01 16:57:44,750 - mmdet - INFO - workflow: [('train', 1)], max: 30 epochs
+2023-11-01 16:57:44,750 - mmdet - INFO - Checkpoints will be saved to /hpc2hdd/home/jpan305/pytorch/MoEOccupancy/work_dirs/cascade_multi_kitti by HardDiskBackend.
+2023-11-01 16:57:56,497 - mmcv - INFO - Reducer buckets have been rebuilt in this iteration.
+2023-11-01 16:59:35,885 - mmdet - INFO - Epoch [1][50/2392]	lr: 1.000e-03, eta: 1 day, 20:14:04, time: 2.221, data_time: 0.082, memory: 13368, loss_depth: 1.0000, loss_voxel_ce_c_0: 1.0000, loss_voxel_sem_scal_c_0: 1.0000, loss_voxel_geo_scal_c_0: 1.0000, loss_voxel_lovasz_c_0: 1.0000, loss_voxel_ce_fine: 1.0000, loss_voxel_sem_scal_fine: 1.0000, loss_voxel_geo_scal_fine: 1.0000, loss_voxel_lovasz_fine: 1.0000, loss: 9.0000, grad_norm: 4.4447
+2023-11-01 17:01:17,371 - mmdet - INFO - Epoch [1][100/2392]	lr: 1.000e-03, eta: 1 day, 18:18:12, time: 2.030, data_time: 0.011, memory: 13368, loss_depth: 1.0000, loss_voxel_ce_c_0: 1.0000, loss_voxel_sem_scal_c_0: 1.0000, loss_voxel_geo_scal_c_0: 1.0000, loss_voxel_lovasz_c_0: 1.0000, loss_voxel_ce_fine: 1.0000, loss_voxel_sem_scal_fine: 1.0000, loss_voxel_geo_scal_fine: 1.0000, loss_voxel_lovasz_fine: 1.0000, loss: 9.0000, grad_norm: 2.9183
+2023-11-01 17:02:59,310 - mmdet - INFO - Epoch [1][150/2392]	lr: 1.000e-03, eta: 1 day, 17:42:02, time: 2.039, data_time: 0.011, memory: 13368, loss_depth: 1.0000, loss_voxel_ce_c_0: 1.0000, loss_voxel_sem_scal_c_0: 1.0000, loss_voxel_geo_scal_c_0: 1.0000, loss_voxel_lovasz_c_0: 1.0000, loss_voxel_ce_fine: 1.0000, loss_voxel_sem_scal_fine: 1.0000, loss_voxel_geo_scal_fine: 1.0000, loss_voxel_lovasz_fine: 1.0000, loss: 9.0000, grad_norm: 3.0590
+2023-11-01 17:04:41,019 - mmdet - INFO - Epoch [1][200/2392]	lr: 1.000e-03, eta: 1 day, 17:21:44, time: 2.034, data_time: 0.011, memory: 13368, loss_depth: 1.0000, loss_voxel_ce_c_0: 1.0000, loss_voxel_sem_scal_c_0: 1.0000, loss_voxel_geo_scal_c_0: 1.0000, loss_voxel_lovasz_c_0: 1.0000, loss_voxel_ce_fine: 1.0000, loss_voxel_sem_scal_fine: 1.0000, loss_voxel_geo_scal_fine: 1.0000, loss_voxel_lovasz_fine: 1.0000, loss: 9.0000, grad_norm: 2.8493
+2023-11-01 17:06:22,296 - mmdet - INFO - Epoch [1][250/2392]	lr: 1.000e-03, eta: 1 day, 17:06:49, time: 2.026, data_time: 0.011, memory: 13368, loss_depth: 1.0000, loss_voxel_ce_c_0: 1.0000, loss_voxel_sem_scal_c_0: 1.0000, loss_voxel_geo_scal_c_0: 1.0000, loss_voxel_lovasz_c_0: 1.0000, loss_voxel_ce_fine: 1.0000, loss_voxel_sem_scal_fine: 1.0000, loss_voxel_geo_scal_fine: 1.0000, loss_voxel_lovasz_fine: 1.0000, loss: 9.0000, grad_norm: 2.9289
+2023-11-01 17:08:03,630 - mmdet - INFO - Epoch [1][300/2392]	lr: 1.000e-03, eta: 1 day, 16:56:32, time: 2.027, data_time: 0.011, memory: 13368, loss_depth: 1.0000, loss_voxel_ce_c_0: 1.0000, loss_voxel_sem_scal_c_0: 1.0000, loss_voxel_geo_scal_c_0: 1.0000, loss_voxel_lovasz_c_0: 1.0000, loss_voxel_ce_fine: 1.0000, loss_voxel_sem_scal_fine: 1.0000, loss_voxel_geo_scal_fine: 1.0000, loss_voxel_lovasz_fine: 1.0000, loss: 9.0000, grad_norm: 2.8154
+2023-11-01 17:09:45,047 - mmdet - INFO - Epoch [1][350/2392]	lr: 1.000e-03, eta: 1 day, 16:49:00, time: 2.028, data_time: 0.011, memory: 13368, loss_depth: 1.0000, loss_voxel_ce_c_0: 1.0000, loss_voxel_sem_scal_c_0: 1.0000, loss_voxel_geo_scal_c_0: 1.0000, loss_voxel_lovasz_c_0: 1.0000, loss_voxel_ce_fine: 1.0000, loss_voxel_sem_scal_fine: 1.0000, loss_voxel_geo_scal_fine: 1.0000, loss_voxel_lovasz_fine: 1.0000, loss: 9.0000, grad_norm: 2.9780
+2023-11-01 17:11:26,486 - mmdet - INFO - Epoch [1][400/2392]	lr: 1.000e-03, eta: 1 day, 16:42:59, time: 2.029, data_time: 0.011, memory: 13368, loss_depth: 1.0000, loss_voxel_ce_c_0: 1.0000, loss_voxel_sem_scal_c_0: 1.0000, loss_voxel_geo_scal_c_0: 1.0000, loss_voxel_lovasz_c_0: 1.0000, loss_voxel_ce_fine: 1.0000, loss_voxel_sem_scal_fine: 1.0000, loss_voxel_geo_scal_fine: 1.0000, loss_voxel_lovasz_fine: 1.0000, loss: 9.0000, grad_norm: 2.6857
+2023-11-01 17:13:07,959 - mmdet - INFO - Epoch [1][450/2392]	lr: 1.000e-03, eta: 1 day, 16:38:01, time: 2.029, data_time: 0.010, memory: 13368, loss_depth: 1.0000, loss_voxel_ce_c_0: 1.0000, loss_voxel_sem_scal_c_0: 1.0000, loss_voxel_geo_scal_c_0: 1.0000, loss_voxel_lovasz_c_0: 1.0000, loss_voxel_ce_fine: 1.0000, loss_voxel_sem_scal_fine: 1.0000, loss_voxel_geo_scal_fine: 1.0000, loss_voxel_lovasz_fine: 1.0000, loss: 9.0000, grad_norm: 2.8939
+2023-11-01 17:14:49,395 - mmdet - INFO - Epoch [1][500/2392]	lr: 1.000e-03, eta: 1 day, 16:33:37, time: 2.029, data_time: 0.011, memory: 13368, loss_depth: 1.0000, loss_voxel_ce_c_0: 1.0000, loss_voxel_sem_scal_c_0: 1.0000, loss_voxel_geo_scal_c_0: 1.0000, loss_voxel_lovasz_c_0: 1.0000, loss_voxel_ce_fine: 1.0000, loss_voxel_sem_scal_fine: 1.0000, loss_voxel_geo_scal_fine: 1.0000, loss_voxel_lovasz_fine: 1.0000, loss: 9.0000, grad_norm: 2.8333
+2023-11-01 17:16:31,285 - mmdet - INFO - Epoch [1][550/2392]	lr: 1.000e-03, eta: 1 day, 16:30:42, time: 2.038, data_time: 0.010, memory: 13368, loss_depth: 1.0000, loss_voxel_ce_c_0: 1.0000, loss_voxel_sem_scal_c_0: 1.0000, loss_voxel_geo_scal_c_0: 1.0000, loss_voxel_lovasz_c_0: 1.0000, loss_voxel_ce_fine: 1.0000, loss_voxel_sem_scal_fine: 1.0000, loss_voxel_geo_scal_fine: 1.0000, loss_voxel_lovasz_fine: 1.0000, loss: 9.0000, grad_norm: 2.8218
+2023-11-01 17:18:13,401 - mmdet - INFO - Epoch [1][600/2392]	lr: 1.000e-03, eta: 1 day, 16:28:25, time: 2.042, data_time: 0.010, memory: 13368, loss_depth: 1.0000, loss_voxel_ce_c_0: 1.0000, loss_voxel_sem_scal_c_0: 1.0000, loss_voxel_geo_scal_c_0: 1.0000, loss_voxel_lovasz_c_0: 1.0000, loss_voxel_ce_fine: 1.0000, loss_voxel_sem_scal_fine: 1.0000, loss_voxel_geo_scal_fine: 1.0000, loss_voxel_lovasz_fine: 1.0000, loss: 9.0000, grad_norm: 2.8682
+2023-11-01 17:19:54,947 - mmdet - INFO - Epoch [1][650/2392]	lr: 1.000e-03, eta: 1 day, 16:25:12, time: 2.031, data_time: 0.010, memory: 13368, loss_depth: 1.0000, loss_voxel_ce_c_0: 1.0000, loss_voxel_sem_scal_c_0: 1.0000, loss_voxel_geo_scal_c_0: 1.0000, loss_voxel_lovasz_c_0: 1.0000, loss_voxel_ce_fine: 1.0000, loss_voxel_sem_scal_fine: 1.0000, loss_voxel_geo_scal_fine: 1.0000, loss_voxel_lovasz_fine: 1.0000, loss: 9.0000, grad_norm: 2.9393
+2023-11-01 17:21:36,279 - mmdet - INFO - Epoch [1][700/2392]	lr: 1.000e-03, eta: 1 day, 16:21:49, time: 2.027, data_time: 0.010, memory: 13368, loss_depth: 1.0000, loss_voxel_ce_c_0: 1.0000, loss_voxel_sem_scal_c_0: 1.0000, loss_voxel_geo_scal_c_0: 1.0000, loss_voxel_lovasz_c_0: 1.0000, loss_voxel_ce_fine: 1.0000, loss_voxel_sem_scal_fine: 1.0000, loss_voxel_geo_scal_fine: 1.0000, loss_voxel_lovasz_fine: 1.0000, loss: 9.0000, grad_norm: 2.6477
+2023-11-01 17:23:17,900 - mmdet - INFO - Epoch [1][750/2392]	lr: 1.000e-03, eta: 1 day, 16:19:08, time: 2.032, data_time: 0.011, memory: 13394, loss_depth: 1.0000, loss_voxel_ce_c_0: 1.0000, loss_voxel_sem_scal_c_0: 1.0000, loss_voxel_geo_scal_c_0: 1.0000, loss_voxel_lovasz_c_0: 1.0000, loss_voxel_ce_fine: 1.0000, loss_voxel_sem_scal_fine: 1.0000, loss_voxel_geo_scal_fine: 1.0000, loss_voxel_lovasz_fine: 1.0000, loss: 9.0000, grad_norm: 2.7596
+2023-11-01 17:24:59,134 - mmdet - INFO - Epoch [1][800/2392]	lr: 1.000e-03, eta: 1 day, 16:16:00, time: 2.025, data_time: 0.011, memory: 13394, loss_depth: 1.0000, loss_voxel_ce_c_0: 1.0000, loss_voxel_sem_scal_c_0: 1.0000, loss_voxel_geo_scal_c_0: 1.0000, loss_voxel_lovasz_c_0: 1.0000, loss_voxel_ce_fine: 1.0000, loss_voxel_sem_scal_fine: 1.0000, loss_voxel_geo_scal_fine: 1.0000, loss_voxel_lovasz_fine: 1.0000, loss: 9.0000, grad_norm: 2.6891
+2023-11-01 17:26:40,622 - mmdet - INFO - Epoch [1][850/2392]	lr: 1.000e-03, eta: 1 day, 16:13:23, time: 2.030, data_time: 0.010, memory: 13394, loss_depth: 1.0000, loss_voxel_ce_c_0: 1.0000, loss_voxel_sem_scal_c_0: 1.0000, loss_voxel_geo_scal_c_0: 1.0000, loss_voxel_lovasz_c_0: 1.0000, loss_voxel_ce_fine: 1.0000, loss_voxel_sem_scal_fine: 1.0000, loss_voxel_geo_scal_fine: 1.0000, loss_voxel_lovasz_fine: 1.0000, loss: 9.0000, grad_norm: 2.8848
+2023-11-01 17:28:22,251 - mmdet - INFO - Epoch [1][900/2392]	lr: 1.000e-03, eta: 1 day, 16:11:04, time: 2.033, data_time: 0.010, memory: 13394, loss_depth: 1.0000, loss_voxel_ce_c_0: 1.0000, loss_voxel_sem_scal_c_0: 1.0000, loss_voxel_geo_scal_c_0: 1.0000, loss_voxel_lovasz_c_0: 1.0000, loss_voxel_ce_fine: 1.0000, loss_voxel_sem_scal_fine: 1.0000, loss_voxel_geo_scal_fine: 1.0000, loss_voxel_lovasz_fine: 1.0000, loss: 9.0000, grad_norm: 2.5958
+2023-11-01 17:30:03,867 - mmdet - INFO - Epoch [1][950/2392]	lr: 1.000e-03, eta: 1 day, 16:08:47, time: 2.032, data_time: 0.011, memory: 13394, loss_depth: 1.0000, loss_voxel_ce_c_0: 1.0000, loss_voxel_sem_scal_c_0: 1.0000, loss_voxel_geo_scal_c_0: 1.0000, loss_voxel_lovasz_c_0: 1.0000, loss_voxel_ce_fine: 1.0000, loss_voxel_sem_scal_fine: 1.0000, loss_voxel_geo_scal_fine: 1.0000, loss_voxel_lovasz_fine: 1.0000, loss: 9.0000, grad_norm: 2.8079
+2023-11-01 17:31:45,795 - mmdet - INFO - Exp name: cascade_multi_kitti.py
+2023-11-01 17:31:45,795 - mmdet - INFO - Epoch [1][1000/2392]	lr: 1.000e-03, eta: 1 day, 16:06:56, time: 2.038, data_time: 0.011, memory: 13394, loss_depth: 1.0000, loss_voxel_ce_c_0: 1.0000, loss_voxel_sem_scal_c_0: 1.0000, loss_voxel_geo_scal_c_0: 1.0000, loss_voxel_lovasz_c_0: 1.0000, loss_voxel_ce_fine: 1.0000, loss_voxel_sem_scal_fine: 1.0000, loss_voxel_geo_scal_fine: 1.0000, loss_voxel_lovasz_fine: 1.0000, loss: 9.0000, grad_norm: 2.8859
+2023-11-01 17:33:27,537 - mmdet - INFO - Epoch [1][1050/2392]	lr: 1.000e-03, eta: 1 day, 16:04:54, time: 2.035, data_time: 0.011, memory: 13394, loss_depth: 1.0000, loss_voxel_ce_c_0: 1.0000, loss_voxel_sem_scal_c_0: 1.0000, loss_voxel_geo_scal_c_0: 1.0000, loss_voxel_lovasz_c_0: 1.0000, loss_voxel_ce_fine: 1.0000, loss_voxel_sem_scal_fine: 1.0000, loss_voxel_geo_scal_fine: 1.0000, loss_voxel_lovasz_fine: 1.0000, loss: 9.0000, grad_norm: 2.6910
+2023-11-01 17:35:09,038 - mmdet - INFO - Epoch [1][1100/2392]	lr: 1.000e-03, eta: 1 day, 16:02:38, time: 2.030, data_time: 0.011, memory: 13394, loss_depth: 1.0000, loss_voxel_ce_c_0: 1.0000, loss_voxel_sem_scal_c_0: 1.0000, loss_voxel_geo_scal_c_0: 1.0000, loss_voxel_lovasz_c_0: 1.0000, loss_voxel_ce_fine: 1.0000, loss_voxel_sem_scal_fine: 1.0000, loss_voxel_geo_scal_fine: 1.0000, loss_voxel_lovasz_fine: 1.0000, loss: 9.0000, grad_norm: 2.9364
+2023-11-01 17:36:50,639 - mmdet - INFO - Epoch [1][1150/2392]	lr: 1.000e-03, eta: 1 day, 16:00:30, time: 2.032, data_time: 0.011, memory: 13394, loss_depth: 1.0000, loss_voxel_ce_c_0: 1.0000, loss_voxel_sem_scal_c_0: 1.0000, loss_voxel_geo_scal_c_0: 1.0000, loss_voxel_lovasz_c_0: 1.0000, loss_voxel_ce_fine: 1.0000, loss_voxel_sem_scal_fine: 1.0000, loss_voxel_geo_scal_fine: 1.0000, loss_voxel_lovasz_fine: 1.0000, loss: 9.0000, grad_norm: 2.7422
+2023-11-01 17:38:32,199 - mmdet - INFO - Epoch [1][1200/2392]	lr: 1.000e-03, eta: 1 day, 15:58:23, time: 2.031, data_time: 0.010, memory: 13394, loss_depth: 1.0000, loss_voxel_ce_c_0: 1.0000, loss_voxel_sem_scal_c_0: 1.0000, loss_voxel_geo_scal_c_0: 1.0000, loss_voxel_lovasz_c_0: 1.0000, loss_voxel_ce_fine: 1.0000, loss_voxel_sem_scal_fine: 1.0000, loss_voxel_geo_scal_fine: 1.0000, loss_voxel_lovasz_fine: 1.0000, loss: 9.0000, grad_norm: 2.7249
+2023-11-01 17:40:13,902 - mmdet - INFO - Epoch [1][1250/2392]	lr: 1.000e-03, eta: 1 day, 15:56:26, time: 2.034, data_time: 0.010, memory: 13394, loss_depth: 1.0000, loss_voxel_ce_c_0: 1.0000, loss_voxel_sem_scal_c_0: 1.0000, loss_voxel_geo_scal_c_0: 1.0000, loss_voxel_lovasz_c_0: 1.0000, loss_voxel_ce_fine: 1.0000, loss_voxel_sem_scal_fine: 1.0000, loss_voxel_geo_scal_fine: 1.0000, loss_voxel_lovasz_fine: 1.0000, loss: 9.0000, grad_norm: 2.8234
+2023-11-01 17:41:55,407 - mmdet - INFO - Epoch [1][1300/2392]	lr: 1.000e-03, eta: 1 day, 15:54:19, time: 2.030, data_time: 0.011, memory: 13394, loss_depth: 1.0000, loss_voxel_ce_c_0: 1.0000, loss_voxel_sem_scal_c_0: 1.0000, loss_voxel_geo_scal_c_0: 1.0000, loss_voxel_lovasz_c_0: 1.0000, loss_voxel_ce_fine: 1.0000, loss_voxel_sem_scal_fine: 1.0000, loss_voxel_geo_scal_fine: 1.0000, loss_voxel_lovasz_fine: 1.0000, loss: 9.0000, grad_norm: 2.7754
+2023-11-01 17:43:37,132 - mmdet - INFO - Epoch [1][1350/2392]	lr: 1.000e-03, eta: 1 day, 15:52:26, time: 2.034, data_time: 0.010, memory: 13394, loss_depth: 1.0000, loss_voxel_ce_c_0: 1.0000, loss_voxel_sem_scal_c_0: 1.0000, loss_voxel_geo_scal_c_0: 1.0000, loss_voxel_lovasz_c_0: 1.0000, loss_voxel_ce_fine: 1.0000, loss_voxel_sem_scal_fine: 1.0000, loss_voxel_geo_scal_fine: 1.0000, loss_voxel_lovasz_fine: 1.0000, loss: 9.0000, grad_norm: 2.7734
+2023-11-01 17:45:19,138 - mmdet - INFO - Epoch [1][1400/2392]	lr: 1.000e-03, eta: 1 day, 15:50:47, time: 2.040, data_time: 0.011, memory: 13394, loss_depth: 1.0000, loss_voxel_ce_c_0: 1.0000, loss_voxel_sem_scal_c_0: 1.0000, loss_voxel_geo_scal_c_0: 1.0000, loss_voxel_lovasz_c_0: 1.0000, loss_voxel_ce_fine: 1.0000, loss_voxel_sem_scal_fine: 1.0000, loss_voxel_geo_scal_fine: 1.0000, loss_voxel_lovasz_fine: 1.0000, loss: 9.0000, grad_norm: 2.7937
+2023-11-01 17:47:00,903 - mmdet - INFO - Epoch [1][1450/2392]	lr: 1.000e-03, eta: 1 day, 15:48:57, time: 2.035, data_time: 0.011, memory: 13394, loss_depth: 1.0000, loss_voxel_ce_c_0: 1.0000, loss_voxel_sem_scal_c_0: 1.0000, loss_voxel_geo_scal_c_0: 1.0000, loss_voxel_lovasz_c_0: 1.0000, loss_voxel_ce_fine: 1.0000, loss_voxel_sem_scal_fine: 1.0000, loss_voxel_geo_scal_fine: 1.0000, loss_voxel_lovasz_fine: 1.0000, loss: 9.0000, grad_norm: 2.6310
+2023-11-01 17:48:42,563 - mmdet - INFO - Epoch [1][1500/2392]	lr: 1.000e-03, eta: 1 day, 15:47:02, time: 2.033, data_time: 0.011, memory: 13394, loss_depth: 1.0000, loss_voxel_ce_c_0: 1.0000, loss_voxel_sem_scal_c_0: 1.0000, loss_voxel_geo_scal_c_0: 1.0000, loss_voxel_lovasz_c_0: 1.0000, loss_voxel_ce_fine: 1.0000, loss_voxel_sem_scal_fine: 1.0000, loss_voxel_geo_scal_fine: 1.0000, loss_voxel_lovasz_fine: 1.0000, loss: 9.0000, grad_norm: 2.5643
+2023-11-01 17:50:24,153 - mmdet - INFO - Epoch [1][1550/2392]	lr: 1.000e-03, eta: 1 day, 15:45:05, time: 2.032, data_time: 0.011, memory: 13394, loss_depth: 1.0000, loss_voxel_ce_c_0: 1.0000, loss_voxel_sem_scal_c_0: 1.0000, loss_voxel_geo_scal_c_0: 1.0000, loss_voxel_lovasz_c_0: 1.0000, loss_voxel_ce_fine: 1.0000, loss_voxel_sem_scal_fine: 1.0000, loss_voxel_geo_scal_fine: 1.0000, loss_voxel_lovasz_fine: 1.0000, loss: 9.0000, grad_norm: 2.6867
+2023-11-01 17:52:05,706 - mmdet - INFO - Epoch [1][1600/2392]	lr: 1.000e-03, eta: 1 day, 15:43:08, time: 2.031, data_time: 0.011, memory: 13394, loss_depth: 1.0000, loss_voxel_ce_c_0: 1.0000, loss_voxel_sem_scal_c_0: 1.0000, loss_voxel_geo_scal_c_0: 1.0000, loss_voxel_lovasz_c_0: 1.0000, loss_voxel_ce_fine: 1.0000, loss_voxel_sem_scal_fine: 1.0000, loss_voxel_geo_scal_fine: 1.0000, loss_voxel_lovasz_fine: 1.0000, loss: 9.0000, grad_norm: 2.7021
+2023-11-01 17:53:47,422 - mmdet - INFO - Epoch [1][1650/2392]	lr: 1.000e-03, eta: 1 day, 15:41:18, time: 2.034, data_time: 0.011, memory: 13394, loss_depth: 1.0000, loss_voxel_ce_c_0: 1.0000, loss_voxel_sem_scal_c_0: 1.0000, loss_voxel_geo_scal_c_0: 1.0000, loss_voxel_lovasz_c_0: 1.0000, loss_voxel_ce_fine: 1.0000, loss_voxel_sem_scal_fine: 1.0000, loss_voxel_geo_scal_fine: 1.0000, loss_voxel_lovasz_fine: 1.0000, loss: 9.0000, grad_norm: 3433.2984
+2023-11-01 17:55:27,137 - mmdet - INFO - Epoch [1][1700/2392]	lr: 1.000e-03, eta: 1 day, 15:38:06, time: 1.994, data_time: 0.011, memory: 13394, loss_depth: 1.0000, loss_voxel_ce_c_0: 1.0000, loss_voxel_sem_scal_c_0: 1.0000, loss_voxel_geo_scal_c_0: 1.0000, loss_voxel_lovasz_c_0: 1.0000, loss_voxel_ce_fine: 1.0000, loss_voxel_sem_scal_fine: 1.0000, loss_voxel_geo_scal_fine: 1.0000, loss_voxel_lovasz_fine: 1.0000, loss: 9.0000, grad_norm: 29189.1267
+2023-11-01 17:57:06,184 - mmdet - INFO - Epoch [1][1750/2392]	lr: 1.000e-03, eta: 1 day, 15:34:33, time: 1.981, data_time: 0.011, memory: 13394, loss_depth: 1.0000, loss_voxel_ce_c_0: 1.0000, loss_voxel_sem_scal_c_0: 1.0000, loss_voxel_geo_scal_c_0: 1.0000, loss_voxel_lovasz_c_0: 1.0000, loss_voxel_ce_fine: 1.0000, loss_voxel_sem_scal_fine: 1.0000, loss_voxel_geo_scal_fine: 1.0000, loss_voxel_lovasz_fine: 1.0000, loss: 9.0000, grad_norm: 13046.1784
+2023-11-01 17:58:45,439 - mmdet - INFO - Epoch [1][1800/2392]	lr: 1.000e-03, eta: 1 day, 15:31:14, time: 1.985, data_time: 0.011, memory: 13394, loss_depth: 1.0000, loss_voxel_ce_c_0: 1.0000, loss_voxel_sem_scal_c_0: 1.0000, loss_voxel_geo_scal_c_0: 1.0000, loss_voxel_lovasz_c_0: 1.0000, loss_voxel_ce_fine: 1.0000, loss_voxel_sem_scal_fine: 1.0000, loss_voxel_geo_scal_fine: 1.0000, loss_voxel_lovasz_fine: 1.0000, loss: 9.0000, grad_norm: 18147.8680
+2023-11-01 18:00:24,697 - mmdet - INFO - Epoch [1][1850/2392]	lr: 1.000e-03, eta: 1 day, 15:28:01, time: 1.985, data_time: 0.011, memory: 13394, loss_depth: 1.0000, loss_voxel_ce_c_0: 1.0000, loss_voxel_sem_scal_c_0: 1.0000, loss_voxel_geo_scal_c_0: 1.0000, loss_voxel_lovasz_c_0: 1.0000, loss_voxel_ce_fine: 1.0000, loss_voxel_sem_scal_fine: 1.0000, loss_voxel_geo_scal_fine: 1.0000, loss_voxel_lovasz_fine: 1.0000, loss: 9.0000, grad_norm: 45274.7627
+2023-11-01 18:02:04,014 - mmdet - INFO - Epoch [1][1900/2392]	lr: 1.000e-03, eta: 1 day, 15:24:54, time: 1.986, data_time: 0.011, memory: 13394, loss_depth: 1.0000, loss_voxel_ce_c_0: 1.0000, loss_voxel_sem_scal_c_0: 1.0000, loss_voxel_geo_scal_c_0: 1.0000, loss_voxel_lovasz_c_0: 1.0000, loss_voxel_ce_fine: 1.0000, loss_voxel_sem_scal_fine: 1.0000, loss_voxel_geo_scal_fine: 1.0000, loss_voxel_lovasz_fine: 1.0000, loss: 9.0000, grad_norm: 44508.0420
+2023-11-01 18:03:42,803 - mmdet - INFO - Epoch [1][1950/2392]	lr: 1.000e-03, eta: 1 day, 15:21:34, time: 1.976, data_time: 0.011, memory: 13394, loss_depth: 1.0000, loss_voxel_ce_c_0: 1.0000, loss_voxel_sem_scal_c_0: 1.0000, loss_voxel_geo_scal_c_0: 1.0000, loss_voxel_lovasz_c_0: 1.0000, loss_voxel_ce_fine: 1.0000, loss_voxel_sem_scal_fine: 1.0000, loss_voxel_geo_scal_fine: 1.0000, loss_voxel_lovasz_fine: 1.0000, loss: 9.0000, grad_norm: 89.9627
+2023-11-01 18:05:21,718 - mmdet - INFO - Exp name: cascade_multi_kitti.py
+2023-11-01 18:05:21,719 - mmdet - INFO - Epoch [1][2000/2392]	lr: 1.000e-03, eta: 1 day, 15:18:23, time: 1.978, data_time: 0.011, memory: 13394, loss_depth: 1.0000, loss_voxel_ce_c_0: 1.0000, loss_voxel_sem_scal_c_0: 1.0000, loss_voxel_geo_scal_c_0: 1.0000, loss_voxel_lovasz_c_0: 1.0000, loss_voxel_ce_fine: 1.0000, loss_voxel_sem_scal_fine: 1.0000, loss_voxel_geo_scal_fine: 1.0000, loss_voxel_lovasz_fine: 1.0000, loss: 9.0000, grad_norm: 15424.1510
+2023-11-01 18:07:00,450 - mmdet - INFO - Epoch [1][2050/2392]	lr: 1.000e-03, eta: 1 day, 15:15:10, time: 1.975, data_time: 0.011, memory: 13394, loss_depth: 1.0000, loss_voxel_ce_c_0: 1.0000, loss_voxel_sem_scal_c_0: 1.0000, loss_voxel_geo_scal_c_0: 1.0000, loss_voxel_lovasz_c_0: 1.0000, loss_voxel_ce_fine: 1.0000, loss_voxel_sem_scal_fine: 1.0000, loss_voxel_geo_scal_fine: 1.0000, loss_voxel_lovasz_fine: 1.0000, loss: 9.0000, grad_norm: 27916.7086
+2023-11-01 18:08:39,398 - mmdet - INFO - Epoch [1][2100/2392]	lr: 1.000e-03, eta: 1 day, 15:12:09, time: 1.979, data_time: 0.011, memory: 13394, loss_depth: 1.0000, loss_voxel_ce_c_0: 1.0000, loss_voxel_sem_scal_c_0: 1.0000, loss_voxel_geo_scal_c_0: 1.0000, loss_voxel_lovasz_c_0: 1.0000, loss_voxel_ce_fine: 1.0000, loss_voxel_sem_scal_fine: 1.0000, loss_voxel_geo_scal_fine: 1.0000, loss_voxel_lovasz_fine: 1.0000, loss: 9.0000, grad_norm: 16085.3053
+2023-11-01 18:10:18,484 - mmdet - INFO - Epoch [1][2150/2392]	lr: 1.000e-03, eta: 1 day, 15:09:16, time: 1.982, data_time: 0.011, memory: 13394, loss_depth: 1.0000, loss_voxel_ce_c_0: 1.0000, loss_voxel_sem_scal_c_0: 1.0000, loss_voxel_geo_scal_c_0: 1.0000, loss_voxel_lovasz_c_0: 1.0000, loss_voxel_ce_fine: 1.0000, loss_voxel_sem_scal_fine: 1.0000, loss_voxel_geo_scal_fine: 1.0000, loss_voxel_lovasz_fine: 1.0000, loss: 9.0000, grad_norm: 20448.3223
+2023-11-01 18:11:57,282 - mmdet - INFO - Epoch [1][2200/2392]	lr: 1.000e-03, eta: 1 day, 15:06:17, time: 1.976, data_time: 0.011, memory: 13394, loss_depth: 1.0000, loss_voxel_ce_c_0: 1.0000, loss_voxel_sem_scal_c_0: 1.0000, loss_voxel_geo_scal_c_0: 1.0000, loss_voxel_lovasz_c_0: 1.0000, loss_voxel_ce_fine: 1.0000, loss_voxel_sem_scal_fine: 1.0000, loss_voxel_geo_scal_fine: 1.0000, loss_voxel_lovasz_fine: 1.0000, loss: 9.0000, grad_norm: 345.3357
+2023-11-01 18:13:36,491 - mmdet - INFO - Epoch [1][2250/2392]	lr: 1.000e-03, eta: 1 day, 15:03:34, time: 1.984, data_time: 0.011, memory: 13394, loss_depth: 1.0000, loss_voxel_ce_c_0: 1.0000, loss_voxel_sem_scal_c_0: 1.0000, loss_voxel_geo_scal_c_0: 1.0000, loss_voxel_lovasz_c_0: 1.0000, loss_voxel_ce_fine: 1.0000, loss_voxel_sem_scal_fine: 1.0000, loss_voxel_geo_scal_fine: 1.0000, loss_voxel_lovasz_fine: 1.0000, loss: 9.0000, grad_norm: 179.3692
+2023-11-01 18:15:15,330 - mmdet - INFO - Epoch [1][2300/2392]	lr: 1.000e-03, eta: 1 day, 15:00:44, time: 1.977, data_time: 0.012, memory: 13394, loss_depth: 1.0000, loss_voxel_ce_c_0: 1.0000, loss_voxel_sem_scal_c_0: 1.0000, loss_voxel_geo_scal_c_0: 1.0000, loss_voxel_lovasz_c_0: 1.0000, loss_voxel_ce_fine: 1.0000, loss_voxel_sem_scal_fine: 1.0000, loss_voxel_geo_scal_fine: 1.0000, loss_voxel_lovasz_fine: 1.0000, loss: 9.0000, grad_norm: 25.6119
+2023-11-01 18:16:54,380 - mmdet - INFO - Epoch [1][2350/2392]	lr: 1.000e-03, eta: 1 day, 14:58:02, time: 1.981, data_time: 0.011, memory: 13394, loss_depth: 1.0000, loss_voxel_ce_c_0: 1.0000, loss_voxel_sem_scal_c_0: 1.0000, loss_voxel_geo_scal_c_0: 1.0000, loss_voxel_lovasz_c_0: 1.0000, loss_voxel_ce_fine: 1.0000, loss_voxel_sem_scal_fine: 1.0000, loss_voxel_geo_scal_fine: 1.0000, loss_voxel_lovasz_fine: 1.0000, loss: 9.0000, grad_norm: 57949.7645
+2023-11-01 18:18:17,655 - mmdet - INFO - Saving checkpoint at 1 epochs
+2023-11-01 18:18:24,259 - mmdet - INFO - | name                                       | #elements or shape   |
+|:-------------------------------------------|:---------------------|
+| model                                      | 0.2G                 |
+|  module                                    |  0.2G                |
+|   module.pts_middle_encoder                |   3.5M               |
+|    module.pts_middle_encoder.conv_input    |    1.8K              |
+|    module.pts_middle_encoder.conv1         |    0.1M              |
+|    module.pts_middle_encoder.conv2         |    0.5M              |
+|    module.pts_middle_encoder.conv3         |    2.0M              |
+|    module.pts_middle_encoder.conv_out      |    0.9M              |
+|   module.pts_bbox_head                     |   3.6M               |
+|    module.pts_bbox_head.img_mlp_0          |    65.9K             |
+|    module.pts_bbox_head.img_mlp            |    8.4K              |
+|    module.pts_bbox_head.fine_mlp           |    13.8K             |
+|    module.pts_bbox_head.occ_convs          |    3.5M              |
+|    module.pts_bbox_head.occ_pred_conv      |    9.6K              |
+|    module.pts_bbox_head.voxel_soft_weights |    8.6K              |
+|   module.img_backbone                      |   23.5M              |
+|    module.img_backbone.conv1               |    9.4K              |
+|    module.img_backbone.bn1                 |    0.1K              |
+|    module.img_backbone.layer1              |    0.2M              |
+|    module.img_backbone.layer2              |    1.2M              |
+|    module.img_backbone.layer3              |    7.1M              |
+|    module.img_backbone.layer4              |    15.0M             |
+|   module.img_neck                          |   2.0M               |
+|    module.img_neck.deblocks                |    2.0M              |
+|   module.img_view_transformer              |   28.6M              |
+|    module.img_view_transformer.dx          |    (3,)              |
+|    module.img_view_transformer.bx          |    (3,)              |
+|    module.img_view_transformer.nx          |    (3,)              |
+|    module.img_view_transformer.frustum     |    (112, 24, 80, 3)  |
+|    module.img_view_transformer.depth_net   |    27.9M             |
+|   module.occ_fuser                         |   17.8M              |
+|    module.occ_fuser.con_enc                |    17.7M             |
+|    module.occ_fuser.knn_enc                |    65.8K             |
+|   module.semantic_encoder                  |   0.1G               |
+|    module.semantic_encoder.input_proj      |    33.0K             |
+|    module.semantic_encoder.layers          |    0.1G              |
+|   module.semantic_neck                     |   7.6M               |
+|    module.semantic_neck.lateral_convs      |    0.5M              |
+|    module.semantic_neck.fpn_convs          |    7.1M              |
+/hpc2hdd/home/jpan305/miniconda3/envs/openocc/lib/python3.7/site-packages/torch/utils/checkpoint.py:25: UserWarning: None of the inputs have requires_grad=True. Gradients will be None
+  warnings.warn("None of the inputs have requires_grad=True. Gradients will be None")
+/hpc2hdd/home/jpan305/miniconda3/envs/openocc/lib/python3.7/site-packages/torch/utils/checkpoint.py:25: UserWarning: None of the inputs have requires_grad=True. Gradients will be None
+  warnings.warn("None of the inputs have requires_grad=True. Gradients will be None")
+/hpc2hdd/home/jpan305/miniconda3/envs/openocc/lib/python3.7/site-packages/torch/utils/checkpoint.py:25: UserWarning: None of the inputs have requires_grad=True. Gradients will be None
+  warnings.warn("None of the inputs have requires_grad=True. Gradients will be None")
+/hpc2hdd/home/jpan305/miniconda3/envs/openocc/lib/python3.7/site-packages/torch/utils/checkpoint.py:25: UserWarning: None of the inputs have requires_grad=True. Gradients will be None
+  warnings.warn("None of the inputs have requires_grad=True. Gradients will be None")
+/hpc2hdd/home/jpan305/miniconda3/envs/openocc/lib/python3.7/site-packages/torch/utils/checkpoint.py:25: UserWarning: None of the inputs have requires_grad=True. Gradients will be None
+  warnings.warn("None of the inputs have requires_grad=True. Gradients will be None")
+/hpc2hdd/home/jpan305/miniconda3/envs/openocc/lib/python3.7/site-packages/torch/utils/checkpoint.py:25: UserWarning: None of the inputs have requires_grad=True. Gradients will be None
+  warnings.warn("None of the inputs have requires_grad=True. Gradients will be None")
+/hpc2hdd/home/jpan305/miniconda3/envs/openocc/lib/python3.7/site-packages/torch/utils/checkpoint.py:25: UserWarning: None of the inputs have requires_grad=True. Gradients will be None
+  warnings.warn("None of the inputs have requires_grad=True. Gradients will be None")
+/hpc2hdd/home/jpan305/miniconda3/envs/openocc/lib/python3.7/site-packages/torch/utils/checkpoint.py:25: UserWarning: None of the inputs have requires_grad=True. Gradients will be None
+  warnings.warn("None of the inputs have requires_grad=True. Gradients will be None")
+2023-11-01 18:27:43,417 - mmdet - INFO - SC Evaluation
+2023-11-01 18:27:43,436 - mmdet - INFO - +-----------+-------+
+|   class   |  IoU  |
++-----------+-------+
+| non-empty | 0.412 |
++-----------+-------+
+2023-11-01 18:27:43,437 - mmdet - INFO - SSC Evaluation
+2023-11-01 18:27:43,437 - mmdet - INFO - +---------------+-------+
+|     class     |  IoU  |
++---------------+-------+
+|   unlabeled   | 0.938 |
+|      car      |  0.35 |
+|    bicycle    | 0.014 |
+|   motorcycle  | 0.019 |
+|     truck     | 0.008 |
+| other-vehicle | 0.057 |
+|     person    | 0.025 |
+|   bicyclist   | 0.004 |
+|  motorcyclist |  0.0  |
+|      road     | 0.459 |
+|    parking    | 0.107 |
+|    sidewalk   | 0.269 |
+|  other-ground |  0.0  |
+|    building   | 0.263 |
+|     fence     | 0.079 |
+|   vegetation  | 0.334 |
+|     trunk     |  0.14 |
+|    terrain    | 0.365 |
+|      pole     | 0.128 |
+|  traffic-sign | 0.063 |
+|      mean     | 0.141 |
++---------------+-------+
+2023-11-01 18:27:43,439 - mmdet - INFO - SSC fine Evaluation
+2023-11-01 18:27:43,439 - mmdet - INFO - +---------------+-------+
+|     class     |  IoU  |
++---------------+-------+
+|   unlabeled   | 0.949 |
+|      car      | 0.317 |
+|    bicycle    | 0.015 |
+|   motorcycle  | 0.016 |
+|     truck     | 0.012 |
+| other-vehicle | 0.042 |
+|     person    | 0.021 |
+|   bicyclist   | 0.004 |
+|  motorcyclist |  0.0  |
+|      road     | 0.519 |
+|    parking    |  0.11 |
+|    sidewalk   | 0.265 |
+|  other-ground |  0.0  |
+|    building   | 0.254 |
+|     fence     | 0.075 |
+|   vegetation  | 0.231 |
+|     trunk     | 0.124 |
+|    terrain    | 0.258 |
+|      pole     | 0.105 |
+|  traffic-sign | 0.076 |
+|      mean     | 0.129 |
++---------------+-------+
+2023-11-01 18:27:43,440 - mmdet - INFO - SemanticKITTI SSC Evaluation
+2023-11-01 18:27:43,440 - mmdet - INFO - {'semkitti_SC_Precision': 60.52, 'semkitti_SC_Recall': 74.38, 'semkitti_SC_IoU': 50.08, 'semkitti_SSC_mIoU': 14.12, 'semkitti_SSC_unlabeled_IoU': 95.73, 'semkitti_SSC_car_IoU': 35.05, 'semkitti_SSC_bicycle_IoU': 1.35, 'semkitti_SSC_motorcycle_IoU': 1.86, 'semkitti_SSC_truck_IoU': 0.76, 'semkitti_SSC_other-vehicle_IoU': 5.72, 'semkitti_SSC_person_IoU': 2.49, 'semkitti_SSC_bicyclist_IoU': 0.43, 'semkitti_SSC_motorcyclist_IoU': 0.0, 'semkitti_SSC_road_IoU': 45.87, 'semkitti_SSC_parking_IoU': 10.67, 'semkitti_SSC_sidewalk_IoU': 26.94, 'semkitti_SSC_other-ground_IoU': 0.04, 'semkitti_SSC_building_IoU': 26.29, 'semkitti_SSC_fence_IoU': 7.85, 'semkitti_SSC_vegetation_IoU': 33.43, 'semkitti_SSC_trunk_IoU': 14.01, 'semkitti_SSC_terrain_IoU': 36.46, 'semkitti_SSC_pole_IoU': 12.76, 'semkitti_SSC_traffic-sign_IoU': 6.26, 'semkitti_combined_IoU': 64.2, 'SC_non-empty': 0.412, 'SSC_unlabeled': 0.938, 'SSC_car': 0.35, 'SSC_bicycle': 0.014, 'SSC_motorcycle': 0.019, 'SSC_truck': 0.008, 'SSC_other-vehicle': 0.057, 'SSC_person': 0.025, 'SSC_bicyclist': 0.004, 'SSC_motorcyclist': 0.0, 'SSC_road': 0.459, 'SSC_parking': 0.107, 'SSC_sidewalk': 0.269, 'SSC_other-ground': 0.0, 'SSC_building': 0.263, 'SSC_fence': 0.079, 'SSC_vegetation': 0.334, 'SSC_trunk': 0.14, 'SSC_terrain': 0.365, 'SSC_pole': 0.128, 'SSC_traffic-sign': 0.063, 'SSC_mean': 0.141, 'SSC_fine_unlabeled': 0.949, 'SSC_fine_car': 0.317, 'SSC_fine_bicycle': 0.015, 'SSC_fine_motorcycle': 0.016, 'SSC_fine_truck': 0.012, 'SSC_fine_other-vehicle': 0.042, 'SSC_fine_person': 0.021, 'SSC_fine_bicyclist': 0.004, 'SSC_fine_motorcyclist': 0.0, 'SSC_fine_road': 0.519, 'SSC_fine_parking': 0.11, 'SSC_fine_sidewalk': 0.265, 'SSC_fine_other-ground': 0.0, 'SSC_fine_building': 0.254, 'SSC_fine_fence': 0.075, 'SSC_fine_vegetation': 0.231, 'SSC_fine_trunk': 0.124, 'SSC_fine_terrain': 0.258, 'SSC_fine_pole': 0.105, 'SSC_fine_traffic-sign': 0.076, 'SSC_fine_mean': 0.129}
+2023-11-01 18:27:48,232 - mmdet - INFO - Now best checkpoint is saved as best_semkitti_SSC_mIoU_epoch_1.pth.
+2023-11-01 18:27:48,233 - mmdet - INFO - Best semkitti_SSC_mIoU is 14.1200 at 1 epoch.
+2023-11-01 18:27:48,236 - mmdet - INFO - Exp name: cascade_multi_kitti.py
+2023-11-01 18:27:48,236 - mmdet - INFO - Epoch(val) [1][509]	semkitti_SC_Precision: 60.5200, semkitti_SC_Recall: 74.3800, semkitti_SC_IoU: 50.0800, semkitti_SSC_mIoU: 14.1200, semkitti_SSC_unlabeled_IoU: 95.7300, semkitti_SSC_car_IoU: 35.0500, semkitti_SSC_bicycle_IoU: 1.3500, semkitti_SSC_motorcycle_IoU: 1.8600, semkitti_SSC_truck_IoU: 0.7600, semkitti_SSC_other-vehicle_IoU: 5.7200, semkitti_SSC_person_IoU: 2.4900, semkitti_SSC_bicyclist_IoU: 0.4300, semkitti_SSC_motorcyclist_IoU: 0.0000, semkitti_SSC_road_IoU: 45.8700, semkitti_SSC_parking_IoU: 10.6700, semkitti_SSC_sidewalk_IoU: 26.9400, semkitti_SSC_other-ground_IoU: 0.0400, semkitti_SSC_building_IoU: 26.2900, semkitti_SSC_fence_IoU: 7.8500, semkitti_SSC_vegetation_IoU: 33.4300, semkitti_SSC_trunk_IoU: 14.0100, semkitti_SSC_terrain_IoU: 36.4600, semkitti_SSC_pole_IoU: 12.7600, semkitti_SSC_traffic-sign_IoU: 6.2600, semkitti_combined_IoU: 64.2000, SC_non-empty: 0.4120, SSC_unlabeled: 0.9380, SSC_car: 0.3500, SSC_bicycle: 0.0140, SSC_motorcycle: 0.0190, SSC_truck: 0.0080, SSC_other-vehicle: 0.0570, SSC_person: 0.0250, SSC_bicyclist: 0.0040, SSC_motorcyclist: 0.0000, SSC_road: 0.4590, SSC_parking: 0.1070, SSC_sidewalk: 0.2690, SSC_other-ground: 0.0000, SSC_building: 0.2630, SSC_fence: 0.0790, SSC_vegetation: 0.3340, SSC_trunk: 0.1400, SSC_terrain: 0.3650, SSC_pole: 0.1280, SSC_traffic-sign: 0.0630, SSC_mean: 0.1410, SSC_fine_unlabeled: 0.9490, SSC_fine_car: 0.3170, SSC_fine_bicycle: 0.0150, SSC_fine_motorcycle: 0.0160, SSC_fine_truck: 0.0120, SSC_fine_other-vehicle: 0.0420, SSC_fine_person: 0.0210, SSC_fine_bicyclist: 0.0040, SSC_fine_motorcyclist: 0.0000, SSC_fine_road: 0.5190, SSC_fine_parking: 0.1100, SSC_fine_sidewalk: 0.2650, SSC_fine_other-ground: 0.0000, SSC_fine_building: 0.2540, SSC_fine_fence: 0.0750, SSC_fine_vegetation: 0.2310, SSC_fine_trunk: 0.1240, SSC_fine_terrain: 0.2580, SSC_fine_pole: 0.1050, SSC_fine_traffic-sign: 0.0760, SSC_fine_mean: 0.1290
+[W accumulate_grad.h:185] Warning: grad and param do not obey the gradient layout contract. This is not an error, but may impair performance.
+grad.sizes() = [4, 64, 1, 1, 1], strides() = [64, 1, 1, 1, 1]
+param.sizes() = [4, 64, 1, 1, 1], strides() = [64, 1, 64, 64, 64] (function operator())
+[W accumulate_grad.h:185] Warning: grad and param do not obey the gradient layout contract. This is not an error, but may impair performance.
+grad.sizes() = [4, 64, 1, 1, 1], strides() = [64, 1, 1, 1, 1]
+param.sizes() = [4, 64, 1, 1, 1], strides() = [64, 1, 64, 64, 64] (function operator())
+[W accumulate_grad.h:185] Warning: grad and param do not obey the gradient layout contract. This is not an error, but may impair performance.
+grad.sizes() = [4, 64, 1, 1, 1], strides() = [64, 1, 1, 1, 1]
+param.sizes() = [4, 64, 1, 1, 1], strides() = [64, 1, 64, 64, 64] (function operator())
+[W accumulate_grad.h:185] Warning: grad and param do not obey the gradient layout contract. This is not an error, but may impair performance.
+grad.sizes() = [4, 64, 1, 1, 1], strides() = [64, 1, 1, 1, 1]
+param.sizes() = [4, 64, 1, 1, 1], strides() = [64, 1, 64, 64, 64] (function operator())
+[W accumulate_grad.h:185] Warning: grad and param do not obey the gradient layout contract. This is not an error, but may impair performance.
+grad.sizes() = [4, 64, 1, 1, 1], strides() = [64, 1, 1, 1, 1]
+param.sizes() = [4, 64, 1, 1, 1], strides() = [64, 1, 64, 64, 64] (function operator())
+[W accumulate_grad.h:185] Warning: grad and param do not obey the gradient layout contract. This is not an error, but may impair performance.
+grad.sizes() = [4, 64, 1, 1, 1], strides() = [64, 1, 1, 1, 1]
+param.sizes() = [4, 64, 1, 1, 1], strides() = [64, 1, 64, 64, 64] (function operator())
+[W accumulate_grad.h:185] Warning: grad and param do not obey the gradient layout contract. This is not an error, but may impair performance.
+grad.sizes() = [4, 64, 1, 1, 1], strides() = [64, 1, 1, 1, 1]
+param.sizes() = [4, 64, 1, 1, 1], strides() = [64, 1, 64, 64, 64] (function operator())
+[W accumulate_grad.h:185] Warning: grad and param do not obey the gradient layout contract. This is not an error, but may impair performance.
+grad.sizes() = [4, 64, 1, 1, 1], strides() = [64, 1, 1, 1, 1]
+param.sizes() = [4, 64, 1, 1, 1], strides() = [64, 1, 64, 64, 64] (function operator())
+2023-11-01 18:29:33,445 - mmdet - INFO - Epoch [2][50/2392]	lr: 1.000e-03, eta: 1 day, 14:16:43, time: 2.103, data_time: 0.073, memory: 13848, loss_depth: 1.0000, loss_voxel_ce_c_0: 1.0000, loss_voxel_sem_scal_c_0: 1.0000, loss_voxel_geo_scal_c_0: 1.0000, loss_voxel_lovasz_c_0: 1.0000, loss_voxel_ce_fine: 1.0000, loss_voxel_sem_scal_fine: 1.0000, loss_voxel_geo_scal_fine: 1.0000, loss_voxel_lovasz_fine: 1.0000, loss: 9.0000, grad_norm: 347892.7400
+2023-11-01 18:31:15,961 - mmdet - INFO - Epoch [2][100/2392]	lr: 1.000e-03, eta: 1 day, 14:16:30, time: 2.050, data_time: 0.011, memory: 13848, loss_depth: 1.0000, loss_voxel_ce_c_0: 1.0000, loss_voxel_sem_scal_c_0: 1.0000, loss_voxel_geo_scal_c_0: 1.0000, loss_voxel_lovasz_c_0: 1.0000, loss_voxel_ce_fine: 1.0000, loss_voxel_sem_scal_fine: 1.0000, loss_voxel_geo_scal_fine: 1.0000, loss_voxel_lovasz_fine: 1.0000, loss: 9.0000, grad_norm: 336875.8586
+2023-11-01 18:32:57,998 - mmdet - INFO - Epoch [2][150/2392]	lr: 1.000e-03, eta: 1 day, 14:16:01, time: 2.041, data_time: 0.011, memory: 13848, loss_depth: 1.0000, loss_voxel_ce_c_0: 1.0000, loss_voxel_sem_scal_c_0: 1.0000, loss_voxel_geo_scal_c_0: 1.0000, loss_voxel_lovasz_c_0: 1.0000, loss_voxel_ce_fine: 1.0000, loss_voxel_sem_scal_fine: 1.0000, loss_voxel_geo_scal_fine: 1.0000, loss_voxel_lovasz_fine: 1.0000, loss: 9.0000, grad_norm: 488562.9500
+2023-11-01 18:34:40,242 - mmdet - INFO - Epoch [2][200/2392]	lr: 1.000e-03, eta: 1 day, 14:15:34, time: 2.045, data_time: 0.011, memory: 13848, loss_depth: 1.0000, loss_voxel_ce_c_0: 1.0000, loss_voxel_sem_scal_c_0: 1.0000, loss_voxel_geo_scal_c_0: 1.0000, loss_voxel_lovasz_c_0: 1.0000, loss_voxel_ce_fine: 1.0000, loss_voxel_sem_scal_fine: 1.0000, loss_voxel_geo_scal_fine: 1.0000, loss_voxel_lovasz_fine: 1.0000, loss: 9.0000, grad_norm: 741695.2215
+2023-11-01 18:36:22,914 - mmdet - INFO - Epoch [2][250/2392]	lr: 1.000e-03, eta: 1 day, 14:15:16, time: 2.054, data_time: 0.011, memory: 13848, loss_depth: 1.0000, loss_voxel_ce_c_0: 1.0000, loss_voxel_sem_scal_c_0: 1.0000, loss_voxel_geo_scal_c_0: 1.0000, loss_voxel_lovasz_c_0: 1.0000, loss_voxel_ce_fine: 1.0000, loss_voxel_sem_scal_fine: 1.0000, loss_voxel_geo_scal_fine: 1.0000, loss_voxel_lovasz_fine: 1.0000, loss: 9.0000, grad_norm: 195635.6220
+2023-11-01 18:38:05,258 - mmdet - INFO - Epoch [2][300/2392]	lr: 1.000e-03, eta: 1 day, 14:14:46, time: 2.047, data_time: 0.010, memory: 13848, loss_depth: 1.0000, loss_voxel_ce_c_0: 1.0000, loss_voxel_sem_scal_c_0: 1.0000, loss_voxel_geo_scal_c_0: 1.0000, loss_voxel_lovasz_c_0: 1.0000, loss_voxel_ce_fine: 1.0000, loss_voxel_sem_scal_fine: 1.0000, loss_voxel_geo_scal_fine: 1.0000, loss_voxel_lovasz_fine: 1.0000, loss: 9.0000, grad_norm: 188063.6667
+2023-11-01 18:39:47,425 - mmdet - INFO - Epoch [2][350/2392]	lr: 1.000e-03, eta: 1 day, 14:14:09, time: 2.043, data_time: 0.010, memory: 13848, loss_depth: 1.0000, loss_voxel_ce_c_0: 1.0000, loss_voxel_sem_scal_c_0: 1.0000, loss_voxel_geo_scal_c_0: 1.0000, loss_voxel_lovasz_c_0: 1.0000, loss_voxel_ce_fine: 1.0000, loss_voxel_sem_scal_fine: 1.0000, loss_voxel_geo_scal_fine: 1.0000, loss_voxel_lovasz_fine: 1.0000, loss: 9.0000, grad_norm: 359.6519
+2023-11-01 18:41:29,511 - mmdet - INFO - Epoch [2][400/2392]	lr: 1.000e-03, eta: 1 day, 14:13:28, time: 2.042, data_time: 0.011, memory: 13848, loss_depth: 1.0000, loss_voxel_ce_c_0: 1.0000, loss_voxel_sem_scal_c_0: 1.0000, loss_voxel_geo_scal_c_0: 1.0000, loss_voxel_lovasz_c_0: 1.0000, loss_voxel_ce_fine: 1.0000, loss_voxel_sem_scal_fine: 1.0000, loss_voxel_geo_scal_fine: 1.0000, loss_voxel_lovasz_fine: 1.0000, loss: 9.0000, grad_norm: 258109.8483
+2023-11-01 18:43:11,710 - mmdet - INFO - Epoch [2][450/2392]	lr: 1.000e-03, eta: 1 day, 14:12:47, time: 2.044, data_time: 0.010, memory: 13848, loss_depth: 1.0000, loss_voxel_ce_c_0: 1.0000, loss_voxel_sem_scal_c_0: 1.0000, loss_voxel_geo_scal_c_0: 1.0000, loss_voxel_lovasz_c_0: 1.0000, loss_voxel_ce_fine: 1.0000, loss_voxel_sem_scal_fine: 1.0000, loss_voxel_geo_scal_fine: 1.0000, loss_voxel_lovasz_fine: 1.0000, loss: 9.0000, grad_norm: 204609.8069
+2023-11-01 18:44:53,948 - mmdet - INFO - Epoch [2][500/2392]	lr: 1.000e-03, eta: 1 day, 14:12:05, time: 2.045, data_time: 0.011, memory: 13848, loss_depth: 1.0000, loss_voxel_ce_c_0: 1.0000, loss_voxel_sem_scal_c_0: 1.0000, loss_voxel_geo_scal_c_0: 1.0000, loss_voxel_lovasz_c_0: 1.0000, loss_voxel_ce_fine: 1.0000, loss_voxel_sem_scal_fine: 1.0000, loss_voxel_geo_scal_fine: 1.0000, loss_voxel_lovasz_fine: 1.0000, loss: 9.0000, grad_norm: 4.3213
+2023-11-01 18:46:36,457 - mmdet - INFO - Epoch [2][550/2392]	lr: 1.000e-03, eta: 1 day, 14:11:27, time: 2.050, data_time: 0.011, memory: 13848, loss_depth: 1.0000, loss_voxel_ce_c_0: 1.0000, loss_voxel_sem_scal_c_0: 1.0000, loss_voxel_geo_scal_c_0: 1.0000, loss_voxel_lovasz_c_0: 1.0000, loss_voxel_ce_fine: 1.0000, loss_voxel_sem_scal_fine: 1.0000, loss_voxel_geo_scal_fine: 1.0000, loss_voxel_lovasz_fine: 1.0000, loss: 9.0000, grad_norm: 4.5935
+2023-11-01 18:48:18,909 - mmdet - INFO - Epoch [2][600/2392]	lr: 1.000e-03, eta: 1 day, 14:10:46, time: 2.049, data_time: 0.011, memory: 13848, loss_depth: 1.0000, loss_voxel_ce_c_0: 1.0000, loss_voxel_sem_scal_c_0: 1.0000, loss_voxel_geo_scal_c_0: 1.0000, loss_voxel_lovasz_c_0: 1.0000, loss_voxel_ce_fine: 1.0000, loss_voxel_sem_scal_fine: 1.0000, loss_voxel_geo_scal_fine: 1.0000, loss_voxel_lovasz_fine: 1.0000, loss: 9.0000, grad_norm: 122.3933
+2023-11-01 18:50:01,457 - mmdet - INFO - Epoch [2][650/2392]	lr: 1.000e-03, eta: 1 day, 14:10:05, time: 2.051, data_time: 0.011, memory: 13848, loss_depth: 1.0000, loss_voxel_ce_c_0: 1.0000, loss_voxel_sem_scal_c_0: 1.0000, loss_voxel_geo_scal_c_0: 1.0000, loss_voxel_lovasz_c_0: 1.0000, loss_voxel_ce_fine: 1.0000, loss_voxel_sem_scal_fine: 1.0000, loss_voxel_geo_scal_fine: 1.0000, loss_voxel_lovasz_fine: 1.0000, loss: 9.0000, grad_norm: 42.9320
+2023-11-01 18:51:44,019 - mmdet - INFO - Epoch [2][700/2392]	lr: 1.000e-03, eta: 1 day, 14:09:23, time: 2.051, data_time: 0.011, memory: 13848, loss_depth: 1.0000, loss_voxel_ce_c_0: 1.0000, loss_voxel_sem_scal_c_0: 1.0000, loss_voxel_geo_scal_c_0: 1.0000, loss_voxel_lovasz_c_0: 1.0000, loss_voxel_ce_fine: 1.0000, loss_voxel_sem_scal_fine: 1.0000, loss_voxel_geo_scal_fine: 1.0000, loss_voxel_lovasz_fine: 1.0000, loss: 9.0000, grad_norm: 17.8510
+2023-11-01 18:53:26,324 - mmdet - INFO - Epoch [2][750/2392]	lr: 1.000e-03, eta: 1 day, 14:08:33, time: 2.046, data_time: 0.011, memory: 13848, loss_depth: 1.0000, loss_voxel_ce_c_0: 1.0000, loss_voxel_sem_scal_c_0: 1.0000, loss_voxel_geo_scal_c_0: 1.0000, loss_voxel_lovasz_c_0: 1.0000, loss_voxel_ce_fine: 1.0000, loss_voxel_sem_scal_fine: 1.0000, loss_voxel_geo_scal_fine: 1.0000, loss_voxel_lovasz_fine: 1.0000, loss: 9.0000, grad_norm: 47.9797
+2023-11-01 18:55:08,618 - mmdet - INFO - Epoch [2][800/2392]	lr: 1.000e-03, eta: 1 day, 14:07:41, time: 2.046, data_time: 0.011, memory: 13848, loss_depth: 1.0000, loss_voxel_ce_c_0: 1.0000, loss_voxel_sem_scal_c_0: 1.0000, loss_voxel_geo_scal_c_0: 1.0000, loss_voxel_lovasz_c_0: 1.0000, loss_voxel_ce_fine: 1.0000, loss_voxel_sem_scal_fine: 1.0000, loss_voxel_geo_scal_fine: 1.0000, loss_voxel_lovasz_fine: 1.0000, loss: 9.0000, grad_norm: 3.1781
+2023-11-01 18:56:51,107 - mmdet - INFO - Epoch [2][850/2392]	lr: 1.000e-03, eta: 1 day, 14:06:51, time: 2.050, data_time: 0.011, memory: 13848, loss_depth: 1.0000, loss_voxel_ce_c_0: 1.0000, loss_voxel_sem_scal_c_0: 1.0000, loss_voxel_geo_scal_c_0: 1.0000, loss_voxel_lovasz_c_0: 1.0000, loss_voxel_ce_fine: 1.0000, loss_voxel_sem_scal_fine: 1.0000, loss_voxel_geo_scal_fine: 1.0000, loss_voxel_lovasz_fine: 1.0000, loss: 9.0000, grad_norm: 841.7020
+2023-11-01 18:58:33,659 - mmdet - INFO - Epoch [2][900/2392]	lr: 1.000e-03, eta: 1 day, 14:06:02, time: 2.051, data_time: 0.011, memory: 13848, loss_depth: 1.0000, loss_voxel_ce_c_0: 1.0000, loss_voxel_sem_scal_c_0: 1.0000, loss_voxel_geo_scal_c_0: 1.0000, loss_voxel_lovasz_c_0: 1.0000, loss_voxel_ce_fine: 1.0000, loss_voxel_sem_scal_fine: 1.0000, loss_voxel_geo_scal_fine: 1.0000, loss_voxel_lovasz_fine: 1.0000, loss: 9.0000, grad_norm: 1503.2163
+2023-11-01 19:00:16,300 - mmdet - INFO - Epoch [2][950/2392]	lr: 1.000e-03, eta: 1 day, 14:05:12, time: 2.053, data_time: 0.011, memory: 13848, loss_depth: 1.0000, loss_voxel_ce_c_0: 1.0000, loss_voxel_sem_scal_c_0: 1.0000, loss_voxel_geo_scal_c_0: 1.0000, loss_voxel_lovasz_c_0: 1.0000, loss_voxel_ce_fine: 1.0000, loss_voxel_sem_scal_fine: 1.0000, loss_voxel_geo_scal_fine: 1.0000, loss_voxel_lovasz_fine: 1.0000, loss: 9.0000, grad_norm: 84.5140
+2023-11-01 19:01:58,860 - mmdet - INFO - Epoch [2][1000/2392]	lr: 1.000e-03, eta: 1 day, 14:04:19, time: 2.051, data_time: 0.011, memory: 13848, loss_depth: 1.0000, loss_voxel_ce_c_0: 1.0000, loss_voxel_sem_scal_c_0: 1.0000, loss_voxel_geo_scal_c_0: 1.0000, loss_voxel_lovasz_c_0: 1.0000, loss_voxel_ce_fine: 1.0000, loss_voxel_sem_scal_fine: 1.0000, loss_voxel_geo_scal_fine: 1.0000, loss_voxel_lovasz_fine: 1.0000, loss: 9.0000, grad_norm: 13.9477
+2023-11-01 19:03:41,838 - mmdet - INFO - Epoch [2][1050/2392]	lr: 1.000e-03, eta: 1 day, 14:03:34, time: 2.060, data_time: 0.011, memory: 13848, loss_depth: 1.0000, loss_voxel_ce_c_0: 1.0000, loss_voxel_sem_scal_c_0: 1.0000, loss_voxel_geo_scal_c_0: 1.0000, loss_voxel_lovasz_c_0: 1.0000, loss_voxel_ce_fine: 1.0000, loss_voxel_sem_scal_fine: 1.0000, loss_voxel_geo_scal_fine: 1.0000, loss_voxel_lovasz_fine: 1.0000, loss: 9.0000, grad_norm: 49.3009
+2023-11-01 19:05:24,525 - mmdet - INFO - Epoch [2][1100/2392]	lr: 1.000e-03, eta: 1 day, 14:02:40, time: 2.054, data_time: 0.011, memory: 13848, loss_depth: 1.0000, loss_voxel_ce_c_0: 1.0000, loss_voxel_sem_scal_c_0: 1.0000, loss_voxel_geo_scal_c_0: 1.0000, loss_voxel_lovasz_c_0: 1.0000, loss_voxel_ce_fine: 1.0000, loss_voxel_sem_scal_fine: 1.0000, loss_voxel_geo_scal_fine: 1.0000, loss_voxel_lovasz_fine: 1.0000, loss: 9.0000, grad_norm: 6.2615
+2023-11-01 19:07:07,225 - mmdet - INFO - Epoch [2][1150/2392]	lr: 1.000e-03, eta: 1 day, 14:01:46, time: 2.054, data_time: 0.011, memory: 13850, loss_depth: 1.0000, loss_voxel_ce_c_0: 1.0000, loss_voxel_sem_scal_c_0: 1.0000, loss_voxel_geo_scal_c_0: 1.0000, loss_voxel_lovasz_c_0: 1.0000, loss_voxel_ce_fine: 1.0000, loss_voxel_sem_scal_fine: 1.0000, loss_voxel_geo_scal_fine: 1.0000, loss_voxel_lovasz_fine: 1.0000, loss: 9.0000, grad_norm: 66.0242
+2023-11-01 19:08:49,634 - mmdet - INFO - Epoch [2][1200/2392]	lr: 1.000e-03, eta: 1 day, 14:00:45, time: 2.048, data_time: 0.011, memory: 13850, loss_depth: 1.0000, loss_voxel_ce_c_0: 1.0000, loss_voxel_sem_scal_c_0: 1.0000, loss_voxel_geo_scal_c_0: 1.0000, loss_voxel_lovasz_c_0: 1.0000, loss_voxel_ce_fine: 1.0000, loss_voxel_sem_scal_fine: 1.0000, loss_voxel_geo_scal_fine: 1.0000, loss_voxel_lovasz_fine: 1.0000, loss: 9.0000, grad_norm: 73.8943
+2023-11-01 19:10:31,867 - mmdet - INFO - Epoch [2][1250/2392]	lr: 1.000e-03, eta: 1 day, 13:59:39, time: 2.045, data_time: 0.011, memory: 13850, loss_depth: 1.0000, loss_voxel_ce_c_0: 1.0000, loss_voxel_sem_scal_c_0: 1.0000, loss_voxel_geo_scal_c_0: 1.0000, loss_voxel_lovasz_c_0: 1.0000, loss_voxel_ce_fine: 1.0000, loss_voxel_sem_scal_fine: 1.0000, loss_voxel_geo_scal_fine: 1.0000, loss_voxel_lovasz_fine: 1.0000, loss: 9.0000, grad_norm: 9.6615
+2023-11-01 19:12:14,332 - mmdet - INFO - Epoch [2][1300/2392]	lr: 1.000e-03, eta: 1 day, 13:58:37, time: 2.049, data_time: 0.011, memory: 13850, loss_depth: 1.0000, loss_voxel_ce_c_0: 1.0000, loss_voxel_sem_scal_c_0: 1.0000, loss_voxel_geo_scal_c_0: 1.0000, loss_voxel_lovasz_c_0: 1.0000, loss_voxel_ce_fine: 1.0000, loss_voxel_sem_scal_fine: 1.0000, loss_voxel_geo_scal_fine: 1.0000, loss_voxel_lovasz_fine: 1.0000, loss: 9.0000, grad_norm: 40.5835
+2023-11-01 19:13:56,710 - mmdet - INFO - Epoch [2][1350/2392]	lr: 1.000e-03, eta: 1 day, 13:57:32, time: 2.048, data_time: 0.011, memory: 13850, loss_depth: 1.0000, loss_voxel_ce_c_0: 1.0000, loss_voxel_sem_scal_c_0: 1.0000, loss_voxel_geo_scal_c_0: 1.0000, loss_voxel_lovasz_c_0: 1.0000, loss_voxel_ce_fine: 1.0000, loss_voxel_sem_scal_fine: 1.0000, loss_voxel_geo_scal_fine: 1.0000, loss_voxel_lovasz_fine: 1.0000, loss: 9.0000, grad_norm: 12.8474
+2023-11-01 19:15:39,501 - mmdet - INFO - Epoch [2][1400/2392]	lr: 1.000e-03, eta: 1 day, 13:56:34, time: 2.056, data_time: 0.011, memory: 13850, loss_depth: 1.0000, loss_voxel_ce_c_0: 1.0000, loss_voxel_sem_scal_c_0: 1.0000, loss_voxel_geo_scal_c_0: 1.0000, loss_voxel_lovasz_c_0: 1.0000, loss_voxel_ce_fine: 1.0000, loss_voxel_sem_scal_fine: 1.0000, loss_voxel_geo_scal_fine: 1.0000, loss_voxel_lovasz_fine: 1.0000, loss: 9.0000, grad_norm: 177.6738
+2023-11-01 19:17:22,025 - mmdet - INFO - Epoch [2][1450/2392]	lr: 1.000e-03, eta: 1 day, 13:55:29, time: 2.050, data_time: 0.011, memory: 13850, loss_depth: 1.0000, loss_voxel_ce_c_0: 1.0000, loss_voxel_sem_scal_c_0: 1.0000, loss_voxel_geo_scal_c_0: 1.0000, loss_voxel_lovasz_c_0: 1.0000, loss_voxel_ce_fine: 1.0000, loss_voxel_sem_scal_fine: 1.0000, loss_voxel_geo_scal_fine: 1.0000, loss_voxel_lovasz_fine: 1.0000, loss: 9.0000, grad_norm: 288.1747
+2023-11-01 19:19:04,822 - mmdet - INFO - Epoch [2][1500/2392]	lr: 1.000e-03, eta: 1 day, 13:54:28, time: 2.056, data_time: 0.011, memory: 13850, loss_depth: 1.0000, loss_voxel_ce_c_0: 1.0000, loss_voxel_sem_scal_c_0: 1.0000, loss_voxel_geo_scal_c_0: 1.0000, loss_voxel_lovasz_c_0: 1.0000, loss_voxel_ce_fine: 1.0000, loss_voxel_sem_scal_fine: 1.0000, loss_voxel_geo_scal_fine: 1.0000, loss_voxel_lovasz_fine: 1.0000, loss: 9.0000, grad_norm: 31.1179
+2023-11-01 19:20:47,358 - mmdet - INFO - Epoch [2][1550/2392]	lr: 1.000e-03, eta: 1 day, 13:53:22, time: 2.051, data_time: 0.011, memory: 13850, loss_depth: 1.0000, loss_voxel_ce_c_0: 1.0000, loss_voxel_sem_scal_c_0: 1.0000, loss_voxel_geo_scal_c_0: 1.0000, loss_voxel_lovasz_c_0: 1.0000, loss_voxel_ce_fine: 1.0000, loss_voxel_sem_scal_fine: 1.0000, loss_voxel_geo_scal_fine: 1.0000, loss_voxel_lovasz_fine: 1.0000, loss: 9.0000, grad_norm: 7.9409
+2023-11-01 19:22:30,028 - mmdet - INFO - Epoch [2][1600/2392]	lr: 1.000e-03, eta: 1 day, 13:52:17, time: 2.053, data_time: 0.011, memory: 13850, loss_depth: 1.0000, loss_voxel_ce_c_0: 1.0000, loss_voxel_sem_scal_c_0: 1.0000, loss_voxel_geo_scal_c_0: 1.0000, loss_voxel_lovasz_c_0: 1.0000, loss_voxel_ce_fine: 1.0000, loss_voxel_sem_scal_fine: 1.0000, loss_voxel_geo_scal_fine: 1.0000, loss_voxel_lovasz_fine: 1.0000, loss: 9.0000, grad_norm: 108.6294
+2023-11-01 19:24:12,472 - mmdet - INFO - Epoch [2][1650/2392]	lr: 1.000e-03, eta: 1 day, 13:51:08, time: 2.049, data_time: 0.011, memory: 13850, loss_depth: 1.0000, loss_voxel_ce_c_0: 1.0000, loss_voxel_sem_scal_c_0: 1.0000, loss_voxel_geo_scal_c_0: 1.0000, loss_voxel_lovasz_c_0: 1.0000, loss_voxel_ce_fine: 1.0000, loss_voxel_sem_scal_fine: 1.0000, loss_voxel_geo_scal_fine: 1.0000, loss_voxel_lovasz_fine: 1.0000, loss: 9.0000, grad_norm: 2654.2086
+2023-11-01 19:25:54,980 - mmdet - INFO - Epoch [2][1700/2392]	lr: 1.000e-03, eta: 1 day, 13:49:59, time: 2.050, data_time: 0.011, memory: 13850, loss_depth: 1.0000, loss_voxel_ce_c_0: 1.0000, loss_voxel_sem_scal_c_0: 1.0000, loss_voxel_geo_scal_c_0: 1.0000, loss_voxel_lovasz_c_0: 1.0000, loss_voxel_ce_fine: 1.0000, loss_voxel_sem_scal_fine: 1.0000, loss_voxel_geo_scal_fine: 1.0000, loss_voxel_lovasz_fine: 1.0000, loss: 9.0000, grad_norm: 100066.7185
+2023-11-01 19:27:37,452 - mmdet - INFO - Epoch [2][1750/2392]	lr: 1.000e-03, eta: 1 day, 13:48:48, time: 2.049, data_time: 0.011, memory: 13850, loss_depth: 1.0000, loss_voxel_ce_c_0: 1.0000, loss_voxel_sem_scal_c_0: 1.0000, loss_voxel_geo_scal_c_0: 1.0000, loss_voxel_lovasz_c_0: 1.0000, loss_voxel_ce_fine: 1.0000, loss_voxel_sem_scal_fine: 1.0000, loss_voxel_geo_scal_fine: 1.0000, loss_voxel_lovasz_fine: 1.0000, loss: 9.0000, grad_norm: 181757.3528
+2023-11-01 19:29:19,930 - mmdet - INFO - Epoch [2][1800/2392]	lr: 1.000e-03, eta: 1 day, 13:47:36, time: 2.050, data_time: 0.011, memory: 13850, loss_depth: 1.0000, loss_voxel_ce_c_0: 1.0000, loss_voxel_sem_scal_c_0: 1.0000, loss_voxel_geo_scal_c_0: 1.0000, loss_voxel_lovasz_c_0: 1.0000, loss_voxel_ce_fine: 1.0000, loss_voxel_sem_scal_fine: 1.0000, loss_voxel_geo_scal_fine: 1.0000, loss_voxel_lovasz_fine: 1.0000, loss: 9.0000, grad_norm: 388404.8776
+2023-11-01 19:31:02,396 - mmdet - INFO - Epoch [2][1850/2392]	lr: 1.000e-03, eta: 1 day, 13:46:24, time: 2.049, data_time: 0.011, memory: 13850, loss_depth: 1.0000, loss_voxel_ce_c_0: 1.0000, loss_voxel_sem_scal_c_0: 1.0000, loss_voxel_geo_scal_c_0: 1.0000, loss_voxel_lovasz_c_0: 1.0000, loss_voxel_ce_fine: 1.0000, loss_voxel_sem_scal_fine: 1.0000, loss_voxel_geo_scal_fine: 1.0000, loss_voxel_lovasz_fine: 1.0000, loss: 9.0000, grad_norm: 11260.9596
+2023-11-01 19:32:44,759 - mmdet - INFO - Epoch [2][1900/2392]	lr: 1.000e-03, eta: 1 day, 13:45:10, time: 2.047, data_time: 0.011, memory: 13850, loss_depth: 1.0000, loss_voxel_ce_c_0: 1.0000, loss_voxel_sem_scal_c_0: 1.0000, loss_voxel_geo_scal_c_0: 1.0000, loss_voxel_lovasz_c_0: 1.0000, loss_voxel_ce_fine: 1.0000, loss_voxel_sem_scal_fine: 1.0000, loss_voxel_geo_scal_fine: 1.0000, loss_voxel_lovasz_fine: 1.0000, loss: 9.0000, grad_norm: 70824.9673
+2023-11-01 19:34:27,391 - mmdet - INFO - Epoch [2][1950/2392]	lr: 1.000e-03, eta: 1 day, 13:43:59, time: 2.053, data_time: 0.011, memory: 13850, loss_depth: 1.0000, loss_voxel_ce_c_0: 1.0000, loss_voxel_sem_scal_c_0: 1.0000, loss_voxel_geo_scal_c_0: 1.0000, loss_voxel_lovasz_c_0: 1.0000, loss_voxel_ce_fine: 1.0000, loss_voxel_sem_scal_fine: 1.0000, loss_voxel_geo_scal_fine: 1.0000, loss_voxel_lovasz_fine: 1.0000, loss: 9.0000, grad_norm: 79.7663
+2023-11-01 19:36:09,837 - mmdet - INFO - Epoch [2][2000/2392]	lr: 1.000e-03, eta: 1 day, 13:42:44, time: 2.049, data_time: 0.011, memory: 13850, loss_depth: 1.0000, loss_voxel_ce_c_0: 1.0000, loss_voxel_sem_scal_c_0: 1.0000, loss_voxel_geo_scal_c_0: 1.0000, loss_voxel_lovasz_c_0: 1.0000, loss_voxel_ce_fine: 1.0000, loss_voxel_sem_scal_fine: 1.0000, loss_voxel_geo_scal_fine: 1.0000, loss_voxel_lovasz_fine: 1.0000, loss: 9.0000, grad_norm: 38.5758
+2023-11-01 19:37:52,140 - mmdet - INFO - Epoch [2][2050/2392]	lr: 1.000e-03, eta: 1 day, 13:41:26, time: 2.046, data_time: 0.011, memory: 13850, loss_depth: 1.0000, loss_voxel_ce_c_0: 1.0000, loss_voxel_sem_scal_c_0: 1.0000, loss_voxel_geo_scal_c_0: 1.0000, loss_voxel_lovasz_c_0: 1.0000, loss_voxel_ce_fine: 1.0000, loss_voxel_sem_scal_fine: 1.0000, loss_voxel_geo_scal_fine: 1.0000, loss_voxel_lovasz_fine: 1.0000, loss: 9.0000, grad_norm: 352.9018
+2023-11-01 19:39:34,417 - mmdet - INFO - Epoch [2][2100/2392]	lr: 1.000e-03, eta: 1 day, 13:40:08, time: 2.046, data_time: 0.011, memory: 13850, loss_depth: 1.0000, loss_voxel_ce_c_0: 1.0000, loss_voxel_sem_scal_c_0: 1.0000, loss_voxel_geo_scal_c_0: 1.0000, loss_voxel_lovasz_c_0: 1.0000, loss_voxel_ce_fine: 1.0000, loss_voxel_sem_scal_fine: 1.0000, loss_voxel_geo_scal_fine: 1.0000, loss_voxel_lovasz_fine: 1.0000, loss: 9.0000, grad_norm: 657.5773
+2023-11-01 19:41:17,059 - mmdet - INFO - Epoch [2][2150/2392]	lr: 1.000e-03, eta: 1 day, 13:38:55, time: 2.053, data_time: 0.011, memory: 13850, loss_depth: 1.0000, loss_voxel_ce_c_0: 1.0000, loss_voxel_sem_scal_c_0: 1.0000, loss_voxel_geo_scal_c_0: 1.0000, loss_voxel_lovasz_c_0: 1.0000, loss_voxel_ce_fine: 1.0000, loss_voxel_sem_scal_fine: 1.0000, loss_voxel_geo_scal_fine: 1.0000, loss_voxel_lovasz_fine: 1.0000, loss: 9.0000, grad_norm: 2.3931
+2023-11-01 19:42:59,417 - mmdet - INFO - Epoch [2][2200/2392]	lr: 1.000e-03, eta: 1 day, 13:37:36, time: 2.047, data_time: 0.011, memory: 13850, loss_depth: 1.0000, loss_voxel_ce_c_0: 1.0000, loss_voxel_sem_scal_c_0: 1.0000, loss_voxel_geo_scal_c_0: 1.0000, loss_voxel_lovasz_c_0: 1.0000, loss_voxel_ce_fine: 1.0000, loss_voxel_sem_scal_fine: 1.0000, loss_voxel_geo_scal_fine: 1.0000, loss_voxel_lovasz_fine: 1.0000, loss: 9.0000, grad_norm: 6.6367
+2023-11-01 19:44:41,870 - mmdet - INFO - Epoch [2][2250/2392]	lr: 1.000e-03, eta: 1 day, 13:36:19, time: 2.049, data_time: 0.011, memory: 13850, loss_depth: 1.0000, loss_voxel_ce_c_0: 1.0000, loss_voxel_sem_scal_c_0: 1.0000, loss_voxel_geo_scal_c_0: 1.0000, loss_voxel_lovasz_c_0: 1.0000, loss_voxel_ce_fine: 1.0000, loss_voxel_sem_scal_fine: 1.0000, loss_voxel_geo_scal_fine: 1.0000, loss_voxel_lovasz_fine: 1.0000, loss: 9.0000, grad_norm: 22.2888
+2023-11-01 19:46:23,986 - mmdet - INFO - Epoch [2][2300/2392]	lr: 1.000e-03, eta: 1 day, 13:34:56, time: 2.042, data_time: 0.012, memory: 13850, loss_depth: 1.0000, loss_voxel_ce_c_0: 1.0000, loss_voxel_sem_scal_c_0: 1.0000, loss_voxel_geo_scal_c_0: 1.0000, loss_voxel_lovasz_c_0: 1.0000, loss_voxel_ce_fine: 1.0000, loss_voxel_sem_scal_fine: 1.0000, loss_voxel_geo_scal_fine: 1.0000, loss_voxel_lovasz_fine: 1.0000, loss: 9.0000, grad_norm: 1050.9546
+2023-11-01 19:48:06,405 - mmdet - INFO - Epoch [2][2350/2392]	lr: 1.000e-03, eta: 1 day, 13:33:37, time: 2.048, data_time: 0.011, memory: 13850, loss_depth: 1.0000, loss_voxel_ce_c_0: 1.0000, loss_voxel_sem_scal_c_0: 1.0000, loss_voxel_geo_scal_c_0: 1.0000, loss_voxel_lovasz_c_0: 1.0000, loss_voxel_ce_fine: 1.0000, loss_voxel_sem_scal_fine: 1.0000, loss_voxel_geo_scal_fine: 1.0000, loss_voxel_lovasz_fine: 1.0000, loss: 9.0000, grad_norm: 6.9122
+2023-11-01 19:49:32,232 - mmdet - INFO - Saving checkpoint at 2 epochs
+2023-11-01 19:49:38,764 - mmdet - INFO - | name                                       | #elements or shape   |
+|:-------------------------------------------|:---------------------|
+| model                                      | 0.2G                 |
+|  module                                    |  0.2G                |
+|   module.pts_middle_encoder                |   3.5M               |
+|    module.pts_middle_encoder.conv_input    |    1.8K              |
+|    module.pts_middle_encoder.conv1         |    0.1M              |
+|    module.pts_middle_encoder.conv2         |    0.5M              |
+|    module.pts_middle_encoder.conv3         |    2.0M              |
+|    module.pts_middle_encoder.conv_out      |    0.9M              |
+|   module.pts_bbox_head                     |   3.6M               |
+|    module.pts_bbox_head.img_mlp_0          |    65.9K             |
+|    module.pts_bbox_head.img_mlp            |    8.4K              |
+|    module.pts_bbox_head.fine_mlp           |    13.8K             |
+|    module.pts_bbox_head.occ_convs          |    3.5M              |
+|    module.pts_bbox_head.occ_pred_conv      |    9.6K              |
+|    module.pts_bbox_head.voxel_soft_weights |    8.6K              |
+|   module.img_backbone                      |   23.5M              |
+|    module.img_backbone.conv1               |    9.4K              |
+|    module.img_backbone.bn1                 |    0.1K              |
+|    module.img_backbone.layer1              |    0.2M              |
+|    module.img_backbone.layer2              |    1.2M              |
+|    module.img_backbone.layer3              |    7.1M              |
+|    module.img_backbone.layer4              |    15.0M             |
+|   module.img_neck                          |   2.0M               |
+|    module.img_neck.deblocks                |    2.0M              |
+|   module.img_view_transformer              |   28.6M              |
+|    module.img_view_transformer.dx          |    (3,)              |
+|    module.img_view_transformer.bx          |    (3,)              |
+|    module.img_view_transformer.nx          |    (3,)              |
+|    module.img_view_transformer.frustum     |    (112, 24, 80, 3)  |
+|    module.img_view_transformer.depth_net   |    27.9M             |
+|   module.occ_fuser                         |   17.8M              |
+|    module.occ_fuser.con_enc                |    17.7M             |
+|    module.occ_fuser.knn_enc                |    65.8K             |
+|   module.semantic_encoder                  |   0.1G               |
+|    module.semantic_encoder.input_proj      |    33.0K             |
+|    module.semantic_encoder.layers          |    0.1G              |
+|   module.semantic_neck                     |   7.6M               |
+|    module.semantic_neck.lateral_convs      |    0.5M              |
+|    module.semantic_neck.fpn_convs          |    7.1M              |
+2023-11-01 19:58:59,448 - mmdet - INFO - SC Evaluation
+2023-11-01 19:58:59,448 - mmdet - INFO - +-----------+-------+
+|   class   |  IoU  |
++-----------+-------+
+| non-empty | 0.407 |
++-----------+-------+
+2023-11-01 19:58:59,449 - mmdet - INFO - SSC Evaluation
+2023-11-01 19:58:59,449 - mmdet - INFO - +---------------+-------+
+|     class     |  IoU  |
++---------------+-------+
+|   unlabeled   | 0.954 |
+|      car      | 0.406 |
+|    bicycle    | 0.017 |
+|   motorcycle  | 0.009 |
+|     truck     |  0.09 |
+| other-vehicle | 0.081 |
+|     person    | 0.014 |
+|   bicyclist   | 0.024 |
+|  motorcyclist |  0.0  |
+|      road     | 0.586 |
+|    parking    | 0.143 |
+|    sidewalk   | 0.324 |
+|  other-ground |  0.0  |
+|    building   | 0.373 |
+|     fence     | 0.081 |
+|   vegetation  | 0.393 |
+|     trunk     |  0.13 |
+|    terrain    | 0.425 |
+|      pole     | 0.203 |
+|  traffic-sign |  0.11 |
+|      mean     | 0.179 |
++---------------+-------+
+2023-11-01 19:58:59,451 - mmdet - INFO - SSC fine Evaluation
+2023-11-01 19:58:59,451 - mmdet - INFO - +---------------+-------+
+|     class     |  IoU  |
++---------------+-------+
+|   unlabeled   |  0.95 |
+|      car      | 0.332 |
+|    bicycle    | 0.018 |
+|   motorcycle  | 0.009 |
+|     truck     | 0.087 |
+| other-vehicle | 0.065 |
+|     person    | 0.013 |
+|   bicyclist   | 0.013 |
+|  motorcyclist |  0.0  |
+|      road     | 0.518 |
+|    parking    | 0.129 |
+|    sidewalk   | 0.293 |
+|  other-ground | 0.001 |
+|    building   |  0.28 |
+|     fence     | 0.081 |
+|   vegetation  | 0.249 |
+|     trunk     | 0.096 |
+|    terrain    | 0.338 |
+|      pole     | 0.183 |
+|  traffic-sign | 0.101 |
+|      mean     | 0.148 |
++---------------+-------+
+2023-11-01 19:58:59,453 - mmdet - INFO - SemanticKITTI SSC Evaluation
+2023-11-01 19:58:59,453 - mmdet - INFO - {'semkitti_SC_Precision': 72.55, 'semkitti_SC_Recall': 73.01, 'semkitti_SC_IoU': 57.21, 'semkitti_SSC_mIoU': 17.94, 'semkitti_SSC_unlabeled_IoU': 96.86, 'semkitti_SSC_car_IoU': 40.6, 'semkitti_SSC_bicycle_IoU': 1.67, 'semkitti_SSC_motorcycle_IoU': 0.92, 'semkitti_SSC_truck_IoU': 8.98, 'semkitti_SSC_other-vehicle_IoU': 8.13, 'semkitti_SSC_person_IoU': 1.35, 'semkitti_SSC_bicyclist_IoU': 2.4, 'semkitti_SSC_motorcyclist_IoU': 0.0, 'semkitti_SSC_road_IoU': 58.63, 'semkitti_SSC_parking_IoU': 14.26, 'semkitti_SSC_sidewalk_IoU': 32.45, 'semkitti_SSC_other-ground_IoU': 0.04, 'semkitti_SSC_building_IoU': 37.3, 'semkitti_SSC_fence_IoU': 8.12, 'semkitti_SSC_vegetation_IoU': 39.32, 'semkitti_SSC_trunk_IoU': 12.97, 'semkitti_SSC_terrain_IoU': 42.47, 'semkitti_SSC_pole_IoU': 20.27, 'semkitti_SSC_traffic-sign_IoU': 10.98, 'semkitti_combined_IoU': 75.15, 'SC_non-empty': 0.407, 'SSC_unlabeled': 0.954, 'SSC_car': 0.406, 'SSC_bicycle': 0.017, 'SSC_motorcycle': 0.009, 'SSC_truck': 0.09, 'SSC_other-vehicle': 0.081, 'SSC_person': 0.014, 'SSC_bicyclist': 0.024, 'SSC_motorcyclist': 0.0, 'SSC_road': 0.586, 'SSC_parking': 0.143, 'SSC_sidewalk': 0.324, 'SSC_other-ground': 0.0, 'SSC_building': 0.373, 'SSC_fence': 0.081, 'SSC_vegetation': 0.393, 'SSC_trunk': 0.13, 'SSC_terrain': 0.425, 'SSC_pole': 0.203, 'SSC_traffic-sign': 0.11, 'SSC_mean': 0.179, 'SSC_fine_unlabeled': 0.95, 'SSC_fine_car': 0.332, 'SSC_fine_bicycle': 0.018, 'SSC_fine_motorcycle': 0.009, 'SSC_fine_truck': 0.087, 'SSC_fine_other-vehicle': 0.065, 'SSC_fine_person': 0.013, 'SSC_fine_bicyclist': 0.013, 'SSC_fine_motorcyclist': 0.0, 'SSC_fine_road': 0.518, 'SSC_fine_parking': 0.129, 'SSC_fine_sidewalk': 0.293, 'SSC_fine_other-ground': 0.001, 'SSC_fine_building': 0.28, 'SSC_fine_fence': 0.081, 'SSC_fine_vegetation': 0.249, 'SSC_fine_trunk': 0.096, 'SSC_fine_terrain': 0.338, 'SSC_fine_pole': 0.183, 'SSC_fine_traffic-sign': 0.101, 'SSC_fine_mean': 0.148}
+2023-11-01 19:58:59,453 - mmdet - INFO - The previous best checkpoint /hpc2hdd/home/jpan305/pytorch/MoEOccupancy/work_dirs/cascade_multi_kitti/best_semkitti_SSC_mIoU_epoch_1.pth was removed
+2023-11-01 19:59:04,160 - mmdet - INFO - Now best checkpoint is saved as best_semkitti_SSC_mIoU_epoch_2.pth.
+2023-11-01 19:59:04,160 - mmdet - INFO - Best semkitti_SSC_mIoU is 17.9400 at 2 epoch.
+2023-11-01 19:59:04,163 - mmdet - INFO - Exp name: cascade_multi_kitti.py
+2023-11-01 19:59:04,163 - mmdet - INFO - Epoch(val) [2][509]	semkitti_SC_Precision: 72.5500, semkitti_SC_Recall: 73.0100, semkitti_SC_IoU: 57.2100, semkitti_SSC_mIoU: 17.9400, semkitti_SSC_unlabeled_IoU: 96.8600, semkitti_SSC_car_IoU: 40.6000, semkitti_SSC_bicycle_IoU: 1.6700, semkitti_SSC_motorcycle_IoU: 0.9200, semkitti_SSC_truck_IoU: 8.9800, semkitti_SSC_other-vehicle_IoU: 8.1300, semkitti_SSC_person_IoU: 1.3500, semkitti_SSC_bicyclist_IoU: 2.4000, semkitti_SSC_motorcyclist_IoU: 0.0000, semkitti_SSC_road_IoU: 58.6300, semkitti_SSC_parking_IoU: 14.2600, semkitti_SSC_sidewalk_IoU: 32.4500, semkitti_SSC_other-ground_IoU: 0.0400, semkitti_SSC_building_IoU: 37.3000, semkitti_SSC_fence_IoU: 8.1200, semkitti_SSC_vegetation_IoU: 39.3200, semkitti_SSC_trunk_IoU: 12.9700, semkitti_SSC_terrain_IoU: 42.4700, semkitti_SSC_pole_IoU: 20.2700, semkitti_SSC_traffic-sign_IoU: 10.9800, semkitti_combined_IoU: 75.1500, SC_non-empty: 0.4070, SSC_unlabeled: 0.9540, SSC_car: 0.4060, SSC_bicycle: 0.0170, SSC_motorcycle: 0.0090, SSC_truck: 0.0900, SSC_other-vehicle: 0.0810, SSC_person: 0.0140, SSC_bicyclist: 0.0240, SSC_motorcyclist: 0.0000, SSC_road: 0.5860, SSC_parking: 0.1430, SSC_sidewalk: 0.3240, SSC_other-ground: 0.0000, SSC_building: 0.3730, SSC_fence: 0.0810, SSC_vegetation: 0.3930, SSC_trunk: 0.1300, SSC_terrain: 0.4250, SSC_pole: 0.2030, SSC_traffic-sign: 0.1100, SSC_mean: 0.1790, SSC_fine_unlabeled: 0.9500, SSC_fine_car: 0.3320, SSC_fine_bicycle: 0.0180, SSC_fine_motorcycle: 0.0090, SSC_fine_truck: 0.0870, SSC_fine_other-vehicle: 0.0650, SSC_fine_person: 0.0130, SSC_fine_bicyclist: 0.0130, SSC_fine_motorcyclist: 0.0000, SSC_fine_road: 0.5180, SSC_fine_parking: 0.1290, SSC_fine_sidewalk: 0.2930, SSC_fine_other-ground: 0.0010, SSC_fine_building: 0.2800, SSC_fine_fence: 0.0810, SSC_fine_vegetation: 0.2490, SSC_fine_trunk: 0.0960, SSC_fine_terrain: 0.3380, SSC_fine_pole: 0.1830, SSC_fine_traffic-sign: 0.1010, SSC_fine_mean: 0.1480
+2023-11-01 20:00:49,607 - mmdet - INFO - Epoch [3][50/2392]	lr: 1.000e-03, eta: 1 day, 13:12:01, time: 2.108, data_time: 0.075, memory: 13850, loss_depth: 1.0000, loss_voxel_ce_c_0: 1.0000, loss_voxel_sem_scal_c_0: 1.0000, loss_voxel_geo_scal_c_0: 1.0000, loss_voxel_lovasz_c_0: 1.0000, loss_voxel_ce_fine: 1.0000, loss_voxel_sem_scal_fine: 1.0000, loss_voxel_geo_scal_fine: 1.0000, loss_voxel_lovasz_fine: 1.0000, loss: 9.0000, grad_norm: 2.9363
+2023-11-01 20:02:31,616 - mmdet - INFO - Epoch [3][100/2392]	lr: 1.000e-03, eta: 1 day, 13:10:48, time: 2.040, data_time: 0.011, memory: 13850, loss_depth: 1.0000, loss_voxel_ce_c_0: 1.0000, loss_voxel_sem_scal_c_0: 1.0000, loss_voxel_geo_scal_c_0: 1.0000, loss_voxel_lovasz_c_0: 1.0000, loss_voxel_ce_fine: 1.0000, loss_voxel_sem_scal_fine: 1.0000, loss_voxel_geo_scal_fine: 1.0000, loss_voxel_lovasz_fine: 1.0000, loss: 9.0000, grad_norm: 8.9189
+2023-11-01 20:04:14,281 - mmdet - INFO - Epoch [3][150/2392]	lr: 1.000e-03, eta: 1 day, 13:09:43, time: 2.053, data_time: 0.011, memory: 13850, loss_depth: 1.0000, loss_voxel_ce_c_0: 1.0000, loss_voxel_sem_scal_c_0: 1.0000, loss_voxel_geo_scal_c_0: 1.0000, loss_voxel_lovasz_c_0: 1.0000, loss_voxel_ce_fine: 1.0000, loss_voxel_sem_scal_fine: 1.0000, loss_voxel_geo_scal_fine: 1.0000, loss_voxel_lovasz_fine: 1.0000, loss: 9.0000, grad_norm: 2.7840
+2023-11-01 20:05:56,550 - mmdet - INFO - Epoch [3][200/2392]	lr: 1.000e-03, eta: 1 day, 13:08:32, time: 2.045, data_time: 0.011, memory: 13850, loss_depth: 1.0000, loss_voxel_ce_c_0: 1.0000, loss_voxel_sem_scal_c_0: 1.0000, loss_voxel_geo_scal_c_0: 1.0000, loss_voxel_lovasz_c_0: 1.0000, loss_voxel_ce_fine: 1.0000, loss_voxel_sem_scal_fine: 1.0000, loss_voxel_geo_scal_fine: 1.0000, loss_voxel_lovasz_fine: 1.0000, loss: 9.0000, grad_norm: 6.5543
+2023-11-01 20:07:38,729 - mmdet - INFO - Epoch [3][250/2392]	lr: 1.000e-03, eta: 1 day, 13:07:19, time: 2.044, data_time: 0.012, memory: 13850, loss_depth: 1.0000, loss_voxel_ce_c_0: 1.0000, loss_voxel_sem_scal_c_0: 1.0000, loss_voxel_geo_scal_c_0: 1.0000, loss_voxel_lovasz_c_0: 1.0000, loss_voxel_ce_fine: 1.0000, loss_voxel_sem_scal_fine: 1.0000, loss_voxel_geo_scal_fine: 1.0000, loss_voxel_lovasz_fine: 1.0000, loss: 9.0000, grad_norm: 2.3450
+2023-11-01 20:09:21,169 - mmdet - INFO - Epoch [3][300/2392]	lr: 1.000e-03, eta: 1 day, 13:06:09, time: 2.049, data_time: 0.011, memory: 13850, loss_depth: 1.0000, loss_voxel_ce_c_0: 1.0000, loss_voxel_sem_scal_c_0: 1.0000, loss_voxel_geo_scal_c_0: 1.0000, loss_voxel_lovasz_c_0: 1.0000, loss_voxel_ce_fine: 1.0000, loss_voxel_sem_scal_fine: 1.0000, loss_voxel_geo_scal_fine: 1.0000, loss_voxel_lovasz_fine: 1.0000, loss: 9.0000, grad_norm: 3.0715
+2023-11-01 20:11:03,841 - mmdet - INFO - Epoch [3][350/2392]	lr: 1.000e-03, eta: 1 day, 13:05:01, time: 2.053, data_time: 0.011, memory: 13850, loss_depth: 1.0000, loss_voxel_ce_c_0: 1.0000, loss_voxel_sem_scal_c_0: 1.0000, loss_voxel_geo_scal_c_0: 1.0000, loss_voxel_lovasz_c_0: 1.0000, loss_voxel_ce_fine: 1.0000, loss_voxel_sem_scal_fine: 1.0000, loss_voxel_geo_scal_fine: 1.0000, loss_voxel_lovasz_fine: 1.0000, loss: 9.0000, grad_norm: 2.6165
+2023-11-01 20:12:46,141 - mmdet - INFO - Epoch [3][400/2392]	lr: 1.000e-03, eta: 1 day, 13:03:48, time: 2.046, data_time: 0.011, memory: 13850, loss_depth: 1.0000, loss_voxel_ce_c_0: 1.0000, loss_voxel_sem_scal_c_0: 1.0000, loss_voxel_geo_scal_c_0: 1.0000, loss_voxel_lovasz_c_0: 1.0000, loss_voxel_ce_fine: 1.0000, loss_voxel_sem_scal_fine: 1.0000, loss_voxel_geo_scal_fine: 1.0000, loss_voxel_lovasz_fine: 1.0000, loss: 9.0000, grad_norm: 3.4376
+2023-11-01 20:14:28,389 - mmdet - INFO - Epoch [3][450/2392]	lr: 1.000e-03, eta: 1 day, 13:02:34, time: 2.045, data_time: 0.011, memory: 13850, loss_depth: 1.0000, loss_voxel_ce_c_0: 1.0000, loss_voxel_sem_scal_c_0: 1.0000, loss_voxel_geo_scal_c_0: 1.0000, loss_voxel_lovasz_c_0: 1.0000, loss_voxel_ce_fine: 1.0000, loss_voxel_sem_scal_fine: 1.0000, loss_voxel_geo_scal_fine: 1.0000, loss_voxel_lovasz_fine: 1.0000, loss: 9.0000, grad_norm: 5.9053
+2023-11-01 20:16:10,603 - mmdet - INFO - Epoch [3][500/2392]	lr: 1.000e-03, eta: 1 day, 13:01:19, time: 2.044, data_time: 0.011, memory: 13850, loss_depth: 1.0000, loss_voxel_ce_c_0: 1.0000, loss_voxel_sem_scal_c_0: 1.0000, loss_voxel_geo_scal_c_0: 1.0000, loss_voxel_lovasz_c_0: 1.0000, loss_voxel_ce_fine: 1.0000, loss_voxel_sem_scal_fine: 1.0000, loss_voxel_geo_scal_fine: 1.0000, loss_voxel_lovasz_fine: 1.0000, loss: 9.0000, grad_norm: 3.9305
+2023-11-01 20:17:53,032 - mmdet - INFO - Epoch [3][550/2392]	lr: 1.000e-03, eta: 1 day, 13:00:06, time: 2.049, data_time: 0.011, memory: 13850, loss_depth: 1.0000, loss_voxel_ce_c_0: 1.0000, loss_voxel_sem_scal_c_0: 1.0000, loss_voxel_geo_scal_c_0: 1.0000, loss_voxel_lovasz_c_0: 1.0000, loss_voxel_ce_fine: 1.0000, loss_voxel_sem_scal_fine: 1.0000, loss_voxel_geo_scal_fine: 1.0000, loss_voxel_lovasz_fine: 1.0000, loss: 9.0000, grad_norm: 2.1994
+2023-11-01 20:19:35,432 - mmdet - INFO - Epoch [3][600/2392]	lr: 1.000e-03, eta: 1 day, 12:58:52, time: 2.048, data_time: 0.011, memory: 13850, loss_depth: 1.0000, loss_voxel_ce_c_0: 1.0000, loss_voxel_sem_scal_c_0: 1.0000, loss_voxel_geo_scal_c_0: 1.0000, loss_voxel_lovasz_c_0: 1.0000, loss_voxel_ce_fine: 1.0000, loss_voxel_sem_scal_fine: 1.0000, loss_voxel_geo_scal_fine: 1.0000, loss_voxel_lovasz_fine: 1.0000, loss: 9.0000, grad_norm: 2.2760
+2023-11-01 20:21:18,004 - mmdet - INFO - Epoch [3][650/2392]	lr: 1.000e-03, eta: 1 day, 12:57:39, time: 2.051, data_time: 0.011, memory: 13850, loss_depth: 1.0000, loss_voxel_ce_c_0: 1.0000, loss_voxel_sem_scal_c_0: 1.0000, loss_voxel_geo_scal_c_0: 1.0000, loss_voxel_lovasz_c_0: 1.0000, loss_voxel_ce_fine: 1.0000, loss_voxel_sem_scal_fine: 1.0000, loss_voxel_geo_scal_fine: 1.0000, loss_voxel_lovasz_fine: 1.0000, loss: 9.0000, grad_norm: 2.9914
+2023-11-01 20:23:00,134 - mmdet - INFO - Epoch [3][700/2392]	lr: 1.000e-03, eta: 1 day, 12:56:21, time: 2.043, data_time: 0.011, memory: 13850, loss_depth: 1.0000, loss_voxel_ce_c_0: 1.0000, loss_voxel_sem_scal_c_0: 1.0000, loss_voxel_geo_scal_c_0: 1.0000, loss_voxel_lovasz_c_0: 1.0000, loss_voxel_ce_fine: 1.0000, loss_voxel_sem_scal_fine: 1.0000, loss_voxel_geo_scal_fine: 1.0000, loss_voxel_lovasz_fine: 1.0000, loss: 9.0000, grad_norm: 2.6606
+2023-11-01 20:24:42,586 - mmdet - INFO - Epoch [3][750/2392]	lr: 1.000e-03, eta: 1 day, 12:55:06, time: 2.049, data_time: 0.011, memory: 13850, loss_depth: 1.0000, loss_voxel_ce_c_0: 1.0000, loss_voxel_sem_scal_c_0: 1.0000, loss_voxel_geo_scal_c_0: 1.0000, loss_voxel_lovasz_c_0: 1.0000, loss_voxel_ce_fine: 1.0000, loss_voxel_sem_scal_fine: 1.0000, loss_voxel_geo_scal_fine: 1.0000, loss_voxel_lovasz_fine: 1.0000, loss: 9.0000, grad_norm: 2.3306
+2023-11-01 20:26:25,101 - mmdet - INFO - Epoch [3][800/2392]	lr: 1.000e-03, eta: 1 day, 12:53:52, time: 2.050, data_time: 0.011, memory: 13850, loss_depth: 1.0000, loss_voxel_ce_c_0: 1.0000, loss_voxel_sem_scal_c_0: 1.0000, loss_voxel_geo_scal_c_0: 1.0000, loss_voxel_lovasz_c_0: 1.0000, loss_voxel_ce_fine: 1.0000, loss_voxel_sem_scal_fine: 1.0000, loss_voxel_geo_scal_fine: 1.0000, loss_voxel_lovasz_fine: 1.0000, loss: 9.0000, grad_norm: 2.4527
+2023-11-01 20:28:07,359 - mmdet - INFO - Epoch [3][850/2392]	lr: 1.000e-03, eta: 1 day, 12:52:33, time: 2.045, data_time: 0.011, memory: 13850, loss_depth: 1.0000, loss_voxel_ce_c_0: 1.0000, loss_voxel_sem_scal_c_0: 1.0000, loss_voxel_geo_scal_c_0: 1.0000, loss_voxel_lovasz_c_0: 1.0000, loss_voxel_ce_fine: 1.0000, loss_voxel_sem_scal_fine: 1.0000, loss_voxel_geo_scal_fine: 1.0000, loss_voxel_lovasz_fine: 1.0000, loss: 9.0000, grad_norm: 3.2030
+2023-11-01 20:29:49,741 - mmdet - INFO - Epoch [3][900/2392]	lr: 1.000e-03, eta: 1 day, 12:51:16, time: 2.048, data_time: 0.011, memory: 13850, loss_depth: 1.0000, loss_voxel_ce_c_0: 1.0000, loss_voxel_sem_scal_c_0: 1.0000, loss_voxel_geo_scal_c_0: 1.0000, loss_voxel_lovasz_c_0: 1.0000, loss_voxel_ce_fine: 1.0000, loss_voxel_sem_scal_fine: 1.0000, loss_voxel_geo_scal_fine: 1.0000, loss_voxel_lovasz_fine: 1.0000, loss: 9.0000, grad_norm: 2.3440
+2023-11-01 20:31:31,992 - mmdet - INFO - Epoch [3][950/2392]	lr: 1.000e-03, eta: 1 day, 12:49:57, time: 2.045, data_time: 0.011, memory: 13850, loss_depth: 1.0000, loss_voxel_ce_c_0: 1.0000, loss_voxel_sem_scal_c_0: 1.0000, loss_voxel_geo_scal_c_0: 1.0000, loss_voxel_lovasz_c_0: 1.0000, loss_voxel_ce_fine: 1.0000, loss_voxel_sem_scal_fine: 1.0000, loss_voxel_geo_scal_fine: 1.0000, loss_voxel_lovasz_fine: 1.0000, loss: 9.0000, grad_norm: 2.4235
+2023-11-01 20:33:14,390 - mmdet - INFO - Epoch [3][1000/2392]	lr: 1.000e-03, eta: 1 day, 12:48:39, time: 2.048, data_time: 0.011, memory: 13850, loss_depth: 1.0000, loss_voxel_ce_c_0: 1.0000, loss_voxel_sem_scal_c_0: 1.0000, loss_voxel_geo_scal_c_0: 1.0000, loss_voxel_lovasz_c_0: 1.0000, loss_voxel_ce_fine: 1.0000, loss_voxel_sem_scal_fine: 1.0000, loss_voxel_geo_scal_fine: 1.0000, loss_voxel_lovasz_fine: 1.0000, loss: 9.0000, grad_norm: 4.4576
+2023-11-01 20:34:56,650 - mmdet - INFO - Epoch [3][1050/2392]	lr: 1.000e-03, eta: 1 day, 12:47:20, time: 2.045, data_time: 0.011, memory: 13850, loss_depth: 1.0000, loss_voxel_ce_c_0: 1.0000, loss_voxel_sem_scal_c_0: 1.0000, loss_voxel_geo_scal_c_0: 1.0000, loss_voxel_lovasz_c_0: 1.0000, loss_voxel_ce_fine: 1.0000, loss_voxel_sem_scal_fine: 1.0000, loss_voxel_geo_scal_fine: 1.0000, loss_voxel_lovasz_fine: 1.0000, loss: 9.0000, grad_norm: 3.6539
+2023-11-01 20:36:39,214 - mmdet - INFO - Epoch [3][1100/2392]	lr: 1.000e-03, eta: 1 day, 12:46:03, time: 2.051, data_time: 0.011, memory: 13850, loss_depth: 1.0000, loss_voxel_ce_c_0: 1.0000, loss_voxel_sem_scal_c_0: 1.0000, loss_voxel_geo_scal_c_0: 1.0000, loss_voxel_lovasz_c_0: 1.0000, loss_voxel_ce_fine: 1.0000, loss_voxel_sem_scal_fine: 1.0000, loss_voxel_geo_scal_fine: 1.0000, loss_voxel_lovasz_fine: 1.0000, loss: 9.0000, grad_norm: 2.4808
+2023-11-01 20:38:21,518 - mmdet - INFO - Epoch [3][1150/2392]	lr: 1.000e-03, eta: 1 day, 12:44:43, time: 2.046, data_time: 0.011, memory: 13850, loss_depth: 1.0000, loss_voxel_ce_c_0: 1.0000, loss_voxel_sem_scal_c_0: 1.0000, loss_voxel_geo_scal_c_0: 1.0000, loss_voxel_lovasz_c_0: 1.0000, loss_voxel_ce_fine: 1.0000, loss_voxel_sem_scal_fine: 1.0000, loss_voxel_geo_scal_fine: 1.0000, loss_voxel_lovasz_fine: 1.0000, loss: 9.0000, grad_norm: 2.3838
+2023-11-01 20:40:03,960 - mmdet - INFO - Epoch [3][1200/2392]	lr: 1.000e-03, eta: 1 day, 12:43:24, time: 2.049, data_time: 0.011, memory: 13850, loss_depth: 1.0000, loss_voxel_ce_c_0: 1.0000, loss_voxel_sem_scal_c_0: 1.0000, loss_voxel_geo_scal_c_0: 1.0000, loss_voxel_lovasz_c_0: 1.0000, loss_voxel_ce_fine: 1.0000, loss_voxel_sem_scal_fine: 1.0000, loss_voxel_geo_scal_fine: 1.0000, loss_voxel_lovasz_fine: 1.0000, loss: 9.0000, grad_norm: 3.2707
+2023-11-01 20:41:46,288 - mmdet - INFO - Epoch [3][1250/2392]	lr: 1.000e-03, eta: 1 day, 12:42:03, time: 2.047, data_time: 0.011, memory: 13850, loss_depth: 1.0000, loss_voxel_ce_c_0: 1.0000, loss_voxel_sem_scal_c_0: 1.0000, loss_voxel_geo_scal_c_0: 1.0000, loss_voxel_lovasz_c_0: 1.0000, loss_voxel_ce_fine: 1.0000, loss_voxel_sem_scal_fine: 1.0000, loss_voxel_geo_scal_fine: 1.0000, loss_voxel_lovasz_fine: 1.0000, loss: 9.0000, grad_norm: 9.6839
+2023-11-01 20:43:28,708 - mmdet - INFO - Epoch [3][1300/2392]	lr: 1.000e-03, eta: 1 day, 12:40:44, time: 2.048, data_time: 0.011, memory: 13850, loss_depth: 1.0000, loss_voxel_ce_c_0: 1.0000, loss_voxel_sem_scal_c_0: 1.0000, loss_voxel_geo_scal_c_0: 1.0000, loss_voxel_lovasz_c_0: 1.0000, loss_voxel_ce_fine: 1.0000, loss_voxel_sem_scal_fine: 1.0000, loss_voxel_geo_scal_fine: 1.0000, loss_voxel_lovasz_fine: 1.0000, loss: 9.0000, grad_norm: 343.9576
+2023-11-01 20:45:11,255 - mmdet - INFO - Epoch [3][1350/2392]	lr: 1.000e-03, eta: 1 day, 12:39:25, time: 2.051, data_time: 0.011, memory: 13850, loss_depth: 1.0000, loss_voxel_ce_c_0: 1.0000, loss_voxel_sem_scal_c_0: 1.0000, loss_voxel_geo_scal_c_0: 1.0000, loss_voxel_lovasz_c_0: 1.0000, loss_voxel_ce_fine: 1.0000, loss_voxel_sem_scal_fine: 1.0000, loss_voxel_geo_scal_fine: 1.0000, loss_voxel_lovasz_fine: 1.0000, loss: 9.0000, grad_norm: 10.2505
+2023-11-01 20:46:53,692 - mmdet - INFO - Epoch [3][1400/2392]	lr: 1.000e-03, eta: 1 day, 12:38:04, time: 2.049, data_time: 0.011, memory: 13850, loss_depth: 1.0000, loss_voxel_ce_c_0: 1.0000, loss_voxel_sem_scal_c_0: 1.0000, loss_voxel_geo_scal_c_0: 1.0000, loss_voxel_lovasz_c_0: 1.0000, loss_voxel_ce_fine: 1.0000, loss_voxel_sem_scal_fine: 1.0000, loss_voxel_geo_scal_fine: 1.0000, loss_voxel_lovasz_fine: 1.0000, loss: 9.0000, grad_norm: 2.8151
+2023-11-01 20:48:35,980 - mmdet - INFO - Epoch [3][1450/2392]	lr: 1.000e-03, eta: 1 day, 12:36:42, time: 2.046, data_time: 0.011, memory: 13850, loss_depth: 1.0000, loss_voxel_ce_c_0: 1.0000, loss_voxel_sem_scal_c_0: 1.0000, loss_voxel_geo_scal_c_0: 1.0000, loss_voxel_lovasz_c_0: 1.0000, loss_voxel_ce_fine: 1.0000, loss_voxel_sem_scal_fine: 1.0000, loss_voxel_geo_scal_fine: 1.0000, loss_voxel_lovasz_fine: 1.0000, loss: 9.0000, grad_norm: 3.0459
+2023-11-01 20:50:18,936 - mmdet - INFO - Epoch [3][1500/2392]	lr: 1.000e-03, eta: 1 day, 12:35:26, time: 2.059, data_time: 0.011, memory: 13850, loss_depth: 1.0000, loss_voxel_ce_c_0: 1.0000, loss_voxel_sem_scal_c_0: 1.0000, loss_voxel_geo_scal_c_0: 1.0000, loss_voxel_lovasz_c_0: 1.0000, loss_voxel_ce_fine: 1.0000, loss_voxel_sem_scal_fine: 1.0000, loss_voxel_geo_scal_fine: 1.0000, loss_voxel_lovasz_fine: 1.0000, loss: 9.0000, grad_norm: 87.6307
+2023-11-01 20:52:01,508 - mmdet - INFO - Epoch [3][1550/2392]	lr: 1.000e-03, eta: 1 day, 12:34:06, time: 2.051, data_time: 0.011, memory: 13850, loss_depth: 1.0000, loss_voxel_ce_c_0: 1.0000, loss_voxel_sem_scal_c_0: 1.0000, loss_voxel_geo_scal_c_0: 1.0000, loss_voxel_lovasz_c_0: 1.0000, loss_voxel_ce_fine: 1.0000, loss_voxel_sem_scal_fine: 1.0000, loss_voxel_geo_scal_fine: 1.0000, loss_voxel_lovasz_fine: 1.0000, loss: 9.0000, grad_norm: 10.2237
+2023-11-01 20:53:44,400 - mmdet - INFO - Epoch [3][1600/2392]	lr: 1.000e-03, eta: 1 day, 12:32:49, time: 2.058, data_time: 0.011, memory: 13850, loss_depth: 1.0000, loss_voxel_ce_c_0: 1.0000, loss_voxel_sem_scal_c_0: 1.0000, loss_voxel_geo_scal_c_0: 1.0000, loss_voxel_lovasz_c_0: 1.0000, loss_voxel_ce_fine: 1.0000, loss_voxel_sem_scal_fine: 1.0000, loss_voxel_geo_scal_fine: 1.0000, loss_voxel_lovasz_fine: 1.0000, loss: 9.0000, grad_norm: 6.7234
+2023-11-01 20:55:26,969 - mmdet - INFO - Epoch [3][1650/2392]	lr: 1.000e-03, eta: 1 day, 12:31:28, time: 2.051, data_time: 0.011, memory: 13850, loss_depth: 1.0000, loss_voxel_ce_c_0: 1.0000, loss_voxel_sem_scal_c_0: 1.0000, loss_voxel_geo_scal_c_0: 1.0000, loss_voxel_lovasz_c_0: 1.0000, loss_voxel_ce_fine: 1.0000, loss_voxel_sem_scal_fine: 1.0000, loss_voxel_geo_scal_fine: 1.0000, loss_voxel_lovasz_fine: 1.0000, loss: 9.0000, grad_norm: 5.2689
+2023-11-01 20:57:09,656 - mmdet - INFO - Epoch [3][1700/2392]	lr: 1.000e-03, eta: 1 day, 12:30:08, time: 2.054, data_time: 0.011, memory: 13850, loss_depth: 1.0000, loss_voxel_ce_c_0: 1.0000, loss_voxel_sem_scal_c_0: 1.0000, loss_voxel_geo_scal_c_0: 1.0000, loss_voxel_lovasz_c_0: 1.0000, loss_voxel_ce_fine: 1.0000, loss_voxel_sem_scal_fine: 1.0000, loss_voxel_geo_scal_fine: 1.0000, loss_voxel_lovasz_fine: 1.0000, loss: 9.0000, grad_norm: 4.1927
+2023-11-01 20:58:52,033 - mmdet - INFO - Epoch [3][1750/2392]	lr: 1.000e-03, eta: 1 day, 12:28:44, time: 2.048, data_time: 0.011, memory: 13850, loss_depth: 1.0000, loss_voxel_ce_c_0: 1.0000, loss_voxel_sem_scal_c_0: 1.0000, loss_voxel_geo_scal_c_0: 1.0000, loss_voxel_lovasz_c_0: 1.0000, loss_voxel_ce_fine: 1.0000, loss_voxel_sem_scal_fine: 1.0000, loss_voxel_geo_scal_fine: 1.0000, loss_voxel_lovasz_fine: 1.0000, loss: 9.0000, grad_norm: 2.2646
+2023-11-01 21:00:34,296 - mmdet - INFO - Epoch [3][1800/2392]	lr: 1.000e-03, eta: 1 day, 12:27:19, time: 2.045, data_time: 0.011, memory: 13850, loss_depth: 1.0000, loss_voxel_ce_c_0: 1.0000, loss_voxel_sem_scal_c_0: 1.0000, loss_voxel_geo_scal_c_0: 1.0000, loss_voxel_lovasz_c_0: 1.0000, loss_voxel_ce_fine: 1.0000, loss_voxel_sem_scal_fine: 1.0000, loss_voxel_geo_scal_fine: 1.0000, loss_voxel_lovasz_fine: 1.0000, loss: 9.0000, grad_norm: 3.8854
+2023-11-01 21:02:16,838 - mmdet - INFO - Epoch [3][1850/2392]	lr: 1.000e-03, eta: 1 day, 12:25:57, time: 2.051, data_time: 0.011, memory: 13850, loss_depth: 1.0000, loss_voxel_ce_c_0: 1.0000, loss_voxel_sem_scal_c_0: 1.0000, loss_voxel_geo_scal_c_0: 1.0000, loss_voxel_lovasz_c_0: 1.0000, loss_voxel_ce_fine: 1.0000, loss_voxel_sem_scal_fine: 1.0000, loss_voxel_geo_scal_fine: 1.0000, loss_voxel_lovasz_fine: 1.0000, loss: 9.0000, grad_norm: 2.4656
+2023-11-01 21:03:59,515 - mmdet - INFO - Epoch [3][1900/2392]	lr: 1.000e-03, eta: 1 day, 12:24:36, time: 2.054, data_time: 0.011, memory: 13850, loss_depth: 1.0000, loss_voxel_ce_c_0: 1.0000, loss_voxel_sem_scal_c_0: 1.0000, loss_voxel_geo_scal_c_0: 1.0000, loss_voxel_lovasz_c_0: 1.0000, loss_voxel_ce_fine: 1.0000, loss_voxel_sem_scal_fine: 1.0000, loss_voxel_geo_scal_fine: 1.0000, loss_voxel_lovasz_fine: 1.0000, loss: 9.0000, grad_norm: 2.4151
+2023-11-01 21:05:42,074 - mmdet - INFO - Epoch [3][1950/2392]	lr: 1.000e-03, eta: 1 day, 12:23:13, time: 2.051, data_time: 0.011, memory: 13850, loss_depth: 1.0000, loss_voxel_ce_c_0: 1.0000, loss_voxel_sem_scal_c_0: 1.0000, loss_voxel_geo_scal_c_0: 1.0000, loss_voxel_lovasz_c_0: 1.0000, loss_voxel_ce_fine: 1.0000, loss_voxel_sem_scal_fine: 1.0000, loss_voxel_geo_scal_fine: 1.0000, loss_voxel_lovasz_fine: 1.0000, loss: 9.0000, grad_norm: 2.2578
+2023-11-01 21:07:24,760 - mmdet - INFO - Epoch [3][2000/2392]	lr: 1.000e-03, eta: 1 day, 12:21:51, time: 2.054, data_time: 0.011, memory: 13861, loss_depth: 1.0000, loss_voxel_ce_c_0: 1.0000, loss_voxel_sem_scal_c_0: 1.0000, loss_voxel_geo_scal_c_0: 1.0000, loss_voxel_lovasz_c_0: 1.0000, loss_voxel_ce_fine: 1.0000, loss_voxel_sem_scal_fine: 1.0000, loss_voxel_geo_scal_fine: 1.0000, loss_voxel_lovasz_fine: 1.0000, loss: 9.0000, grad_norm: 4.7997
+2023-11-01 21:09:07,200 - mmdet - INFO - Epoch [3][2050/2392]	lr: 1.000e-03, eta: 1 day, 12:20:26, time: 2.049, data_time: 0.011, memory: 13861, loss_depth: 1.0000, loss_voxel_ce_c_0: 1.0000, loss_voxel_sem_scal_c_0: 1.0000, loss_voxel_geo_scal_c_0: 1.0000, loss_voxel_lovasz_c_0: 1.0000, loss_voxel_ce_fine: 1.0000, loss_voxel_sem_scal_fine: 1.0000, loss_voxel_geo_scal_fine: 1.0000, loss_voxel_lovasz_fine: 1.0000, loss: 9.0000, grad_norm: 2.3835
+2023-11-01 21:10:49,719 - mmdet - INFO - Epoch [3][2100/2392]	lr: 1.000e-03, eta: 1 day, 12:19:02, time: 2.050, data_time: 0.011, memory: 13861, loss_depth: 1.0000, loss_voxel_ce_c_0: 1.0000, loss_voxel_sem_scal_c_0: 1.0000, loss_voxel_geo_scal_c_0: 1.0000, loss_voxel_lovasz_c_0: 1.0000, loss_voxel_ce_fine: 1.0000, loss_voxel_sem_scal_fine: 1.0000, loss_voxel_geo_scal_fine: 1.0000, loss_voxel_lovasz_fine: 1.0000, loss: 9.0000, grad_norm: 2.3041
+2023-11-01 21:12:32,121 - mmdet - INFO - Epoch [3][2150/2392]	lr: 1.000e-03, eta: 1 day, 12:17:37, time: 2.048, data_time: 0.011, memory: 13861, loss_depth: 1.0000, loss_voxel_ce_c_0: 1.0000, loss_voxel_sem_scal_c_0: 1.0000, loss_voxel_geo_scal_c_0: 1.0000, loss_voxel_lovasz_c_0: 1.0000, loss_voxel_ce_fine: 1.0000, loss_voxel_sem_scal_fine: 1.0000, loss_voxel_geo_scal_fine: 1.0000, loss_voxel_lovasz_fine: 1.0000, loss: 9.0000, grad_norm: 2.3900
+2023-11-01 21:14:14,868 - mmdet - INFO - Epoch [3][2200/2392]	lr: 1.000e-03, eta: 1 day, 12:16:14, time: 2.055, data_time: 0.011, memory: 13861, loss_depth: 1.0000, loss_voxel_ce_c_0: 1.0000, loss_voxel_sem_scal_c_0: 1.0000, loss_voxel_geo_scal_c_0: 1.0000, loss_voxel_lovasz_c_0: 1.0000, loss_voxel_ce_fine: 1.0000, loss_voxel_sem_scal_fine: 1.0000, loss_voxel_geo_scal_fine: 1.0000, loss_voxel_lovasz_fine: 1.0000, loss: 9.0000, grad_norm: 2.4166
+2023-11-01 21:15:57,184 - mmdet - INFO - Epoch [3][2250/2392]	lr: 1.000e-03, eta: 1 day, 12:14:47, time: 2.046, data_time: 0.011, memory: 13861, loss_depth: 1.0000, loss_voxel_ce_c_0: 1.0000, loss_voxel_sem_scal_c_0: 1.0000, loss_voxel_geo_scal_c_0: 1.0000, loss_voxel_lovasz_c_0: 1.0000, loss_voxel_ce_fine: 1.0000, loss_voxel_sem_scal_fine: 1.0000, loss_voxel_geo_scal_fine: 1.0000, loss_voxel_lovasz_fine: 1.0000, loss: 9.0000, grad_norm: 12.1649
+2023-11-01 21:17:39,773 - mmdet - INFO - Epoch [3][2300/2392]	lr: 1.000e-03, eta: 1 day, 12:13:23, time: 2.052, data_time: 0.011, memory: 13861, loss_depth: 1.0000, loss_voxel_ce_c_0: 1.0000, loss_voxel_sem_scal_c_0: 1.0000, loss_voxel_geo_scal_c_0: 1.0000, loss_voxel_lovasz_c_0: 1.0000, loss_voxel_ce_fine: 1.0000, loss_voxel_sem_scal_fine: 1.0000, loss_voxel_geo_scal_fine: 1.0000, loss_voxel_lovasz_fine: 1.0000, loss: 9.0000, grad_norm: 9.7322
+2023-11-01 21:19:22,442 - mmdet - INFO - Epoch [3][2350/2392]	lr: 1.000e-03, eta: 1 day, 12:11:59, time: 2.053, data_time: 0.011, memory: 13861, loss_depth: 1.0000, loss_voxel_ce_c_0: 1.0000, loss_voxel_sem_scal_c_0: 1.0000, loss_voxel_geo_scal_c_0: 1.0000, loss_voxel_lovasz_c_0: 1.0000, loss_voxel_ce_fine: 1.0000, loss_voxel_sem_scal_fine: 1.0000, loss_voxel_geo_scal_fine: 1.0000, loss_voxel_lovasz_fine: 1.0000, loss: 9.0000, grad_norm: 2.7526
+2023-11-01 21:20:48,767 - mmdet - INFO - Saving checkpoint at 3 epochs
+2023-11-01 21:20:55,338 - mmdet - INFO - | name                                       | #elements or shape   |
+|:-------------------------------------------|:---------------------|
+| model                                      | 0.2G                 |
+|  module                                    |  0.2G                |
+|   module.pts_middle_encoder                |   3.5M               |
+|    module.pts_middle_encoder.conv_input    |    1.8K              |
+|    module.pts_middle_encoder.conv1         |    0.1M              |
+|    module.pts_middle_encoder.conv2         |    0.5M              |
+|    module.pts_middle_encoder.conv3         |    2.0M              |
+|    module.pts_middle_encoder.conv_out      |    0.9M              |
+|   module.pts_bbox_head                     |   3.6M               |
+|    module.pts_bbox_head.img_mlp_0          |    65.9K             |
+|    module.pts_bbox_head.img_mlp            |    8.4K              |
+|    module.pts_bbox_head.fine_mlp           |    13.8K             |
+|    module.pts_bbox_head.occ_convs          |    3.5M              |
+|    module.pts_bbox_head.occ_pred_conv      |    9.6K              |
+|    module.pts_bbox_head.voxel_soft_weights |    8.6K              |
+|   module.img_backbone                      |   23.5M              |
+|    module.img_backbone.conv1               |    9.4K              |
+|    module.img_backbone.bn1                 |    0.1K              |
+|    module.img_backbone.layer1              |    0.2M              |
+|    module.img_backbone.layer2              |    1.2M              |
+|    module.img_backbone.layer3              |    7.1M              |
+|    module.img_backbone.layer4              |    15.0M             |
+|   module.img_neck                          |   2.0M               |
+|    module.img_neck.deblocks                |    2.0M              |
+|   module.img_view_transformer              |   28.6M              |
+|    module.img_view_transformer.dx          |    (3,)              |
+|    module.img_view_transformer.bx          |    (3,)              |
+|    module.img_view_transformer.nx          |    (3,)              |
+|    module.img_view_transformer.frustum     |    (112, 24, 80, 3)  |
+|    module.img_view_transformer.depth_net   |    27.9M             |
+|   module.occ_fuser                         |   17.8M              |
+|    module.occ_fuser.con_enc                |    17.7M             |
+|    module.occ_fuser.knn_enc                |    65.8K             |
+|   module.semantic_encoder                  |   0.1G               |
+|    module.semantic_encoder.input_proj      |    33.0K             |
+|    module.semantic_encoder.layers          |    0.1G              |
+|   module.semantic_neck                     |   7.6M               |
+|    module.semantic_neck.lateral_convs      |    0.5M              |
+|    module.semantic_neck.fpn_convs          |    7.1M              |
+2023-11-01 21:30:24,321 - mmdet - INFO - SC Evaluation
+2023-11-01 21:30:24,321 - mmdet - INFO - +-----------+-------+
+|   class   |  IoU  |
++-----------+-------+
+| non-empty | 0.396 |
++-----------+-------+
+2023-11-01 21:30:24,322 - mmdet - INFO - SSC Evaluation
+2023-11-01 21:30:24,322 - mmdet - INFO - +---------------+-------+
+|     class     |  IoU  |
++---------------+-------+
+|   unlabeled   | 0.946 |
+|      car      | 0.403 |
+|    bicycle    |  0.0  |
+|   motorcycle  | 0.005 |
+|     truck     | 0.075 |
+| other-vehicle | 0.033 |
+|     person    | 0.006 |
+|   bicyclist   | 0.005 |
+|  motorcyclist |  0.0  |
+|      road     | 0.574 |
+|    parking    | 0.129 |
+|    sidewalk   |  0.31 |
+|  other-ground |  0.0  |
+|    building   |  0.34 |
+|     fence     | 0.084 |
+|   vegetation  | 0.384 |
+|     trunk     | 0.119 |
+|    terrain    | 0.418 |
+|      pole     | 0.191 |
+|  traffic-sign | 0.102 |
+|      mean     | 0.167 |
++---------------+-------+
+2023-11-01 21:30:24,331 - mmdet - INFO - SSC fine Evaluation
+2023-11-01 21:30:24,331 - mmdet - INFO - +---------------+-------+
+|     class     |  IoU  |
++---------------+-------+
+|   unlabeled   | 0.947 |
+|      car      |  0.3  |
+|    bicycle    | 0.001 |
+|   motorcycle  | 0.003 |
+|     truck     | 0.035 |
+| other-vehicle | 0.019 |
+|     person    | 0.006 |
+|   bicyclist   | 0.002 |
+|  motorcyclist |  0.0  |
+|      road     | 0.484 |
+|    parking    |  0.11 |
+|    sidewalk   | 0.288 |
+|  other-ground | 0.001 |
+|    building   | 0.262 |
+|     fence     | 0.088 |
+|   vegetation  | 0.252 |
+|     trunk     | 0.093 |
+|    terrain    | 0.329 |
+|      pole     | 0.157 |
+|  traffic-sign | 0.087 |
+|      mean     | 0.132 |
++---------------+-------+
+2023-11-01 21:30:24,332 - mmdet - INFO - SemanticKITTI SSC Evaluation
+2023-11-01 21:30:24,332 - mmdet - INFO - {'semkitti_SC_Precision': 64.42, 'semkitti_SC_Recall': 79.3, 'semkitti_SC_IoU': 55.15, 'semkitti_SSC_mIoU': 16.74, 'semkitti_SSC_unlabeled_IoU': 96.27, 'semkitti_SSC_car_IoU': 40.28, 'semkitti_SSC_bicycle_IoU': 0.04, 'semkitti_SSC_motorcycle_IoU': 0.54, 'semkitti_SSC_truck_IoU': 7.51, 'semkitti_SSC_other-vehicle_IoU': 3.35, 'semkitti_SSC_person_IoU': 0.59, 'semkitti_SSC_bicyclist_IoU': 0.5, 'semkitti_SSC_motorcyclist_IoU': 0.0, 'semkitti_SSC_road_IoU': 57.44, 'semkitti_SSC_parking_IoU': 12.92, 'semkitti_SSC_sidewalk_IoU': 30.97, 'semkitti_SSC_other-ground_IoU': 0.01, 'semkitti_SSC_building_IoU': 34.02, 'semkitti_SSC_fence_IoU': 8.37, 'semkitti_SSC_vegetation_IoU': 38.39, 'semkitti_SSC_trunk_IoU': 11.93, 'semkitti_SSC_terrain_IoU': 41.81, 'semkitti_SSC_pole_IoU': 19.13, 'semkitti_SSC_traffic-sign_IoU': 10.17, 'semkitti_combined_IoU': 71.89, 'SC_non-empty': 0.396, 'SSC_unlabeled': 0.946, 'SSC_car': 0.403, 'SSC_bicycle': 0.0, 'SSC_motorcycle': 0.005, 'SSC_truck': 0.075, 'SSC_other-vehicle': 0.033, 'SSC_person': 0.006, 'SSC_bicyclist': 0.005, 'SSC_motorcyclist': 0.0, 'SSC_road': 0.574, 'SSC_parking': 0.129, 'SSC_sidewalk': 0.31, 'SSC_other-ground': 0.0, 'SSC_building': 0.34, 'SSC_fence': 0.084, 'SSC_vegetation': 0.384, 'SSC_trunk': 0.119, 'SSC_terrain': 0.418, 'SSC_pole': 0.191, 'SSC_traffic-sign': 0.102, 'SSC_mean': 0.167, 'SSC_fine_unlabeled': 0.947, 'SSC_fine_car': 0.3, 'SSC_fine_bicycle': 0.001, 'SSC_fine_motorcycle': 0.003, 'SSC_fine_truck': 0.035, 'SSC_fine_other-vehicle': 0.019, 'SSC_fine_person': 0.006, 'SSC_fine_bicyclist': 0.002, 'SSC_fine_motorcyclist': 0.0, 'SSC_fine_road': 0.484, 'SSC_fine_parking': 0.11, 'SSC_fine_sidewalk': 0.288, 'SSC_fine_other-ground': 0.001, 'SSC_fine_building': 0.262, 'SSC_fine_fence': 0.088, 'SSC_fine_vegetation': 0.252, 'SSC_fine_trunk': 0.093, 'SSC_fine_terrain': 0.329, 'SSC_fine_pole': 0.157, 'SSC_fine_traffic-sign': 0.087, 'SSC_fine_mean': 0.132}
+2023-11-01 21:30:24,335 - mmdet - INFO - Exp name: cascade_multi_kitti.py
+2023-11-01 21:30:24,335 - mmdet - INFO - Epoch(val) [3][509]	semkitti_SC_Precision: 64.4200, semkitti_SC_Recall: 79.3000, semkitti_SC_IoU: 55.1500, semkitti_SSC_mIoU: 16.7400, semkitti_SSC_unlabeled_IoU: 96.2700, semkitti_SSC_car_IoU: 40.2800, semkitti_SSC_bicycle_IoU: 0.0400, semkitti_SSC_motorcycle_IoU: 0.5400, semkitti_SSC_truck_IoU: 7.5100, semkitti_SSC_other-vehicle_IoU: 3.3500, semkitti_SSC_person_IoU: 0.5900, semkitti_SSC_bicyclist_IoU: 0.5000, semkitti_SSC_motorcyclist_IoU: 0.0000, semkitti_SSC_road_IoU: 57.4400, semkitti_SSC_parking_IoU: 12.9200, semkitti_SSC_sidewalk_IoU: 30.9700, semkitti_SSC_other-ground_IoU: 0.0100, semkitti_SSC_building_IoU: 34.0200, semkitti_SSC_fence_IoU: 8.3700, semkitti_SSC_vegetation_IoU: 38.3900, semkitti_SSC_trunk_IoU: 11.9300, semkitti_SSC_terrain_IoU: 41.8100, semkitti_SSC_pole_IoU: 19.1300, semkitti_SSC_traffic-sign_IoU: 10.1700, semkitti_combined_IoU: 71.8900, SC_non-empty: 0.3960, SSC_unlabeled: 0.9460, SSC_car: 0.4030, SSC_bicycle: 0.0000, SSC_motorcycle: 0.0050, SSC_truck: 0.0750, SSC_other-vehicle: 0.0330, SSC_person: 0.0060, SSC_bicyclist: 0.0050, SSC_motorcyclist: 0.0000, SSC_road: 0.5740, SSC_parking: 0.1290, SSC_sidewalk: 0.3100, SSC_other-ground: 0.0000, SSC_building: 0.3400, SSC_fence: 0.0840, SSC_vegetation: 0.3840, SSC_trunk: 0.1190, SSC_terrain: 0.4180, SSC_pole: 0.1910, SSC_traffic-sign: 0.1020, SSC_mean: 0.1670, SSC_fine_unlabeled: 0.9470, SSC_fine_car: 0.3000, SSC_fine_bicycle: 0.0010, SSC_fine_motorcycle: 0.0030, SSC_fine_truck: 0.0350, SSC_fine_other-vehicle: 0.0190, SSC_fine_person: 0.0060, SSC_fine_bicyclist: 0.0020, SSC_fine_motorcyclist: 0.0000, SSC_fine_road: 0.4840, SSC_fine_parking: 0.1100, SSC_fine_sidewalk: 0.2880, SSC_fine_other-ground: 0.0010, SSC_fine_building: 0.2620, SSC_fine_fence: 0.0880, SSC_fine_vegetation: 0.2520, SSC_fine_trunk: 0.0930, SSC_fine_terrain: 0.3290, SSC_fine_pole: 0.1570, SSC_fine_traffic-sign: 0.0870, SSC_fine_mean: 0.1320
+2023-11-01 21:32:10,333 - mmdet - INFO - Epoch [4][50/2392]	lr: 1.000e-03, eta: 1 day, 11:57:03, time: 2.119, data_time: 0.079, memory: 13862, loss_depth: 1.0000, loss_voxel_ce_c_0: 1.0000, loss_voxel_sem_scal_c_0: 1.0000, loss_voxel_geo_scal_c_0: 1.0000, loss_voxel_lovasz_c_0: 1.0000, loss_voxel_ce_fine: 1.0000, loss_voxel_sem_scal_fine: 1.0000, loss_voxel_geo_scal_fine: 1.0000, loss_voxel_lovasz_fine: 1.0000, loss: 9.0000, grad_norm: 5.6874
+2023-11-01 21:33:52,794 - mmdet - INFO - Epoch [4][100/2392]	lr: 1.000e-03, eta: 1 day, 11:55:42, time: 2.049, data_time: 0.012, memory: 13862, loss_depth: 1.0000, loss_voxel_ce_c_0: 1.0000, loss_voxel_sem_scal_c_0: 1.0000, loss_voxel_geo_scal_c_0: 1.0000, loss_voxel_lovasz_c_0: 1.0000, loss_voxel_ce_fine: 1.0000, loss_voxel_sem_scal_fine: 1.0000, loss_voxel_geo_scal_fine: 1.0000, loss_voxel_lovasz_fine: 1.0000, loss: 9.0000, grad_norm: 187.7859
+2023-11-01 21:35:35,123 - mmdet - INFO - Epoch [4][150/2392]	lr: 1.000e-03, eta: 1 day, 11:54:20, time: 2.047, data_time: 0.012, memory: 13862, loss_depth: 1.0000, loss_voxel_ce_c_0: 1.0000, loss_voxel_sem_scal_c_0: 1.0000, loss_voxel_geo_scal_c_0: 1.0000, loss_voxel_lovasz_c_0: 1.0000, loss_voxel_ce_fine: 1.0000, loss_voxel_sem_scal_fine: 1.0000, loss_voxel_geo_scal_fine: 1.0000, loss_voxel_lovasz_fine: 1.0000, loss: 9.0000, grad_norm: 10.6553
+2023-11-01 21:37:17,384 - mmdet - INFO - Epoch [4][200/2392]	lr: 1.000e-03, eta: 1 day, 11:52:56, time: 2.045, data_time: 0.012, memory: 13862, loss_depth: 1.0000, loss_voxel_ce_c_0: 1.0000, loss_voxel_sem_scal_c_0: 1.0000, loss_voxel_geo_scal_c_0: 1.0000, loss_voxel_lovasz_c_0: 1.0000, loss_voxel_ce_fine: 1.0000, loss_voxel_sem_scal_fine: 1.0000, loss_voxel_geo_scal_fine: 1.0000, loss_voxel_lovasz_fine: 1.0000, loss: 9.0000, grad_norm: 2.3305
+2023-11-01 21:38:59,777 - mmdet - INFO - Epoch [4][250/2392]	lr: 1.000e-03, eta: 1 day, 11:51:34, time: 2.048, data_time: 0.012, memory: 13862, loss_depth: 1.0000, loss_voxel_ce_c_0: 1.0000, loss_voxel_sem_scal_c_0: 1.0000, loss_voxel_geo_scal_c_0: 1.0000, loss_voxel_lovasz_c_0: 1.0000, loss_voxel_ce_fine: 1.0000, loss_voxel_sem_scal_fine: 1.0000, loss_voxel_geo_scal_fine: 1.0000, loss_voxel_lovasz_fine: 1.0000, loss: 9.0000, grad_norm: 2.2940
+2023-11-01 21:40:42,575 - mmdet - INFO - Epoch [4][300/2392]	lr: 1.000e-03, eta: 1 day, 11:50:15, time: 2.056, data_time: 0.012, memory: 13862, loss_depth: 1.0000, loss_voxel_ce_c_0: 1.0000, loss_voxel_sem_scal_c_0: 1.0000, loss_voxel_geo_scal_c_0: 1.0000, loss_voxel_lovasz_c_0: 1.0000, loss_voxel_ce_fine: 1.0000, loss_voxel_sem_scal_fine: 1.0000, loss_voxel_geo_scal_fine: 1.0000, loss_voxel_lovasz_fine: 1.0000, loss: 9.0000, grad_norm: 2.2036
+2023-11-01 21:42:24,895 - mmdet - INFO - Epoch [4][350/2392]	lr: 1.000e-03, eta: 1 day, 11:48:51, time: 2.046, data_time: 0.011, memory: 13862, loss_depth: 1.0000, loss_voxel_ce_c_0: 1.0000, loss_voxel_sem_scal_c_0: 1.0000, loss_voxel_geo_scal_c_0: 1.0000, loss_voxel_lovasz_c_0: 1.0000, loss_voxel_ce_fine: 1.0000, loss_voxel_sem_scal_fine: 1.0000, loss_voxel_geo_scal_fine: 1.0000, loss_voxel_lovasz_fine: 1.0000, loss: 9.0000, grad_norm: 3.5155
+2023-11-01 21:44:07,188 - mmdet - INFO - Epoch [4][400/2392]	lr: 1.000e-03, eta: 1 day, 11:47:27, time: 2.046, data_time: 0.011, memory: 13862, loss_depth: 1.0000, loss_voxel_ce_c_0: 1.0000, loss_voxel_sem_scal_c_0: 1.0000, loss_voxel_geo_scal_c_0: 1.0000, loss_voxel_lovasz_c_0: 1.0000, loss_voxel_ce_fine: 1.0000, loss_voxel_sem_scal_fine: 1.0000, loss_voxel_geo_scal_fine: 1.0000, loss_voxel_lovasz_fine: 1.0000, loss: 9.0000, grad_norm: 2.3440
+2023-11-01 21:45:49,593 - mmdet - INFO - Epoch [4][450/2392]	lr: 1.000e-03, eta: 1 day, 11:46:04, time: 2.048, data_time: 0.012, memory: 13862, loss_depth: 1.0000, loss_voxel_ce_c_0: 1.0000, loss_voxel_sem_scal_c_0: 1.0000, loss_voxel_geo_scal_c_0: 1.0000, loss_voxel_lovasz_c_0: 1.0000, loss_voxel_ce_fine: 1.0000, loss_voxel_sem_scal_fine: 1.0000, loss_voxel_geo_scal_fine: 1.0000, loss_voxel_lovasz_fine: 1.0000, loss: 9.0000, grad_norm: 14.1803
+2023-11-01 21:47:32,021 - mmdet - INFO - Epoch [4][500/2392]	lr: 1.000e-03, eta: 1 day, 11:44:41, time: 2.049, data_time: 0.012, memory: 13862, loss_depth: 1.0000, loss_voxel_ce_c_0: 1.0000, loss_voxel_sem_scal_c_0: 1.0000, loss_voxel_geo_scal_c_0: 1.0000, loss_voxel_lovasz_c_0: 1.0000, loss_voxel_ce_fine: 1.0000, loss_voxel_sem_scal_fine: 1.0000, loss_voxel_geo_scal_fine: 1.0000, loss_voxel_lovasz_fine: 1.0000, loss: 9.0000, grad_norm: 3.5698
+2023-11-01 21:49:14,681 - mmdet - INFO - Epoch [4][550/2392]	lr: 1.000e-03, eta: 1 day, 11:43:19, time: 2.053, data_time: 0.012, memory: 13862, loss_depth: 1.0000, loss_voxel_ce_c_0: 1.0000, loss_voxel_sem_scal_c_0: 1.0000, loss_voxel_geo_scal_c_0: 1.0000, loss_voxel_lovasz_c_0: 1.0000, loss_voxel_ce_fine: 1.0000, loss_voxel_sem_scal_fine: 1.0000, loss_voxel_geo_scal_fine: 1.0000, loss_voxel_lovasz_fine: 1.0000, loss: 9.0000, grad_norm: 7.8679
+2023-11-01 21:50:57,179 - mmdet - INFO - Epoch [4][600/2392]	lr: 1.000e-03, eta: 1 day, 11:41:56, time: 2.050, data_time: 0.012, memory: 13862, loss_depth: 1.0000, loss_voxel_ce_c_0: 1.0000, loss_voxel_sem_scal_c_0: 1.0000, loss_voxel_geo_scal_c_0: 1.0000, loss_voxel_lovasz_c_0: 1.0000, loss_voxel_ce_fine: 1.0000, loss_voxel_sem_scal_fine: 1.0000, loss_voxel_geo_scal_fine: 1.0000, loss_voxel_lovasz_fine: 1.0000, loss: 9.0000, grad_norm: 8.1954
+2023-11-01 21:52:39,915 - mmdet - INFO - Epoch [4][650/2392]	lr: 1.000e-03, eta: 1 day, 11:40:34, time: 2.055, data_time: 0.012, memory: 13862, loss_depth: 1.0000, loss_voxel_ce_c_0: 1.0000, loss_voxel_sem_scal_c_0: 1.0000, loss_voxel_geo_scal_c_0: 1.0000, loss_voxel_lovasz_c_0: 1.0000, loss_voxel_ce_fine: 1.0000, loss_voxel_sem_scal_fine: 1.0000, loss_voxel_geo_scal_fine: 1.0000, loss_voxel_lovasz_fine: 1.0000, loss: 9.0000, grad_norm: 2.7822
+2023-11-01 21:54:22,476 - mmdet - INFO - Epoch [4][700/2392]	lr: 1.000e-03, eta: 1 day, 11:39:11, time: 2.051, data_time: 0.012, memory: 13862, loss_depth: 1.0000, loss_voxel_ce_c_0: 1.0000, loss_voxel_sem_scal_c_0: 1.0000, loss_voxel_geo_scal_c_0: 1.0000, loss_voxel_lovasz_c_0: 1.0000, loss_voxel_ce_fine: 1.0000, loss_voxel_sem_scal_fine: 1.0000, loss_voxel_geo_scal_fine: 1.0000, loss_voxel_lovasz_fine: 1.0000, loss: 9.0000, grad_norm: 43.2352
+2023-11-01 21:56:04,806 - mmdet - INFO - Epoch [4][750/2392]	lr: 1.000e-03, eta: 1 day, 11:37:46, time: 2.047, data_time: 0.012, memory: 13862, loss_depth: 1.0000, loss_voxel_ce_c_0: 1.0000, loss_voxel_sem_scal_c_0: 1.0000, loss_voxel_geo_scal_c_0: 1.0000, loss_voxel_lovasz_c_0: 1.0000, loss_voxel_ce_fine: 1.0000, loss_voxel_sem_scal_fine: 1.0000, loss_voxel_geo_scal_fine: 1.0000, loss_voxel_lovasz_fine: 1.0000, loss: 9.0000, grad_norm: 2.8346
+2023-11-01 21:57:47,456 - mmdet - INFO - Epoch [4][800/2392]	lr: 1.000e-03, eta: 1 day, 11:36:23, time: 2.053, data_time: 0.012, memory: 13862, loss_depth: 1.0000, loss_voxel_ce_c_0: 1.0000, loss_voxel_sem_scal_c_0: 1.0000, loss_voxel_geo_scal_c_0: 1.0000, loss_voxel_lovasz_c_0: 1.0000, loss_voxel_ce_fine: 1.0000, loss_voxel_sem_scal_fine: 1.0000, loss_voxel_geo_scal_fine: 1.0000, loss_voxel_lovasz_fine: 1.0000, loss: 9.0000, grad_norm: 18.1163
+2023-11-01 21:59:29,935 - mmdet - INFO - Epoch [4][850/2392]	lr: 1.000e-03, eta: 1 day, 11:34:58, time: 2.050, data_time: 0.012, memory: 13862, loss_depth: 1.0000, loss_voxel_ce_c_0: 1.0000, loss_voxel_sem_scal_c_0: 1.0000, loss_voxel_geo_scal_c_0: 1.0000, loss_voxel_lovasz_c_0: 1.0000, loss_voxel_ce_fine: 1.0000, loss_voxel_sem_scal_fine: 1.0000, loss_voxel_geo_scal_fine: 1.0000, loss_voxel_lovasz_fine: 1.0000, loss: 9.0000, grad_norm: 22.7307
+2023-11-01 22:01:12,444 - mmdet - INFO - Epoch [4][900/2392]	lr: 1.000e-03, eta: 1 day, 11:33:33, time: 2.050, data_time: 0.012, memory: 13862, loss_depth: 1.0000, loss_voxel_ce_c_0: 1.0000, loss_voxel_sem_scal_c_0: 1.0000, loss_voxel_geo_scal_c_0: 1.0000, loss_voxel_lovasz_c_0: 1.0000, loss_voxel_ce_fine: 1.0000, loss_voxel_sem_scal_fine: 1.0000, loss_voxel_geo_scal_fine: 1.0000, loss_voxel_lovasz_fine: 1.0000, loss: 9.0000, grad_norm: 15.4827
+2023-11-01 22:02:54,908 - mmdet - INFO - Epoch [4][950/2392]	lr: 1.000e-03, eta: 1 day, 11:32:08, time: 2.049, data_time: 0.012, memory: 13862, loss_depth: 1.0000, loss_voxel_ce_c_0: 1.0000, loss_voxel_sem_scal_c_0: 1.0000, loss_voxel_geo_scal_c_0: 1.0000, loss_voxel_lovasz_c_0: 1.0000, loss_voxel_ce_fine: 1.0000, loss_voxel_sem_scal_fine: 1.0000, loss_voxel_geo_scal_fine: 1.0000, loss_voxel_lovasz_fine: 1.0000, loss: 9.0000, grad_norm: 2.2850
+2023-11-01 22:04:37,302 - mmdet - INFO - Epoch [4][1000/2392]	lr: 1.000e-03, eta: 1 day, 11:30:42, time: 2.048, data_time: 0.012, memory: 13862, loss_depth: 1.0000, loss_voxel_ce_c_0: 1.0000, loss_voxel_sem_scal_c_0: 1.0000, loss_voxel_geo_scal_c_0: 1.0000, loss_voxel_lovasz_c_0: 1.0000, loss_voxel_ce_fine: 1.0000, loss_voxel_sem_scal_fine: 1.0000, loss_voxel_geo_scal_fine: 1.0000, loss_voxel_lovasz_fine: 1.0000, loss: 9.0000, grad_norm: 2.6793
+2023-11-01 22:06:19,600 - mmdet - INFO - Epoch [4][1050/2392]	lr: 1.000e-03, eta: 1 day, 11:29:15, time: 2.046, data_time: 0.012, memory: 13862, loss_depth: 1.0000, loss_voxel_ce_c_0: 1.0000, loss_voxel_sem_scal_c_0: 1.0000, loss_voxel_geo_scal_c_0: 1.0000, loss_voxel_lovasz_c_0: 1.0000, loss_voxel_ce_fine: 1.0000, loss_voxel_sem_scal_fine: 1.0000, loss_voxel_geo_scal_fine: 1.0000, loss_voxel_lovasz_fine: 1.0000, loss: 9.0000, grad_norm: 2.1160
+2023-11-01 22:08:02,034 - mmdet - INFO - Epoch [4][1100/2392]	lr: 1.000e-03, eta: 1 day, 11:27:49, time: 2.049, data_time: 0.012, memory: 13862, loss_depth: 1.0000, loss_voxel_ce_c_0: 1.0000, loss_voxel_sem_scal_c_0: 1.0000, loss_voxel_geo_scal_c_0: 1.0000, loss_voxel_lovasz_c_0: 1.0000, loss_voxel_ce_fine: 1.0000, loss_voxel_sem_scal_fine: 1.0000, loss_voxel_geo_scal_fine: 1.0000, loss_voxel_lovasz_fine: 1.0000, loss: 9.0000, grad_norm: 2.5157
+2023-11-01 22:09:44,389 - mmdet - INFO - Epoch [4][1150/2392]	lr: 1.000e-03, eta: 1 day, 11:26:23, time: 2.047, data_time: 0.011, memory: 13862, loss_depth: 1.0000, loss_voxel_ce_c_0: 1.0000, loss_voxel_sem_scal_c_0: 1.0000, loss_voxel_geo_scal_c_0: 1.0000, loss_voxel_lovasz_c_0: 1.0000, loss_voxel_ce_fine: 1.0000, loss_voxel_sem_scal_fine: 1.0000, loss_voxel_geo_scal_fine: 1.0000, loss_voxel_lovasz_fine: 1.0000, loss: 9.0000, grad_norm: 2.4454
+2023-11-01 22:11:26,656 - mmdet - INFO - Epoch [4][1200/2392]	lr: 1.000e-03, eta: 1 day, 11:24:55, time: 2.045, data_time: 0.011, memory: 13862, loss_depth: 1.0000, loss_voxel_ce_c_0: 1.0000, loss_voxel_sem_scal_c_0: 1.0000, loss_voxel_geo_scal_c_0: 1.0000, loss_voxel_lovasz_c_0: 1.0000, loss_voxel_ce_fine: 1.0000, loss_voxel_sem_scal_fine: 1.0000, loss_voxel_geo_scal_fine: 1.0000, loss_voxel_lovasz_fine: 1.0000, loss: 9.0000, grad_norm: 5.0389
+2023-11-01 22:13:09,323 - mmdet - INFO - Epoch [4][1250/2392]	lr: 1.000e-03, eta: 1 day, 11:23:30, time: 2.053, data_time: 0.011, memory: 13862, loss_depth: 1.0000, loss_voxel_ce_c_0: 1.0000, loss_voxel_sem_scal_c_0: 1.0000, loss_voxel_geo_scal_c_0: 1.0000, loss_voxel_lovasz_c_0: 1.0000, loss_voxel_ce_fine: 1.0000, loss_voxel_sem_scal_fine: 1.0000, loss_voxel_geo_scal_fine: 1.0000, loss_voxel_lovasz_fine: 1.0000, loss: 9.0000, grad_norm: 2.6453
+2023-11-01 22:14:51,746 - mmdet - INFO - Epoch [4][1300/2392]	lr: 1.000e-03, eta: 1 day, 11:22:03, time: 2.048, data_time: 0.012, memory: 13862, loss_depth: 1.0000, loss_voxel_ce_c_0: 1.0000, loss_voxel_sem_scal_c_0: 1.0000, loss_voxel_geo_scal_c_0: 1.0000, loss_voxel_lovasz_c_0: 1.0000, loss_voxel_ce_fine: 1.0000, loss_voxel_sem_scal_fine: 1.0000, loss_voxel_geo_scal_fine: 1.0000, loss_voxel_lovasz_fine: 1.0000, loss: 9.0000, grad_norm: 2.4130
+2023-11-01 22:16:34,155 - mmdet - INFO - Epoch [4][1350/2392]	lr: 1.000e-03, eta: 1 day, 11:20:36, time: 2.048, data_time: 0.012, memory: 13862, loss_depth: 1.0000, loss_voxel_ce_c_0: 1.0000, loss_voxel_sem_scal_c_0: 1.0000, loss_voxel_geo_scal_c_0: 1.0000, loss_voxel_lovasz_c_0: 1.0000, loss_voxel_ce_fine: 1.0000, loss_voxel_sem_scal_fine: 1.0000, loss_voxel_geo_scal_fine: 1.0000, loss_voxel_lovasz_fine: 1.0000, loss: 9.0000, grad_norm: 2.2262
+2023-11-01 22:18:16,707 - mmdet - INFO - Epoch [4][1400/2392]	lr: 1.000e-03, eta: 1 day, 11:19:10, time: 2.051, data_time: 0.012, memory: 13862, loss_depth: 1.0000, loss_voxel_ce_c_0: 1.0000, loss_voxel_sem_scal_c_0: 1.0000, loss_voxel_geo_scal_c_0: 1.0000, loss_voxel_lovasz_c_0: 1.0000, loss_voxel_ce_fine: 1.0000, loss_voxel_sem_scal_fine: 1.0000, loss_voxel_geo_scal_fine: 1.0000, loss_voxel_lovasz_fine: 1.0000, loss: 9.0000, grad_norm: 2.1761
+2023-11-01 22:19:59,076 - mmdet - INFO - Epoch [4][1450/2392]	lr: 1.000e-03, eta: 1 day, 11:17:42, time: 2.047, data_time: 0.012, memory: 13862, loss_depth: 1.0000, loss_voxel_ce_c_0: 1.0000, loss_voxel_sem_scal_c_0: 1.0000, loss_voxel_geo_scal_c_0: 1.0000, loss_voxel_lovasz_c_0: 1.0000, loss_voxel_ce_fine: 1.0000, loss_voxel_sem_scal_fine: 1.0000, loss_voxel_geo_scal_fine: 1.0000, loss_voxel_lovasz_fine: 1.0000, loss: 9.0000, grad_norm: 2.3039
+2023-11-01 22:21:41,914 - mmdet - INFO - Epoch [4][1500/2392]	lr: 1.000e-03, eta: 1 day, 11:16:17, time: 2.057, data_time: 0.012, memory: 13862, loss_depth: 1.0000, loss_voxel_ce_c_0: 1.0000, loss_voxel_sem_scal_c_0: 1.0000, loss_voxel_geo_scal_c_0: 1.0000, loss_voxel_lovasz_c_0: 1.0000, loss_voxel_ce_fine: 1.0000, loss_voxel_sem_scal_fine: 1.0000, loss_voxel_geo_scal_fine: 1.0000, loss_voxel_lovasz_fine: 1.0000, loss: 9.0000, grad_norm: 2.4446
+2023-11-01 22:23:24,317 - mmdet - INFO - Epoch [4][1550/2392]	lr: 1.000e-03, eta: 1 day, 11:14:49, time: 2.048, data_time: 0.012, memory: 13862, loss_depth: 1.0000, loss_voxel_ce_c_0: 1.0000, loss_voxel_sem_scal_c_0: 1.0000, loss_voxel_geo_scal_c_0: 1.0000, loss_voxel_lovasz_c_0: 1.0000, loss_voxel_ce_fine: 1.0000, loss_voxel_sem_scal_fine: 1.0000, loss_voxel_geo_scal_fine: 1.0000, loss_voxel_lovasz_fine: 1.0000, loss: 9.0000, grad_norm: 3.3578
+2023-11-01 22:25:06,778 - mmdet - INFO - Epoch [4][1600/2392]	lr: 1.000e-03, eta: 1 day, 11:13:22, time: 2.049, data_time: 0.012, memory: 13862, loss_depth: 1.0000, loss_voxel_ce_c_0: 1.0000, loss_voxel_sem_scal_c_0: 1.0000, loss_voxel_geo_scal_c_0: 1.0000, loss_voxel_lovasz_c_0: 1.0000, loss_voxel_ce_fine: 1.0000, loss_voxel_sem_scal_fine: 1.0000, loss_voxel_geo_scal_fine: 1.0000, loss_voxel_lovasz_fine: 1.0000, loss: 9.0000, grad_norm: 2.3376
+2023-11-01 22:26:49,416 - mmdet - INFO - Epoch [4][1650/2392]	lr: 1.000e-03, eta: 1 day, 11:11:55, time: 2.053, data_time: 0.012, memory: 13862, loss_depth: 1.0000, loss_voxel_ce_c_0: 1.0000, loss_voxel_sem_scal_c_0: 1.0000, loss_voxel_geo_scal_c_0: 1.0000, loss_voxel_lovasz_c_0: 1.0000, loss_voxel_ce_fine: 1.0000, loss_voxel_sem_scal_fine: 1.0000, loss_voxel_geo_scal_fine: 1.0000, loss_voxel_lovasz_fine: 1.0000, loss: 9.0000, grad_norm: 20.6719

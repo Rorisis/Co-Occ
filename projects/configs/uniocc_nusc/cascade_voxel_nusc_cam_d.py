@@ -33,8 +33,8 @@ data_config={
     'cams': ['CAM_FRONT_LEFT', 'CAM_FRONT', 'CAM_FRONT_RIGHT',
              'CAM_BACK_LEFT', 'CAM_BACK', 'CAM_BACK_RIGHT'],
     'Ncams': 6,
-    'input_size': (256, 704),
-    # 'input_size': (896, 1600),
+    # 'input_size': (256, 704),
+    'input_size': (896, 1600),
     'src_size': (900, 1600),
     # image-view augmentation
     'resize': (0, 0),
@@ -43,7 +43,7 @@ data_config={
     'crop_h': (0.0, 0.0),
     'resize_test': 0.00,
 }
-scale = 16
+scale = 4
 grid_config = {
     'xbound': [point_cloud_range[0], point_cloud_range[3], voxel_x * lss_downsample[0]],
     'ybound': [point_cloud_range[1], point_cloud_range[4], voxel_y * lss_downsample[1]],
@@ -72,7 +72,7 @@ sample_from_img = True
 
 
 model = dict(
-    type='NeRFOcc',
+    type='NeRFOcc_Ray',
     loss_norm=True,
     voxel_size = voxel_size,
     n_voxels = occ_size,

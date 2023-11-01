@@ -1,0 +1,60 @@
+nvcc: NVIDIA (R) Cuda compiler driver
+Copyright (c) 2005-2021 NVIDIA Corporation
+Built on Mon_May__3_19:15:13_PDT_2021
+Cuda compilation tools, release 11.3, V11.3.109
+Build cuda_11.3.r11.3/compiler.29920130_0
+Sat Oct 28 18:14:10 2023       
++---------------------------------------------------------------------------------------+
+| NVIDIA-SMI 535.54.03              Driver Version: 535.54.03    CUDA Version: 12.2     |
+|-----------------------------------------+----------------------+----------------------+
+| GPU  Name                 Persistence-M | Bus-Id        Disp.A | Volatile Uncorr. ECC |
+| Fan  Temp   Perf          Pwr:Usage/Cap |         Memory-Usage | GPU-Util  Compute M. |
+|                                         |                      |               MIG M. |
+|=========================================+======================+======================|
+|   0  NVIDIA A800-SXM4-80GB          Off | 00000000:4D:00.0 Off |                    0 |
+| N/A   36C    P0             248W / 400W |   8077MiB / 81920MiB |    100%      Default |
+|                                         |                      |             Disabled |
++-----------------------------------------+----------------------+----------------------+
+|   1  NVIDIA A800-SXM4-80GB          Off | 00000000:53:00.0 Off |                    0 |
+| N/A   49C    P0             115W / 400W |   8171MiB / 81920MiB |     93%      Default |
+|                                         |                      |             Disabled |
++-----------------------------------------+----------------------+----------------------+
+|   2  NVIDIA A800-SXM4-80GB          Off | 00000000:6C:00.0 Off |                    0 |
+| N/A   47C    P0             117W / 400W |   8343MiB / 81920MiB |     99%      Default |
+|                                         |                      |             Disabled |
++-----------------------------------------+----------------------+----------------------+
+|   3  NVIDIA A800-SXM4-80GB          Off | 00000000:71:00.0 Off |                    0 |
+| N/A   36C    P0             269W / 400W |   8119MiB / 81920MiB |    100%      Default |
+|                                         |                      |             Disabled |
++-----------------------------------------+----------------------+----------------------+
+|   4  NVIDIA A800-SXM4-80GB          Off | 00000000:8D:00.0 Off |                    0 |
+| N/A   34C    P0             113W / 400W |   8213MiB / 81920MiB |     74%      Default |
+|                                         |                      |             Disabled |
++-----------------------------------------+----------------------+----------------------+
+|   5  NVIDIA A800-SXM4-80GB          Off | 00000000:92:00.0 Off |                    0 |
+| N/A   40C    P0              90W / 400W |   8295MiB / 81920MiB |     71%      Default |
+|                                         |                      |             Disabled |
++-----------------------------------------+----------------------+----------------------+
+|   6  NVIDIA A800-SXM4-80GB          Off | 00000000:C9:00.0 Off |                    0 |
+| N/A   42C    P0             276W / 400W |   8295MiB / 81920MiB |     74%      Default |
+|                                         |                      |             Disabled |
++-----------------------------------------+----------------------+----------------------+
+|   7  NVIDIA A800-SXM4-80GB          Off | 00000000:CF:00.0 Off |                    0 |
+| N/A   34C    P0              94W / 400W |   8185MiB / 81920MiB |     76%      Default |
+|                                         |                      |             Disabled |
++-----------------------------------------+----------------------+----------------------+
+                                                                                         
++---------------------------------------------------------------------------------------+
+| Processes:                                                                            |
+|  GPU   GI   CI        PID   Type   Process name                            GPU Memory |
+|        ID   ID                                                             Usage      |
+|=======================================================================================|
+|    0   N/A  N/A    582022      C   ...n305/miniconda3/envs/occ/bin/python     8068MiB |
+|    1   N/A  N/A    582023      C   ...n305/miniconda3/envs/occ/bin/python     8162MiB |
+|    2   N/A  N/A    582024      C   ...n305/miniconda3/envs/occ/bin/python     8332MiB |
+|    3   N/A  N/A    582025      C   ...n305/miniconda3/envs/occ/bin/python     8108MiB |
+|    4   N/A  N/A    582026      C   ...n305/miniconda3/envs/occ/bin/python     8202MiB |
+|    5   N/A  N/A    582027      C   ...n305/miniconda3/envs/occ/bin/python     8284MiB |
+|    6   N/A  N/A    582028      C   ...n305/miniconda3/envs/occ/bin/python     8286MiB |
+|    7   N/A  N/A    582029      C   ...n305/miniconda3/envs/occ/bin/python     8176MiB |
++---------------------------------------------------------------------------------------+
