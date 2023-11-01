@@ -11,3 +11,7 @@ __pycache__
 demo/*
 /ckpts
 /__pycache__/*
+/files
+files/*
+*.err
+*.out
