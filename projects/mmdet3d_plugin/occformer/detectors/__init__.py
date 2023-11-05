@@ -10,3 +10,4 @@ from .nerfocc_random import NeRFOcc_Random
 from .nerfocc_kitti import NeRFOcc_KITTI
 from .scale_lidar import MoEOccupancyScale_Lidar
 from .nerfocc_ray import NeRFOcc_Ray
+from .occnet import OccNet

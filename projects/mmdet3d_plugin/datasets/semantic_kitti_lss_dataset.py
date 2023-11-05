@@ -325,10 +325,10 @@ class CustomSemanticKITTILssDataset_Scale(SemanticKITTIDataset):
         
         self.load_continuous = load_continuous
         self.splits = {
-            "train": ["00", "01", "02", "03", "04", "05", "06", "07", "09", "10"],
-            "val": ["08"],
+            "train": ["07"],
+            "val": ["07"],
             "trainval": ["00", "01", "02", "03", "04", "05", "06", "07", "08", "09", "10"],
-            "test": ["08"],
+            "test": ["07"],
             "test-submit": ["11", "12", "13", "14", "15", "16", "17", "18", "19", "20", "21"],
         }
         

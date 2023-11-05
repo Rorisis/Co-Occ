@@ -31,8 +31,9 @@ class LoadSemKittiAnnotation():
 
     def forward_test(self, results):
         bda_rot = torch.eye(4).float()
-        imgs, rots, trans, intrins, post_rots, post_trans, gt_depths, sensor2sensors = results['img_inputs']
-        results['img_inputs'] = (imgs, rots, trans, intrins, post_rots, post_trans, bda_rot, gt_depths, sensor2sensors)
+        imgs, rots, trans, intrins, post_rots, post_trans, gt_depths, sensor2sensors, denorm_imgs, intrin_nerf, c2ws, img_size = results['img_inputs']
+        results['img_inputs'] = (imgs, rots, trans, intrins, post_rots, post_trans, bda_rot, gt_depths, sensor2sensors, denorm_imgs, intrin_nerf, c2ws, img_size)
+        results['gt_depths'] = (rots, trans, intrins, post_rots, post_trans, bda_rot, gt_depths, sensor2sensors, denorm_imgs, intrin_nerf, c2ws, img_size)
         
         return results
 
@@ -86,6 +87,7 @@ class LoadSemKittiAnnotation():
         
         imgs, rots, trans, intrins, post_rots, post_trans, gt_depths, sensor2sensors, denorm_imgs, intrin_nerf, c2ws, img_size = results['img_inputs']
         results['img_inputs'] = (imgs, rots, trans, intrins, post_rots, post_trans, bda_rot, gt_depths, sensor2sensors, denorm_imgs, aabb, intrin_nerf, c2ws, img_size)
+        results['gt_depths'] = (rots, trans, intrins, post_rots, post_trans, bda_rot, gt_depths, sensor2sensors, denorm_imgs, intrin_nerf, c2ws, img_size)
         results['gt_occ'] = gt_occ.long()
         
         results['points_occ'] = torch.from_numpy(lidarseg).float()

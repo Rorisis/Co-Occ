@@ -9,9 +9,10 @@ __pycache__
 /visual
 /demo
 demo/*
-/ckpts
+/ckpts/
 /__pycache__/*
-/files
+/files/
 files/*
 *.err
 *.out
+/test_save/

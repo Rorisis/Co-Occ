@@ -371,7 +371,7 @@ class OccHead(nn.Module):
             hist = fast_hist_crop(output_clses_np, target_points_np, unique_label)
             iou = per_class_iu(hist)
             loss_dict = {}
-            loss_dict['loss_lidarseg'] = F.cross_entropy(point_logits, point_labels, ignore_index=255)
+            # loss_dict['loss_lidarseg'] = F.cross_entropy(point_logits, point_labels, ignore_index=255)
             loss_dict['point_mean_iou'] = torch.tensor(np.nanmean(iou)).cuda()
             # print("lidarseg:", loss_dict['point_mean_iou'])
             return loss_dict

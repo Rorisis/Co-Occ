@@ -51,8 +51,8 @@ def save_output_semantic_kitti(output_voxels, save_path,
             print("wrote to", save_file)
 
 # urgent need: visualize nuscenes
-def save_output_nuscenes(img_inputs, output_voxels, output_points, 
-        target_points, save_path, scene_token, sample_token, 
+def save_output_nuscenes(img_inputs, output_voxels,
+        save_path, scene_token, sample_token, 
         img_filenames, timestamp, scene_name):
     
     rots, trans = img_inputs[1:3]
@@ -64,9 +64,9 @@ def save_output_nuscenes(img_inputs, output_voxels, output_points,
     # occupancy preds [X, Y, Z]
     output_voxels_labels = output_voxels[0].cpu().numpy().astype(np.uint8)
     # lidarseg preds [N, ]
-    output_points_labels = output_points.cpu().numpy().astype(np.uint8)
-    # lidarseg gts [N, 4]
-    target_points = target_points.cpu().numpy().astype(np.float32)
+    # output_points_labels = output_points.cpu().numpy().astype(np.uint8)
+    # # lidarseg gts [N, 4]
+    # target_points = target_points.cpu().numpy().astype(np.float32)
     # raw images
     camera_names = ['CAM_FRONT_LEFT', 'CAM_FRONT', 'CAM_FRONT_RIGHT',
                     'CAM_BACK_LEFT', 'CAM_BACK', 'CAM_BACK_RIGHT']

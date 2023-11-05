@@ -128,7 +128,28 @@ class CustomNuScenesOccLSSDataset(NuScenesDataset):
         res_table, res_dic = format_results(ious, return_dic=True)
         for key, val in res_dic.items():
             eval_results['nuScenes_lidarseg_{}'.format(key)] = val
-        
+        if 'ssc_results' in results:
+            ssc_results = results['ssc_results']
+            completion_tp = sum([x[0] for x in ssc_results])
+            completion_fp = sum([x[1] for x in ssc_results])
+            completion_fn = sum([x[2] for x in ssc_results])
+            
+            tps = sum([x[3] for x in ssc_results])
+            fps = sum([x[4] for x in ssc_results])
+            fns = sum([x[5] for x in ssc_results])
+            
+            precision = completion_tp / (completion_tp + completion_fp)
+            recall = completion_tp / (completion_tp + completion_fn)
+            iou = completion_tp / \
+                    (completion_tp + completion_fp + completion_fn)
+            iou_ssc = tps / (tps + fps + fns + 1e-5)
+            
+            class_ssc_iou = iou_ssc.tolist()
+            eval_results["SC_Precision"] = precision
+            eval_results["SC_Recall"] = recall
+            eval_results["SC_IoU"] = iou
+            eval_results["SSC_mIoU"] = iou_ssc[1:].mean()
+
         if logger is not None:
             logger.info('LiDAR Segmentation Evaluation')
             logger.info(res_table)
@@ -179,7 +200,8 @@ class CustomNuScenesOccLSSDataset(NuScenesDataset):
         eval_results = {}
         if 'evaluation_semantic' in results:
             eval_results.update(self.evaluate_lidarseg(results, logger, **kwargs))
-            eval_results.update(self.evaluate_ssc(results, logger, **kwargs))
+            if 'SC_metric' in results:
+                eval_results.update(self.evaluate_ssc(results, logger, **kwargs))
             return eval_results
         else:
             return self.evaluate_ssc(results, logger, **kwargs)
