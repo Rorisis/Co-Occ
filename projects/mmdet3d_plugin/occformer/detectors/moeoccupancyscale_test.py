@@ -417,7 +417,6 @@ class MoEOccupancyScale_Test(BEVDepth):
 
         if self.use_rendering:
             rgbs = []
-            rgb_volumes = []
 
             B, N, D, H, W, _ = gemo.shape
             assert B == 1
@@ -427,10 +426,14 @@ class MoEOccupancyScale_Test(BEVDepth):
                 scale_factor=16
             ).permute(0, 2, 3, 1)
             
-            img_voxel_feat = img_voxel_feat.squeeze(0) # [C, X, Y, Z] [128, 128, 128, 16]
-            print('geom', gemo[0, 0, :5, :])
-            raise ValueError()
             geom = gemo.long().squeeze(0) # [D, H, W, 3] [112, 24, 80, 3]
+            img_voxel_feat = img_voxel_feat.squeeze(0) # [C, X, Y, Z] [128, 128, 128, 16]
+            
+            xbound, ybound, zbound = [0, 51.2, 0.4], [-25.6, 25.6, 0.4], [-2, 4.4, 0.4]
+            dx = torch.Tensor([row[2] for row in [xbound, ybound, zbound]])
+            bx = torch.Tensor([row[0] + row[2] / 2.0 for row in [xbound, ybound, zbound]])
+            geom = ((geom - (bx - dx / 2.)) / dx).long()
+            
             C, X, Y, Z = img_voxel_feat.shape
             D, H, W, _ = geom.shape
             color_feature = img_voxel_feat[:, geom[..., 0], geom[..., 1], geom[..., 2]] # [C, D, H, W]
