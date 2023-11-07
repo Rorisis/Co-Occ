@@ -437,31 +437,17 @@ class MoEOccupancyScale_Test(BEVDepth):
                & (geom[..., 1] >= 0) & (geom[..., 1] < nx[1]) \
                & (geom[..., 2] >= 0) & (geom[..., 2] < nx[2])
             geom[~inside_mask] *= 0
-            # geom[..., 0] = geom[..., 0].clip(0, 127)
-            # geom[..., 1] = geom[..., 1].clip(0, 127)
-            # geom[..., 2] = geom[..., 2].clip(0, 15)
-            # print('0_raw', gemo[..., 0].max(), gemo[..., 0].min())
-            # print('1_raw', gemo[..., 1].max(), gemo[..., 1].min())
-            # print('2_raw', gemo[..., 2].max(), gemo[..., 2].min())
-            # print('0', geom[..., 0].max(), geom[..., 0].min())
-            # print('1', geom[..., 1].max(), geom[..., 1].min())
-            # print('2', geom[..., 2].max(), geom[..., 2].min())
-            # raise ValueError('')
 
             C, X, Y, Z = img_voxel_feat.shape
             D, H, W, _ = geom.shape
             color_feature = img_voxel_feat[:, geom[..., 0], geom[..., 1], geom[..., 2]] # [C, D, H, W]
-            # print('img_voxel_feat', img_voxel_feat.shape)
-            # print('geom', geom.shape)
-            # print('color_feature', color_feature.shape)
-            # raise ValueError('')
             
-            color_feature_2d = color_feature.sum(dim=1).permute(1, 2, 0) # [H, W, C]
-            rgbs = torch.sigmoid(self.color_head2(color_feature_2d)) # [H, W, 3]
-            rgbs = rgbs.unsqueeze(0) # [1, H, W, 3]
+            rgbs = color_feature.sum(dim=1).permute(1, 2, 0) # [H, W, C]
+            rgbs = rgbs.unsqueeze(0) # [1, H, W, C]
             rgbs = F.interpolate(
                 rgbs.permute(0, 3, 1, 2), scale_factor=16, mode='bilinear'
             ).permute(0, 2, 3, 1)
+            rgbs = torch.sigmoid(self.color_head2(rgbs)) # [1, H, W, 3]
             losses["loss_rgb"] = F.mse_loss(
                 rgbs, img_inputs[0][0].permute(0, 2, 3, 1)
             )
