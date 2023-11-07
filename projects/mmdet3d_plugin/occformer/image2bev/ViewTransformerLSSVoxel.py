@@ -117,7 +117,7 @@ class ViewTransformerLiftSplatShootVoxel(ViewTransformerLSSBEVDepth):
         geom_feats = geom_feats[kept]
         
         # [b, c, z, x, y] == [b, c, x, y, z]
-        final = bev_pool(x, geom_feats, B, self.nx[2], self.nx[0], self.nx[1]) # nx = [128,128,16]
+        final = bev_pool(x, geom_feats, B, self.nx[2], self.nx[0], self.nx[1]) # nx = [128, 128, 16]
         final = final.permute(0, 1, 3, 4, 2)
 
         return final

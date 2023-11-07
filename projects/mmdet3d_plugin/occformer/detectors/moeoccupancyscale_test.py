@@ -427,15 +427,17 @@ class MoEOccupancyScale_Test(BEVDepth):
                 scale_factor=16
             ).permute(0, 2, 3, 1)
             
-            img_voxel_feat = img_voxel_feat.squeeze(0) # [C, X, Y, Z]
-            geom = gemo.squeeze(0) # [D, H, W, 3]
+            img_voxel_feat = img_voxel_feat.squeeze(0) # [C, X, Y, Z] [128, 128, 128, 16]
+            print('geom', gemo[0, 0, :5, :])
+            raise ValueError()
+            geom = gemo.long().squeeze(0) # [D, H, W, 3] [112, 24, 80, 3]
             C, X, Y, Z = img_voxel_feat.shape
             D, H, W, _ = geom.shape
             color_feature = img_voxel_feat[:, geom[..., 0], geom[..., 1], geom[..., 2]] # [C, D, H, W]
-            print('img_voxel_feat', img_voxel_feat.shape)
-            print('geom', geom.shape)
-            print('color_feature', color_feature.shape)
-            raise ValueError('')
+            # print('img_voxel_feat', img_voxel_feat.shape)
+            # print('geom', geom.shape)
+            # print('color_feature', color_feature.shape)
+            # raise ValueError('')
             
             color_feature_2d = color_feature.sum(dim=1).permute(1, 2, 0) # [H, W, C]
             rgbs = torch.sigmoid(self.color_head2(color_feature_2d)) # [H, W, 3]
@@ -446,6 +448,7 @@ class MoEOccupancyScale_Test(BEVDepth):
             losses["loss_rgb"] = F.mse_loss(
                 rgbs, img_inputs[0][0].permute(0, 2, 3, 1)
             )
+            
             gt_vis = img_inputs[0][0][0].permute(1, 2, 0).cpu().numpy()
             pred_vis = rgbs[0].detach().cpu().numpy()
             vis = np.concatenate((gt_vis, pred_vis), axis=1)
