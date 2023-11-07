@@ -9,6 +9,7 @@ from mmdet3d.models.builder import FUSION_LAYERS
 from mmcv.cnn import build_norm_layer
 
 from mmdet3d.ops import furthest_point_sample, gather_points, ball_query
+import matplotlib.pyplot as plt
 
 @FUSION_LAYERS.register_module()
 class BiFuser(nn.Module):
@@ -104,7 +105,9 @@ class BiFuser(nn.Module):
             return query_NN_key_idx
 
     def forward(self, img_voxel_feats, pts_voxel_feats): # img_feats: N, C, H, W, L 
-        # print(img_voxel_feats.shape, pts_voxel_feats.shape)
+        # print("img", img_voxel_feats.max(), img_voxel_feats.min())
+        # print("pts", pts_voxel_feats.max(), pts_voxel_feats.min())
+        # raise ValueError()
         B, C, H, W, L = img_voxel_feats.shape
         inds_img = torch.nonzero(img_voxel_feats.sum(1))
         inds_pts = torch.nonzero(pts_voxel_feats.sum(1))
@@ -138,6 +141,8 @@ class BiFuser(nn.Module):
 
         all_feats = torch.cat([img_voxel_feats, pts_voxel_feats, fused_feats_img, fused_feats_pts], dim=-1)
         output_feats = self.con_enc(all_feats.permute(0, 4, 1, 2, 3))
+        # vis_fuse = output_feats[0].sum(0).sum(-1)
+        # plt.imsave('./vis_fuse.png', vis_fuse.detach().cpu().numpy())
         return output_feats
         #! 
         # inds_pts_nn_img = torch.zeros_like(inds_pts[:, 0]).long() - 1

@@ -153,7 +153,7 @@ test_pipeline = [
     dict(type='LoadSemKittiAnnotation', bda_aug_conf=bda_aug_conf,
             is_train=False, point_cloud_range=point_cloud_range, cls_metas=kitti_class_metas),
     dict(type='OccDefaultFormatBundle3D', class_names=class_names, with_label=False), 
-    dict(type='Collect3D', keys=['points'], 
+    dict(type='Collect3D', keys=['points', 'gt_occ'], 
             meta_keys=['pc_range', 'occ_size', 'sequence', 'frame_id', 'raw_img']),
 ]
 
@@ -165,7 +165,7 @@ test_config=dict(
     pipeline=test_pipeline,
     classes=class_names,
     modality=input_modality,
-    split='test-submit',
+    split='test',
     camera_used=camera_used,
     lidar_used=True,
     occ_size=occ_size,

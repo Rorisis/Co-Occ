@@ -6,6 +6,7 @@ from mmcv.runner import force_fp32
 from torch.cuda.amp.autocast_mode import autocast
 import torch.nn.functional as F
 import pdb
+import matplotlib.pyplot as plt
 from projects.mmdet3d_plugin.utils.gaussian import generate_guassian_depth_target
 
 from .ViewTransformerLSSBEVDepth import *
@@ -116,7 +117,7 @@ class ViewTransformerLiftSplatShootVoxel(ViewTransformerLSSBEVDepth):
         geom_feats = geom_feats[kept]
         
         # [b, c, z, x, y] == [b, c, x, y, z]
-        final = bev_pool(x, geom_feats, B, self.nx[2], self.nx[0], self.nx[1])
+        final = bev_pool(x, geom_feats, B, self.nx[2], self.nx[0], self.nx[1]) # nx = [128,128,16]
         final = final.permute(0, 1, 3, 4, 2)
 
         return final
@@ -140,4 +141,28 @@ class ViewTransformerLiftSplatShootVoxel(ViewTransformerLSSBEVDepth):
         geom = self.get_geometry(rots, trans, intrins, post_rots, post_trans, bda)
         frustum = self.get_frustum(rots, trans, intrins, post_rots, post_trans, bda, self.scale)
         bev_feat = self.voxel_pooling(geom, volume)
-        return bev_feat, depth_prob, frustum
+
+
+        # bev_feat_vis = bev_feat[0].sum(-1).sum(0)
+        # depth_vis = depth_prob[0].argmax(0)
+        # depth_vis = ((depth_vis-depth_vis.min()) / (depth_vis.max() - depth_vis.min()+1e-8))
+        # volume_vis = volume[0,1].sum(-1).sum(0)
+        # B, N, H, W, D, _ = geom.shape
+        # geom_vis = geom[0].reshape(N,-1,3).cpu().numpy()
+        # # fig = plt.figure()
+        # # ax = fig.add_subplot()
+
+        # # for i, co in zip(range(geom_vis.shape[0]), ['r','b']):
+        # #     ax.scatter(geom_vis[i,:,0], geom_vis[i,:,1], s=0.01, c=co)
+        # # plt.title('geom_vis')
+        # # plt.draw()
+        # # plt.savefig('./vis_geom.png')
+        # for i in range(geom_vis.shape[0]):
+        #     plt.scatter(geom_vis[i,:,0], geom_vis[i,:,1], s=0.01)
+        #     plt.savefig(f'./vis_geom_{i}.png')
+        #     plt.close()
+
+        # plt.imsave('./vis_bev_feat.png', bev_feat_vis.cpu().numpy())
+        # plt.imsave('./vis_depth.png', depth_vis.cpu().numpy())
+        # plt.imsave('./vis_volume.png', volume_vis.cpu().numpy())
+        return bev_feat, depth_prob, geom, volume.reshape(B*N, self.D, H, W, -1).sum(1)

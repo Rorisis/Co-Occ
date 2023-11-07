@@ -11,3 +11,4 @@ from .nerfocc_kitti import NeRFOcc_KITTI
 from .scale_lidar import MoEOccupancyScale_Lidar
 from .nerfocc_ray import NeRFOcc_Ray
 from .occnet import OccNet
+from .moeoccupancyscale_test import MoEOccupancyScale_Test

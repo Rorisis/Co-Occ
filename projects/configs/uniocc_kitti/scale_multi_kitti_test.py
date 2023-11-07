@@ -8,7 +8,7 @@ plugin = True
 plugin_dir = "projects/mmdet3d_plugin/"
 img_norm_cfg = dict(
     mean=[123.675, 116.28, 103.53], std=[58.395, 57.12, 57.375], to_rgb=True)
-camera_used = ['left', 'right']
+camera_used = ['left']
 
 # 20 classes with unlabeled
 class_names = ['unlabeled', 'car', 'bicycle', 'motorcycle', 'truck', 'other-vehicle',
@@ -69,17 +69,17 @@ sample_from_voxel = True
 sample_from_img = True
 
 model = dict(
-    type='MoEOccupancyScale',
+    type='MoEOccupancyScale_Test',
     loss_norm=False,
     voxel_size=voxel_size,
     n_voxels=occ_size,
     aabb=([0, -25.6, -2], [51.2, 25.6, 4.4]),
     near_far_range=[0.2, 51.2],
-    N_samples=64,
+    N_samples=200,
     N_rand=4096,
     depth_supervise=True,
     use_nerf_mask=True,
-    nerf_sample_view=2,
+    nerf_sample_view=1,
     squeeze_scale=4,
     scale=scale,
     nerf_density=True,

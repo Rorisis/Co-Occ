@@ -134,12 +134,10 @@ class LoadMultiViewImageFromFiles_SemanticKitti(object):
             img_filename = img_filenames[i]
             
             # img = io.imread(img_filename)
-            # img = mmcv.imread(img_filename, 'unchanged')
-            img = Image.open(img_filename).convert("RGB")
-  
-            results['raw_img'] = img
+            img = mmcv.imread(img_filename, 'unchanged')
+            # img = Image.open(img_filename).convert("RGB")
             
-            # img = Image.fromarray(img)
+            img = Image.fromarray(img)
             
             # perform image-view augmentation
             post_rot = torch.eye(2)
@@ -173,23 +171,24 @@ class LoadMultiViewImageFromFiles_SemanticKitti(object):
             
             results['canvas'] = np.array(img)[None]
             
-            # img = np.array(img) 
+            img = np.array(img) 
             # denorm_img = torch.tensor(np.array(img)).float().permute(2, 0, 1).contiguous()/ 255.0
             
             # img = self.normalize_img(img, img_norm_cfg=self.img_norm_cfg)
-            # img = torch.tensor(img).float().permute(2, 0, 1).contiguous()/ 255.0
+            img = torch.tensor(img).float().permute(2, 0, 1).contiguous()/ 255.0
             # denorm_img = mmcv.imdenormalize(img, self.mean, self.std, to_bgr=True).astype(np.uint8) 
             # print(denorm_img.shape, denorm_img.mean(), img.mean())
             # cv2.imwrite('check.png', denorm_img)
             
             # img = torch.tensor(img).float().permute(2, 0, 1).contiguous()
-            # denorm_img = torch.tensor(np.array(denorm_img)).float().permute(2, 0, 1).contiguous() / 255.
+            denorm_img = img.clone()
 
             # print(denorm_img.shape, img.mean())
-            img = np.array(img, dtype=np.float32, copy=False) / 255.0 
-            plt.imsave('./check.png', img)
-            denorm_img = self.to_tensor(img)
-            img = self.to_tensor(img) 
+            # img = np.array(img, dtype=np.float32, copy=False) / 255.0 
+            results['raw_img'] = img * 255.0
+            # plt.imsave('./check.png', img)
+            # denorm_img = self.to_tensor(img)
+            # img = self.to_tensor(img) 
             # print(denorm_img.mean(), img.mean(), denorm_img.shape)
 
             

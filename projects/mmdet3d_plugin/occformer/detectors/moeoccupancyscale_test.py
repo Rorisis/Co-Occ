@@ -30,7 +30,7 @@ import pandas as pd
 # import mayavi.mlab as mlab
 
 @DETECTORS.register_module()
-class MoEOccupancyScale(BEVDepth):
+class MoEOccupancyScale_Test(BEVDepth):
     def __init__(self, 
                 voxel_size,
                 n_voxels,
@@ -120,8 +120,9 @@ class MoEOccupancyScale(BEVDepth):
             # layer1 = torch.nn.Linear(192, 192)
             # layer2 = torch.nn.Linear(192, 192)
             # layer3 = torch.nn.Linear(192, 3)
-
+            num_c = 192
             self.color_head = MLP(input_dim=128, output_dim=3,net_depth=4,skip_layer=None)
+            self.color_head2 = MLP(input_dim=128, output_dim=3,net_depth=4,skip_layer=None)
             # self.color_head = torch.nn.Linear(128, 3)
             # self.mlp = torch.nn.Sequential(layer1, torch.nn.ReLU(inplace=True), layer2, torch.nn.ReLU(inplace=True), layer3)
             # self.color_head = torch.nn.Sequential(layer1, torch.nn.ReLU(inplace=True), layer2, torch.nn.ReLU(inplace=True), layer3)#torch.nn.Linear(256, 3)#MLP(input_dim=256, output_dim=3,net_depth=3,skip_layer=0)
@@ -142,19 +143,18 @@ class MoEOccupancyScale(BEVDepth):
             # self.color_head2 = torch.nn.Linear(3, 3)
             # self.color_neck = builder.build_neck(color_neck)
             # self.density_head = torch.nn.Linear(128, 1)
-            num_c = 192
-            self.density = LaplaceDensity(beta=0.01)
-            self.sdf_conv = nn.Sequential(
-                nn.Conv3d(num_c, num_c, 3, 1, 1, bias=True),
-                nn.Softplus(beta=100),
-                nn.Conv3d(num_c, num_c, 3, 1, 1, bias=True),
-                nn.Softplus(beta=100),
-                nn.Conv3d(num_c, num_c + 1, 3, 1, 1, bias=True),
-            )
-            self.rgb_conv = nn.Sequential(
-                nn.Conv3d(num_c, 3, 3, 1, 1, bias=False),
-                nn.Sigmoid(),
-            )
+            # self.density = LaplaceDensity(beta=0.01)
+            # self.sdf_conv = nn.Sequential(
+            #     nn.Conv3d(num_c, num_c, 3, 1, 1, bias=True),
+            #     nn.Softplus(beta=100),
+            #     nn.Conv3d(num_c, num_c, 3, 1, 1, bias=True),
+            #     nn.Softplus(beta=100),
+            #     nn.Conv3d(num_c, num_c + 1, 3, 1, 1, bias=True),
+            # )
+            # self.rgb_conv = nn.Sequential(
+            #     nn.Conv3d(num_c, 3, 3, 1, 1, bias=False),
+            #     nn.Sigmoid(),
+            # )
             
         
         coord_x, coord_y, coord_z = torch.meshgrid(torch.arange(self.n_voxels[0]),torch.arange(self.n_voxels[1]), torch.arange(self.n_voxels[2]))
@@ -237,31 +237,6 @@ class MoEOccupancyScale(BEVDepth):
         
         return x, depth, img_feats, geom, volume
 
-    # def extract_pts_feat(self, pts):
-    #     if self.record_time:
-    #         torch.cuda.synchronize()
-    #         t0 = time.time()
-    #     voxels, num_points, coors = self.voxelize(pts)
-    #     voxel_features = self.pts_voxel_encoder(voxels, num_points, coors)
-    #     batch_size = coors[-1, 0] + 1
-    #     pts_enc_feats = self.pts_middle_encoder(voxel_features, coors, batch_size)
-    #     x = pts_enc_feats['x']
-    #     # print(pts_enc_feats.shape)
-    #     if self.with_pts_backbone:
-    #         x = self.pts_backbone(x)
-    #     if self.with_pts_neck:
-    #         x = self.pts_neck(x)
-        
-
-    #     if self.record_time:
-    #         torch.cuda.synchronize()
-    #         t1 = time.time()
-    #         self.time_stats['pts_encoder'].append(t1 - t0)
-        
-    #     pts_feats = pts_enc_feats['pts_feats']
-
-    #     return x, pts_feats
-
     def extract_pts_feat(self, pts):
         if self.record_time:
             torch.cuda.synchronize()
@@ -270,19 +245,44 @@ class MoEOccupancyScale(BEVDepth):
         voxel_features = self.pts_voxel_encoder(voxels, num_points, coors)
         batch_size = coors[-1, 0] + 1
         pts_enc_feats = self.pts_middle_encoder(voxel_features, coors, batch_size)
+        x = pts_enc_feats['x']
+        # print(pts_enc_feats.shape)
         if self.with_pts_backbone:
-            x = self.pts_backbone(pts_enc_feats)
+            x = self.pts_backbone(x)
         if self.with_pts_neck:
             x = self.pts_neck(x)
+        
 
         if self.record_time:
             torch.cuda.synchronize()
             t1 = time.time()
             self.time_stats['pts_encoder'].append(t1 - t0)
         
-        pts_feats = [x]
+        pts_feats = pts_enc_feats['pts_feats']
 
-        return x.permute(0,1,4,3,2), pts_feats
+        return x, pts_feats
+
+    # def extract_pts_feat(self, pts):
+    #     if self.record_time:
+    #         torch.cuda.synchronize()
+    #         t0 = time.time()
+    #     voxels, num_points, coors = self.voxelize(pts)
+    #     voxel_features = self.pts_voxel_encoder(voxels, num_points, coors)
+    #     batch_size = coors[-1, 0] + 1
+    #     pts_enc_feats = self.pts_middle_encoder(voxel_features, coors, batch_size)
+    #     if self.with_pts_backbone:
+    #         x = self.pts_backbone(pts_enc_feats)
+    #     if self.with_pts_neck:
+    #         x = self.pts_neck(x)
+
+    #     if self.record_time:
+    #         torch.cuda.synchronize()
+    #         t1 = time.time()
+    #         self.time_stats['pts_encoder'].append(t1 - t0)
+        
+    #     pts_feats = [x]
+
+    #     return x.permute(0,1,4,3,2), pts_feats
 
     def extract_feat(self, points, img, img_metas):
         """Extract features from images and points."""
@@ -323,7 +323,7 @@ class MoEOccupancyScale(BEVDepth):
         #     t2 = time.time()
         #     self.time_stats['occ_encoder'].append(t2 - t1)
 
-        return (voxel_feats, img_feats, pts_feats, depth, geom, volume)
+        return (voxel_feats, img_feats, pts_feats, depth, geom, volume, img_voxel_feats)
     
     def get_weights(self, sigma, z_vals):
         sigma = sigma.squeeze(-1)
@@ -385,7 +385,7 @@ class MoEOccupancyScale(BEVDepth):
         ):
 
         # extract bird-eye-view features from perspective images
-        voxel_feats, img_feats, pts_feats, depth, gemo, volume = self.extract_feat(
+        voxel_feats, img_feats, pts_feats, depth, gemo, volume, voxel_feat = self.extract_feat(
             points, img=img_inputs, img_metas=img_metas)
         # training losses
         losses = dict()
@@ -422,54 +422,48 @@ class MoEOccupancyScale(BEVDepth):
             B,N,D,H,W,_ = gemo.shape
             assert B == 1
             gemo = gemo.reshape(B*N, D, H, W, 3)
+            gemo = gemo / gemo.norm(-1, keepdim=True)
 
             rays_o_all = gemo[:, 0, : , :, :]
             rays_d_all = gemo[:, 1, : , :, :] - gemo[:, 0, : , :, :]
             # magnitude = torch.norm(rays_d_all, dim=-1, keepdim=True)  # calculate magnitude
             # rays_d_all = rays_d_all / magnitude  # normalize direction
-
-            sdf_output = self.sdf_conv(voxel_feats[0])
-            sdf = sdf_output[:,:1]
-            feature_vectors = sdf_output[:,1:]
-
-            rgb = self.rgb_conv(feature_vectors)
-            density_ = self.density(sdf)
             # print(rgb.shape, density_.shape)
             volume = F.interpolate(volume.permute(0,3,1,2), scale_factor=16).permute(0,2,3,1)
 
             for b in range(rays_o_all.shape[0]):
-                ray_d = rays_d_all[b].reshape(-1, 3) #N, 3
-                # # ray_d = (ray_d - ray_d.min())/(ray_d.max() - ray_d.min())
-                ray_o = rays_o_all[b].reshape(-1, 3)
+                # ray_d = rays_d_all[b].reshape(-1, 3) #N, 3
+                # # # ray_d = (ray_d - ray_d.min())/(ray_d.max() - ray_d.min())
+                # ray_o = rays_o_all[b].reshape(-1, 3)
                 
-                d = img_inputs[7][0][b].reshape(-1)
-                rand_indices = np.random.choice(torch.where(d>0)[0].cpu().numpy(), self.N_rand)
-                ray_o, ray_d = ray_o[rand_indices], ray_d[rand_indices]
-                gt_img = img_inputs[0][0][b].reshape(-1,3)[rand_indices]
-                gt_depth = img_inputs[7][0][b].reshape(-1)[rand_indices]
-                # # print(gt_depth.shape, gt_depth.max(), gt_depth.min())
+                # d = img_inputs[7][0][b].reshape(-1)
+                # rand_indices = np.random.choice(torch.where(d>0)[0].cpu().numpy(), self.N_rand)
+                # ray_o, ray_d = ray_o[rand_indices], ray_d[rand_indices]
+                # gt_img = img_inputs[0][0][b].reshape(-1,3)[rand_indices]
+                # gt_depth = img_inputs[7][0][b].reshape(-1)[rand_indices]
+                # # # print(gt_depth.shape, gt_depth.max(), gt_depth.min())
 
-                # # img_to_save = np.uint8(img_inputs[0][0][b].permute(1,2,0).cpu().numpy()* 255.0)
-                # # cv2.imwrite("./gt.png", img_to_save)
+                # # # img_to_save = np.uint8(img_inputs[0][0][b].permute(1,2,0).cpu().numpy()* 255.0)
+                # # # cv2.imwrite("./gt.png", img_to_save)
 
-                gt_imgs.append(gt_img)
-                gt_depths.append(gt_depth)
+                # gt_imgs.append(gt_img)
+                # gt_depths.append(gt_depth)
 
-                pts, z_vals = sample_along_camera_ray(ray_o=ray_o,   
-                                                    ray_d=ray_d,
-                                                    depth_range=self.near_far_range,
-                                                    N_samples=self.N_samples,
-                                                    inv_uniform=False,
-                                                    det=False)
+                # pts, z_vals = sample_along_camera_ray(ray_o=ray_o,   
+                #                                     ray_d=ray_d,
+                #                                     depth_range=self.near_far_range,
+                #                                     N_samples=self.N_samples,
+                #                                     inv_uniform=False,
+                #                                     det=False)
                 
-                # norm_pts = pts.reshape(1, norm_pts.shape[0],norm_pts.shape[1],1,3)
-                # aabb = img_inputs[-4][0][b] # batch size
-                aabb = torch.tensor([[0, -25.6, -2], [51.2, 25.6, 4.4]]).to(pts.device)
+                # # norm_pts = pts.reshape(1, norm_pts.shape[0],norm_pts.shape[1],1,3)
+                # # aabb = img_inputs[-4][0][b] # batch size
+                # aabb = torch.tensor([[0, -25.6, -2], [51.2, 25.6, 4.4]]).to(pts.device)
 
-                pts = pts.reshape(1, pts.shape[0],pts.shape[1],1,3)
-                aabbSize = aabb[1] - aabb[0]
-                invgridSize = 1.0/aabbSize * 2
-                norm_pts = (pts-aabb[0]) * invgridSize - 1
+                # pts = pts.reshape(1, pts.shape[0],pts.shape[1],1,3)
+                # aabbSize = aabb[1] - aabb[0]
+                # invgridSize = 1.0/aabbSize * 2
+                # norm_pts = (pts-aabb[0]) * invgridSize - 1
                 # # print(norm_pts.shape, norm_pts.max(), norm_pts.min())
                 
                 # xyz_min = torch.tensor(np.array([0, -25.6, -2])).to(ray_o.device)
@@ -507,45 +501,50 @@ class MoEOccupancyScale(BEVDepth):
                 # norm_pts = bda[:3,:3].matmul(norm_pts.float().unsqueeze(-1)).squeeze(-1)
                 
                 # print(norm_pts.shape)
-                density = F.grid_sample(density_.permute(0,1,4,3,2), norm_pts, mode='bilinear', padding_mode='zeros', align_corners=True).squeeze(0).squeeze(-1).permute(1,2,0)
-                color = F.grid_sample(rgb.permute(0,1,4,3,2), norm_pts, mode='bilinear', padding_mode='zeros', align_corners=True).squeeze(0).squeeze(-1).permute(1,2,0)
-                # print(density.shape, color.shape)
+                # density = F.grid_sample(density_.permute(0,1,4,3,2), norm_pts, mode='bilinear', padding_mode='zeros', align_corners=True).squeeze(0).squeeze(-1).permute(1,2,0)
+                # color = F.grid_sample(rgb.permute(0,1,4,3,2), norm_pts, mode='bilinear', padding_mode='zeros', align_corners=True).squeeze(0).squeeze(-1).permute(1,2,0)
+                # density_feature = F.grid_sample(voxel_feats[0].permute(0,1,4,3,2), gemo[b].unsqueeze(0), mode='bilinear', padding_mode='zeros', align_corners=True).squeeze(0).permute(1,2,3,0)
+                color_feature = F.grid_sample(voxel_feat.permute(0,1,4,3,2), gemo[b].unsqueeze(0), mode='bilinear', padding_mode='zeros', align_corners=True).squeeze(0).permute(1,2,3,0) #[D,H,W,C]
+                # print(density_feature.shape, color_feature.shape)
                 # print("color_features:", color_feature.shape)
-                # mlp_out = self.color_head(color_feature)
                 # density = F.relu(self.density_head(density_feature))
-                # color = torch.sigmoid(self.color_head(color_feature))
 
-                weights = self.get_weights(density, z_vals)
+                color_2d = torch.sigmoid(self.color_head2(color_feature.sum(0)))
+
+                # weights = self.get_weights(density, z_vals)
 
                 # color_2d = torch.sigmoid(torch.sum(color, dim=1))
-                color_2d = torch.sum(weights.unsqueeze(2) * color, dim=1)
+                # color_2d = torch.sum(weights.unsqueeze(2) * color, dim=1)
                 
                 rgb_volume = torch.sigmoid(self.color_head(volume[b]))
 
-                if self.white_bkgd:
-                    color_2d = color_2d + (1. - torch.sum(weights, dim=-1, keepdim=True))
+                # if self.white_bkgd:
+                #     color_2d = color_2d + (1. - torch.sum(weights, dim=-1, keepdim=True))
 
-                depth_2d = torch.sum(weights * z_vals, dim=-1) / (torch.sum(weights, dim=-1) + 1e-8)
-                depth_2d = torch.clamp(depth_2d, z_vals.min(), z_vals.max())
+                # depth_2d = torch.sum(weights * z_vals, dim=-1) / (torch.sum(weights, dim=-1) + 1e-8)
+                # depth_2d = torch.clamp(depth_2d, z_vals.min(), z_vals.max())
                 rgbs.append(color_2d)
-                depths.append(depth_2d)
-                weight.append(weights)
+                # depths.append(depth_2d)
+                # weight.append(weights)
                 rgb_volumes.append(rgb_volume)
             rgbs = torch.stack(rgbs)
-            depths = torch.stack(depths)
-            gt_imgs = torch.stack(gt_imgs)
-            gt_depths = torch.stack(gt_depths)
-            weight = torch.stack(weight)
+            # depths = torch.stack(depths)
+            # gt_imgs = torch.stack(gt_imgs)
+            # gt_depths = torch.stack(gt_depths)
+            # weight = torch.stack(weight)
             rgb_volumes = torch.stack(rgb_volumes)
+
+            rgbs = F.interpolate(rgbs.permute(0,3,1,2), scale_factor=16).permute(0,2,3,1)
             
 
-            # gt_vis = np.uint8(img_inputs[0][0][0].permute(1,2,0).cpu().numpy()* 255.0)
-            # volume_vis = np.uint8(rgb_volumes[0].detach().cpu().numpy()* 255.0)
-            # vis = np.concatenate((gt_vis, volume_vis), axis=1)
-            # cv2.imwrite("./check.png", vis)
+            gt_vis = np.uint8(img_inputs[0][0][0].permute(1,2,0).cpu().numpy()* 255.0)
+            volume_vis = np.uint8(rgb_volumes[0].detach().cpu().numpy()* 255.0)
+            rgbs_vis = np.uint8(rgbs[0].detach().cpu().numpy()* 255.0)
+            vis = np.concatenate((gt_vis, rgbs_vis, volume_vis), axis=1)
+            cv2.imwrite("./check.png", vis)
    
 
-            losses["loss_color"] = F.mse_loss(rgbs, gt_imgs)
+            losses["loss_color"] = F.mse_loss(rgbs, img_inputs[0][0].permute(0,2,3,1))
             # losses["loss_color"] = F.smooth_l1_loss(rgbs, gt_imgs) #+ (1 - self.ssim(rgbs, gt_imgs)).mean()
             losses["loss_rgb"] = F.mse_loss(rgb_volume, img_inputs[0][0].permute(0,2,3,1))
             # print(losses["loss_color"].item(), losses["loss_rgb"].item())
@@ -556,14 +555,14 @@ class MoEOccupancyScale(BEVDepth):
             # gt_opacity = (gt_depths != 0).to(gt_depths.dtype)
             # losses["loss_opacity"] = torch.mean(-gt_opacity * torch.log(rendered_opacity + 1e-6) - (1 - gt_opacity) * torch.log(1 - rendered_opacity +1e-6)) # BCE loss
 
-            if self.depth_supervise:
+            # if self.depth_supervise:
   
-                # print(pred.shape, target.shape)
-                d = torch.log(depths) - torch.log(gt_depths)
-                # losses["loss_render_depth"] = torch.sqrt((d ** 2).mean() - 0.85 * (d.mean() ** 2))
-                losses['loss_render_depth'] = F.mse_loss(depths, gt_depths)
+            #     # print(pred.shape, target.shape)
+            #     d = torch.log(depths) - torch.log(gt_depths)
+            #     # losses["loss_render_depth"] = torch.sqrt((d ** 2).mean() - 0.85 * (d.mean() ** 2))
+            #     losses['loss_render_depth'] = F.mse_loss(depths, gt_depths)
 
-            # print("color:", losses['loss_color'].item(), "depth:", losses["loss_render_depth"].item())
+            print("color:", losses['loss_color'].item(), "rgb:", losses["loss_rgb"].item())
             # print("color:", losses['loss_color'].item())
 
 
