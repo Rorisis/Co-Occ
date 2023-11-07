@@ -417,21 +417,20 @@ class MoEOccupancyScale_Test(BEVDepth):
             weight = []
             rgb_volumes = []
             t_to_s, s_to_t = construct_ray_warps(self.near_far_range[0], self.near_far_range[1], uniform=True)
-            if gemo == None:
-                gemo = get_frustum(img_inputs[1], img_inputs[2], img_inputs[3], img_inputs[4], img_inputs[5], img_inputs[6], img_inputs[-1], self.scale)
+
             B,N,D,H,W,_ = gemo.shape
             assert B == 1
             gemo = gemo.reshape(B*N, D, H, W, 3)
-            gemo = gemo / gemo.norm(-1, keepdim=True)
+            # gemo = gemo / gemo.norm(-1, keepdim=True)
 
-            rays_o_all = gemo[:, 0, : , :, :]
-            rays_d_all = gemo[:, 1, : , :, :] - gemo[:, 0, : , :, :]
+            # rays_o_all = gemo[:, 0, : , :, :]
+            # rays_d_all = gemo[:, 1, : , :, :] - gemo[:, 0, : , :, :]
             # magnitude = torch.norm(rays_d_all, dim=-1, keepdim=True)  # calculate magnitude
             # rays_d_all = rays_d_all / magnitude  # normalize direction
             # print(rgb.shape, density_.shape)
             volume = F.interpolate(volume.permute(0,3,1,2), scale_factor=16).permute(0,2,3,1)
 
-            for b in range(rays_o_all.shape[0]):
+            for b in range(gemo.shape[0]):
                 # ray_d = rays_d_all[b].reshape(-1, 3) #N, 3
                 # # # ray_d = (ray_d - ray_d.min())/(ray_d.max() - ray_d.min())
                 # ray_o = rays_o_all[b].reshape(-1, 3)
@@ -504,11 +503,15 @@ class MoEOccupancyScale_Test(BEVDepth):
                 # density = F.grid_sample(density_.permute(0,1,4,3,2), norm_pts, mode='bilinear', padding_mode='zeros', align_corners=True).squeeze(0).squeeze(-1).permute(1,2,0)
                 # color = F.grid_sample(rgb.permute(0,1,4,3,2), norm_pts, mode='bilinear', padding_mode='zeros', align_corners=True).squeeze(0).squeeze(-1).permute(1,2,0)
                 # density_feature = F.grid_sample(voxel_feats[0].permute(0,1,4,3,2), gemo[b].unsqueeze(0), mode='bilinear', padding_mode='zeros', align_corners=True).squeeze(0).permute(1,2,3,0)
-                color_feature = F.grid_sample(voxel_feat.permute(0,1,4,3,2), gemo[b].unsqueeze(0), mode='bilinear', padding_mode='zeros', align_corners=True).squeeze(0).permute(1,2,3,0) #[D,H,W,C]
+                # color_feature = F.grid_sample(voxel_feat.permute(0,1,4,3,2), gemo[b].unsqueeze(0), mode='bilinear', padding_mode='zeros', align_corners=True).squeeze(0).permute(1,2,3,0) #[D,H,W,C]
                 # print(density_feature.shape, color_feature.shape)
                 # print("color_features:", color_feature.shape)
                 # density = F.relu(self.density_head(density_feature))
-
+                geom_b =gemo[b, ...].long()
+                voxel_feat = voxel_feat
+                
+                color_feature = voxel_feat[..., geom_b[..., 1], geom_b[..., 0], geom_b[..., 2]].permute(0, 2, 3, 4, 1).squeeze(0)
+                print(color_feature.shape)
                 color_2d = torch.sigmoid(self.color_head2(color_feature.sum(0)))
 
                 # weights = self.get_weights(density, z_vals)
@@ -541,7 +544,7 @@ class MoEOccupancyScale_Test(BEVDepth):
             volume_vis = np.uint8(rgb_volumes[0].detach().cpu().numpy()* 255.0)
             rgbs_vis = np.uint8(rgbs[0].detach().cpu().numpy()* 255.0)
             vis = np.concatenate((gt_vis, rgbs_vis, volume_vis), axis=1)
-            cv2.imwrite("./check.png", vis)
+            cv2.imwrite("./vis_save/"+str(time.time())+'vis.png', vis)
    
 
             losses["loss_color"] = F.mse_loss(rgbs, img_inputs[0][0].permute(0,2,3,1))
