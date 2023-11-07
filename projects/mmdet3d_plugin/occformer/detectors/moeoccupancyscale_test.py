@@ -432,14 +432,17 @@ class MoEOccupancyScale_Test(BEVDepth):
             dx = torch.Tensor([row[2] for row in [xbound, ybound, zbound]]).to(geom.device)
             bx = torch.Tensor([row[0] + row[2] / 2.0 for row in [xbound, ybound, zbound]]).to(geom.device)
             geom = ((geom - (bx - dx / 2.)) / dx).long()
-            print('0_raw', gemo[..., 0].max(), gemo[..., 0].min())
-            print('1_raw', gemo[..., 1].max(), gemo[..., 1].min())
-            print('2_raw', gemo[..., 2].max(), gemo[..., 2].min())
-            print('0', geom[..., 0].max(), geom[..., 0].min())
-            print('1', geom[..., 1].max(), geom[..., 1].min())
-            print('2', geom[..., 2].max(), geom[..., 2].min())
-            raise ValueError('')
-        
+            geom[..., 0] = geom[..., 0].clip(0, 127)
+            geom[..., 1] = geom[..., 1].clip(0, 127)
+            geom[..., 2] = geom[..., 2].clip(0, 15)
+            # print('0_raw', gemo[..., 0].max(), gemo[..., 0].min())
+            # print('1_raw', gemo[..., 1].max(), gemo[..., 1].min())
+            # print('2_raw', gemo[..., 2].max(), gemo[..., 2].min())
+            # print('0', geom[..., 0].max(), geom[..., 0].min())
+            # print('1', geom[..., 1].max(), geom[..., 1].min())
+            # print('2', geom[..., 2].max(), geom[..., 2].min())
+            # raise ValueError('')
+
             C, X, Y, Z = img_voxel_feat.shape
             D, H, W, _ = geom.shape
             color_feature = img_voxel_feat[:, geom[..., 0], geom[..., 1], geom[..., 2]] # [C, D, H, W]
