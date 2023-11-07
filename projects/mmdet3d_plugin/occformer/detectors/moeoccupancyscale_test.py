@@ -121,8 +121,8 @@ class MoEOccupancyScale_Test(BEVDepth):
             # layer2 = torch.nn.Linear(192, 192)
             # layer3 = torch.nn.Linear(192, 3)
             num_c = 192
-            self.color_head = MLP(input_dim=128, output_dim=32, net_depth=4, skip_layer=None)
-            self.color_head2 = MLP(input_dim=32, output_dim=3, net_depth=4, skip_layer=None)
+            # self.color_head = MLP(input_dim=128, output_dim=32, net_depth=4, skip_layer=None)
+            self.color_head2 = MLP(input_dim=128, output_dim=3, net_depth=4, skip_layer=None)
             # self.color_head = torch.nn.Linear(128, 3)
             # self.mlp = torch.nn.Sequential(layer1, torch.nn.ReLU(inplace=True), layer2, torch.nn.ReLU(inplace=True), layer3)
             # self.color_head = torch.nn.Sequential(layer1, torch.nn.ReLU(inplace=True), layer2, torch.nn.ReLU(inplace=True), layer3)#torch.nn.Linear(256, 3)#MLP(input_dim=256, output_dim=3,net_depth=3,skip_layer=0)
@@ -441,9 +441,11 @@ class MoEOccupancyScale_Test(BEVDepth):
             C, X, Y, Z = img_voxel_feat.shape
             D, H, W, _ = geom.shape
             color_feature = img_voxel_feat[:, geom[..., 0], geom[..., 1], geom[..., 2]] # [C, D, H, W]
-            color_feature = color_feature.permute(1, 2, 3, 0) # [D, H, W, C]
-            rgbs_3d = self.color_head(color_feature) # [D, H, W, 32]
-            rgbs = torch.sigmoid(self.color_head2(rgbs_3d.mean(dim=0))) # [H, W, 3]
+            color_feature = color_feature.permute(2, 3, 1, 0) # [H, W, D, C]
+            rgbs_3d = self.color_head2(color_feature) # [H, W, D, 3]
+            rgbs_3d = torch.sigmoid(rgbs_3d)
+            weights = depth.reshape(H, W, D, 1)
+            rgbs = (rgbs_3d * weights).sum(dim=2) # [H, W, 3]
             rgbs = rgbs.unsqueeze(0) # [1, H, W, 3]
             rgbs = F.interpolate(
                 rgbs.permute(0, 3, 1, 2), scale_factor=16, mode='bilinear'
