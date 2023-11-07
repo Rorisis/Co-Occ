@@ -426,9 +426,8 @@ class MoEOccupancyScale_Test(BEVDepth):
                 scale_factor=16
             ).permute(0, 2, 3, 1)
             
-            geom = gemo.long().squeeze(0) # [D, H, W, 3] [112, 24, 80, 3]
+            geom = gemo.squeeze(0) # [D, H, W, 3] [112, 24, 80, 3]
             img_voxel_feat = img_voxel_feat.squeeze(0) # [C, X, Y, Z] [128, 128, 128, 16]
-            
             xbound, ybound, zbound = [0, 51.2, 0.4], [-25.6, 25.6, 0.4], [-2, 4.4, 0.4]
             dx = torch.Tensor([row[2] for row in [xbound, ybound, zbound]])
             bx = torch.Tensor([row[0] + row[2] / 2.0 for row in [xbound, ybound, zbound]])
