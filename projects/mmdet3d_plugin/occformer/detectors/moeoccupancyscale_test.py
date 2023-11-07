@@ -121,7 +121,7 @@ class MoEOccupancyScale_Test(BEVDepth):
             # layer2 = torch.nn.Linear(192, 192)
             # layer3 = torch.nn.Linear(192, 3)
             num_c = 192
-            self.color_head = MLP(input_dim=128, output_dim=3, net_depth=4, skip_layer=None)
+            # self.color_head = MLP(input_dim=128, output_dim=3, net_depth=4, skip_layer=None)
             self.color_head2 = MLP(input_dim=128, output_dim=3, net_depth=4, skip_layer=None)
             # self.color_head = torch.nn.Linear(128, 3)
             # self.mlp = torch.nn.Sequential(layer1, torch.nn.ReLU(inplace=True), layer2, torch.nn.ReLU(inplace=True), layer3)
@@ -431,10 +431,15 @@ class MoEOccupancyScale_Test(BEVDepth):
             xbound, ybound, zbound = [0, 51.2, 0.4], [-25.6, 25.6, 0.4], [-2, 4.4, 0.4]
             dx = torch.Tensor([row[2] for row in [xbound, ybound, zbound]]).to(geom.device)
             bx = torch.Tensor([row[0] + row[2] / 2.0 for row in [xbound, ybound, zbound]]).to(geom.device)
+            nx = torch.Tensor([(row[1] - row[0]) / row[2] for row in [xbound, ybound, zbound]]).to(geom.device)
             geom = ((geom - (bx - dx / 2.)) / dx).long()
-            geom[..., 0] = geom[..., 0].clip(0, 127)
-            geom[..., 1] = geom[..., 1].clip(0, 127)
-            geom[..., 2] = geom[..., 2].clip(0, 15)
+            inside_mask = (geom[..., 0] >= 0) & (geom[..., 0] < nx[0]) \
+               & (geom[..., 1] >= 0) & (geom[..., 1] < nx[1]) \
+               & (geom[..., 2] >= 0) & (geom[..., 2] < nx[2])
+            geom[~inside_mask] *= 0
+            # geom[..., 0] = geom[..., 0].clip(0, 127)
+            # geom[..., 1] = geom[..., 1].clip(0, 127)
+            # geom[..., 2] = geom[..., 2].clip(0, 15)
             # print('0_raw', gemo[..., 0].max(), gemo[..., 0].min())
             # print('1_raw', gemo[..., 1].max(), gemo[..., 1].min())
             # print('2_raw', gemo[..., 2].max(), gemo[..., 2].min())
