@@ -412,6 +412,7 @@ class MoEOccupancyScale_Test(BEVDepth):
             sigma[~mask] = 0
             sigma = F.relu(sigma)
             
+            pts = pts.float()
             dists = torch.norm(pts[:, :, 1:, :] - pts[:, :, :-1, :], dim=-1) # [H, W, D - 1]
             dists = torch.cat(
                 [dists, torch.Tensor([1e10]).expand(dists[...,:1].shape).to(dists.device)], 
