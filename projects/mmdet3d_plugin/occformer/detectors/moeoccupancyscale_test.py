@@ -465,7 +465,7 @@ class MoEOccupancyScale_Test(BEVDepth):
             # sigma_3d = F.relu(self.sigma_head(color_feature)) # [H, W, D, 1]
             # sigma_dist = torch.softmax(sigma_3d, dim=-2)
             # rgbs = torch.sum(sigma_dist * rgbs_3d, dim=-2)
-            rgbs = torch.sum(rgbs_3d, dim=-2)
+            rgbs = torch.mean(rgbs_3d, dim=-2)
             
             rgbs = rgbs.unsqueeze(0) # [1, H, W, 3]
             rgbs = F.interpolate(
