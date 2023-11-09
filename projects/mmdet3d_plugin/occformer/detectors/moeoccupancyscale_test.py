@@ -449,7 +449,7 @@ class MoEOccupancyScale_Test(BEVDepth):
             )
             
             gt_vis = img_inputs[0][0][0].permute(1, 2, 0).cpu().numpy()
-            pred_vis = rgb_pred.detach().cpu().numpy()
+            pred_vis = rgb_pred[0].detach().cpu().numpy()
             vis = np.concatenate((gt_vis, pred_vis), axis=1)
             vis = (vis * 255).astype(np.uint8)
             cv2.imwrite("./vis_save/" + str(time.time()) + 'vis.png', vis)
@@ -778,7 +778,7 @@ class MoEOccupancyScale_Test(BEVDepth):
         max_indices = torch.stack([torch.arange(tensor.shape[0]).to(tensor.device), max_indices], dim=-1)
         last_nonzeros = tensor[max_indices[..., 0], max_indices[..., 1]]
         
-        last_nonzeros = torch.maximum(last_nonzeros, first_nonzeros + 1e-5)
+        # last_nonzeros = torch.maximum(last_nonzeros, first_nonzeros + 1e-5)
         valid_mask = (first_nonzeros != 0).all(dim=-1)
         return first_nonzeros, last_nonzeros, valid_mask
 
