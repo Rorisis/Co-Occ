@@ -376,8 +376,6 @@ class MoEOccupancyScale_Test(BEVDepth):
         losses.update(losses_occupancy)
 
         if self.use_rendering:
-            rgbs = []
-
             B, N, D, H, W, _ = gemo.shape
             assert B == 1
             gemo = gemo.reshape(B * N, D, H, W, 3)
@@ -392,7 +390,7 @@ class MoEOccupancyScale_Test(BEVDepth):
             dx = torch.Tensor([row[2] for row in [xbound, ybound, zbound]]).to(geom.device)
             bx = torch.Tensor([row[0] + row[2] / 2.0 for row in [xbound, ybound, zbound]]).to(geom.device)
             nx = torch.Tensor([(row[1] - row[0]) / row[2] for row in [xbound, ybound, zbound]]).to(geom.device)
-            geom = ((geom - (bx - dx / 2.)) / dx).long()
+            geom = ((geom - (bx - dx / 2.)) / dx)
             inside_mask = (geom[..., 0] >= 0) & (geom[..., 0] < nx[0]) \
                & (geom[..., 1] >= 0) & (geom[..., 1] < nx[1]) \
                & (geom[..., 2] >= 0) & (geom[..., 2] < nx[2]) # [D, H, W, 3]
@@ -407,6 +405,7 @@ class MoEOccupancyScale_Test(BEVDepth):
             rays_d = (rays_t - rays_o)
             num_rays = rays_o.shape[0]
             num_samples = 64
+            
             z_vals = torch.linspace(0, 1, num_samples).to(rays_o)
             z_vals = z_vals.unsqueeze(0).expand(num_rays, num_samples) # [num_rays, num_samples, 1] 
             samples = rays_o.unsqueeze(1) * (1 - z_vals.unsqueeze(-1)) + rays_t.unsqueeze(1) * z_vals.unsqueeze(-1)
