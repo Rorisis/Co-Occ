@@ -407,10 +407,10 @@ class MoEOccupancyScale_Test(BEVDepth):
             # rgb_map = torch.sigmoid(rgb.sum(dim=-2)) 
             
             
-            rgb = torch.sigmoid(self.rgb_head(pts_feature)) # [H, W, D, 3]
-            # rgb[~mask] *= 0
+            rgb = self.rgb_head(pts_feature)
+            rgb[~mask] = -1e5
+            rgb = torch.sigmoid(rgb) # [H, W, D, 3]
             sigma = self.sigma_head(pts_feature).squeeze(-1) # [H, W, D]
-            # sigma[~mask] *= 0
             sigma = F.relu(sigma)
             
             pts = pts.float()
