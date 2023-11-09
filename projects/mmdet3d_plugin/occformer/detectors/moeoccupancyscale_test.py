@@ -113,7 +113,7 @@ class MoEOccupancyScale_Test(BEVDepth):
         self.test_rendering = test_rendering
 
         if use_rendering:
-            self.sigma_head = nn.Linear(128, 1)
+            self.sigma_head = MLP(input_dim=128, output_dim=3, net_depth=4, skip_layer=None)
             self.rgb_head = MLP(input_dim=128, output_dim=3, net_depth=4, skip_layer=None)
     
         coord_x, coord_y, coord_z = torch.meshgrid(
@@ -461,9 +461,11 @@ class MoEOccupancyScale_Test(BEVDepth):
             color_feature = img_voxel_feat[:, geom[..., 0], geom[..., 1], geom[..., 2]] # [C, D, H, W]
             color_feature = color_feature.permute(2, 3, 1, 0) # [H, W, D, C]
             rgbs_3d = torch.sigmoid(self.rgb_head(color_feature)) # [H, W, D, 3]
+            
             sigma_3d = F.relu(self.sigma_head(color_feature)) # [H, W, D, 1]
             sigma_dist = torch.softmax(sigma_3d, dim=-2)
             rgbs = torch.sum(sigma_dist * rgbs_3d, dim=-2)
+            
             rgbs = rgbs.unsqueeze(0) # [1, H, W, 3]
             rgbs = F.interpolate(
                 rgbs.permute(0, 3, 1, 2), scale_factor=16, mode='bilinear'
