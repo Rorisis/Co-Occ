@@ -409,7 +409,6 @@ class MoEOccupancyScale_Test(BEVDepth):
             num_samples = 64
             z_vals = torch.linspace(0, 1, num_samples).to(rays_o)
             z_vals = z_vals.unsqueeze(0).expand(num_rays, num_samples) # [num_rays, num_samples, 1] 
-            # samples = rays_o * (1 - z_vals[..., None]) + rays_t * z_vals[..., None] # [num_rays, num_samples, 3]
             samples = rays_o.unsqueeze(1) * (1 - z_vals.unsqueeze(-1)) + rays_t.unsqueeze(1) * z_vals.unsqueeze(-1)
             
             C, X, Y, Z = img_voxel_feat.shape
@@ -450,7 +449,7 @@ class MoEOccupancyScale_Test(BEVDepth):
             )
             
             gt_vis = img_inputs[0][0][0].permute(1, 2, 0).cpu().numpy()
-            pred_vis = rgbs[0].detach().cpu().numpy()
+            pred_vis = rgb_pred[0].detach().cpu().numpy()
             vis = np.concatenate((gt_vis, pred_vis), axis=1)
             vis = (vis * 255).astype(np.uint8)
             cv2.imwrite("./vis_save/" + str(time.time()) + 'vis.png', vis)
