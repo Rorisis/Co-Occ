@@ -400,7 +400,7 @@ class MoEOccupancyScale_Test(BEVDepth):
             pts = geom.long().permute(1, 2, 0, 3) # [H, W, D, 3]
             pts_feature = img_voxel_feat[:, pts[..., 0], pts[..., 1], pts[..., 2]] # [C, H, W, D]
             pts_feature = pts_feature.permute(1, 2, 3, 0) # [H, W, D, C]
-            mask = inside_mask.permute(1, 2, 0, 3) # [H, W, D, 3]
+            mask = inside_mask.permute(1, 2, 0) # [H, W, D]
             
             rgb = self.rgb_head(pts_feature)
             rgb[~mask] = 0
