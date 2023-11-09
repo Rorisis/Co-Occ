@@ -396,6 +396,12 @@ class MoEOccupancyScale_Test(BEVDepth):
                & (geom[..., 2] >= 0) & (geom[..., 2] < nx[2]) # [D, H, W, 3]
             geom[~inside_mask] *= 0
             
+            geom_norm = geom.clone()
+            geom_norm[..., 0] = geom_norm[..., 0] / nx[0]
+            geom_norm[..., 1] = geom_norm[..., 1] / nx[1]
+            geom_norm[..., 2] = geom_norm[..., 2] / nx[2]
+            # geom_norm = geom_norm * 2 - 1
+            
             geom = geom.permute(1, 2, 0, 3).reshape(H * W, D, 3)
             rays_o, rays_t, valid_mask = self.find_first_and_last_nonzeros(geom)
             assert valid_mask.sum() != 0
@@ -413,6 +419,7 @@ class MoEOccupancyScale_Test(BEVDepth):
             C, X, Y, Z = img_voxel_feat.shape
             img_voxel_feat = img_voxel_feat.reshape(1, C, X, Y, Z)
             samples = samples.reshape(1, 1, num_rays, num_samples, 3)
+            samples = samples * 2 - 1
             sample_feat = F.grid_sample(
                 img_voxel_feat, samples, align_corners=True
             ) # [1, C, 1, num_rays, num_samples]
