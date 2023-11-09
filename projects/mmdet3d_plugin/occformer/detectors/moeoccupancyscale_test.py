@@ -408,9 +408,9 @@ class MoEOccupancyScale_Test(BEVDepth):
             num_rays = rays_o.shape[0]
             num_samples = 64
             z_vals = torch.linspace(0, 1, num_samples).to(rays_o)
-            z_vals = z_vals.unsqueeze(0).expand(num_rays, num_samples).unsqueeze(-1) # [num_rays, num_samples, 1] 
+            z_vals = z_vals.unsqueeze(0).expand(num_rays, num_samples) # [num_rays, num_samples, 1] 
             # samples = rays_o * (1 - z_vals[..., None]) + rays_t * z_vals[..., None] # [num_rays, num_samples, 3]
-            samples = rays_o.unsqueeze(1) * (1 - z_vals) + rays_t.unsqueeze(1) * z_vals
+            samples = rays_o.unsqueeze(1) * (1 - z_vals.unsqueeze(-1)) + rays_t.unsqueeze(1) * z_vals.unsqueeze(-1)
             
             C, X, Y, Z = img_voxel_feat.shape
             img_voxel_feat = img_voxel_feat.reshape(1, C, X, Y, Z)
@@ -418,7 +418,7 @@ class MoEOccupancyScale_Test(BEVDepth):
             sample_feat = F.grid_sample(
                 img_voxel_feat, samples, align_corners=True
             ) # [1, C, 1, num_rays, num_samples]
-            sample_feat = sample_feat.reshape(C, num_rays, num_samples).permute(1, 2, 0)
+            sample_feat = sample_feat.reshape(C, num_rays, num_samples).permute(1, 2, 0) # [num_rays, num_samples, C]
             
             sigma = F.relu(self.sigma_head(sample_feat)).squeeze(-1) # [num_rays, num_samples, 1]
             rgb = torch.sigmoid(self.rgb_head(sample_feat)) # [num_rays, num_samples, 3]
