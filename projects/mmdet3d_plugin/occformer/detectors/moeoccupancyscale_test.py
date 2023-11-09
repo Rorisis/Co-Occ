@@ -449,7 +449,7 @@ class MoEOccupancyScale_Test(BEVDepth):
             )
             
             gt_vis = img_inputs[0][0][0].permute(1, 2, 0).cpu().numpy()
-            pred_vis = rgb_pred[0].detach().cpu().numpy()
+            pred_vis = rgb_pred.detach().cpu().numpy()
             vis = np.concatenate((gt_vis, pred_vis), axis=1)
             vis = (vis * 255).astype(np.uint8)
             cv2.imwrite("./vis_save/" + str(time.time()) + 'vis.png', vis)
