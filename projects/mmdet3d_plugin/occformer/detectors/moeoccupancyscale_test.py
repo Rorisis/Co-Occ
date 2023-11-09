@@ -113,7 +113,7 @@ class MoEOccupancyScale_Test(BEVDepth):
         self.test_rendering = test_rendering
 
         if use_rendering:
-            # self.sigma_head = MLP(input_dim=128, output_dim=3, net_depth=4, skip_layer=None)
+            self.sigma_head = MLP(input_dim=128, output_dim=1, net_depth=4, skip_layer=None)
             self.rgb_head = MLP(input_dim=128, output_dim=3, net_depth=4, skip_layer=None)
     
         coord_x, coord_y, coord_z = torch.meshgrid(
@@ -396,34 +396,76 @@ class MoEOccupancyScale_Test(BEVDepth):
                & (geom[..., 2] >= 0) & (geom[..., 2] < nx[2]) # [D, H, W, 3]
             geom[~inside_mask] *= 0
             
-            geom_norm = geom.clone()
-            geom_norm[..., 0] = geom_norm[..., 0] / nx[0]
-            geom_norm[..., 1] = geom_norm[..., 1] / nx[1]
-            geom_norm[..., 2] = geom_norm[..., 2] / nx[2]
-            # geom_norm = geom_norm * 2 - 1
+            D, H, W, _ = geom.shape
+            pts = geom.long().permute(1, 2, 0, 3) # [H, W, D, 3]
+            pts_feature = img_voxel_feat[:, pts[..., 0], pts[..., 1], pts[..., 2]] # [C, H, W, D]
+            pts_feature = pts_feature.permute(1, 2, 3, 0) # [H, W, D, C]
+            mask = inside_mask.permute(1, 2, 0, 3) # [H, W, D, 3]
             
-            geom = geom.permute(1, 2, 0, 3).reshape(H * W, D, 3)
-            rays_o, rays_t, valid_mask = self.find_first_and_last_nonzeros(geom)
-            assert valid_mask.sum() != 0
+            rgb = self.rgb_head(pts_feature)
+            rgb[~mask] = 0
+            rgb_map = torch.sigmoid(rgb.sum(dim=-2)) 
             
-            rgb_pred = torch.zeros(H, W, 3).to(geom.device)
-            rays_o, rays_t = rays_o[valid_mask], rays_t[valid_mask]
-            rays_d = (rays_t - rays_o)
-            num_rays = rays_o.shape[0]
-            num_samples = 64
+            # rgb = torch.sigmoid(self.rgb_head(pts_feature)) # [H, W, D, 3]
+            # rgb[~mask] = 0
+            # sigma = self.sigma_head(pts_feature).squeeze(-1) # [H, W, D]
+            # sigma[~mask] = 0
             
-            z_vals = torch.linspace(0, 1, num_samples).to(rays_o)
-            z_vals = z_vals.unsqueeze(0).expand(num_rays, num_samples) # [num_rays, num_samples, 1] 
-            samples = rays_o.unsqueeze(1) * (1 - z_vals.unsqueeze(-1)) + rays_t.unsqueeze(1) * z_vals.unsqueeze(-1)
+            # dists = torch.norm(pts[:, :, 1:, :] - pts[:, :, :-1, :], dim=-1) # [H, W, D - 1]
+            # dists = torch.cat(
+            #     [dists, torch.Tensor([1e10]).expand(dists[...,:1].shape).to(dists.device)], 
+            #     dim=-1
+            # ) # [H, W, D]
+            # alpha = 1. - torch.exp(-F.relu(sigma * dists)) # [H, W, D]
+            # weights = alpha * torch.cumprod(
+            #     torch.cat(
+            #         [torch.ones(H, W, 1).to(alpha.device), 1.-alpha + 1e-10], -1
+            #     ), dim=-1
+            # )[:, :-1] # [H, W, D]
+            # rgb_map = torch.sum(weights.unsqueeze(-1) * rgb, dim=-2) # [H, W, 3]
+            # depth_map = torch.sum(weights * dists, dim=-1) # [H, W]
             
-            C, X, Y, Z = img_voxel_feat.shape
-            img_voxel_feat = img_voxel_feat.reshape(1, C, X, Y, Z)
-            samples = samples.reshape(1, 1, num_rays, num_samples, 3)
-            samples = samples * 2 - 1
-            sample_feat = F.grid_sample(
-                img_voxel_feat, samples, align_corners=True
-            ) # [1, C, 1, num_rays, num_samples]
-            sample_feat = sample_feat.reshape(C, num_rays, num_samples).permute(1, 2, 0) # [num_rays, num_samples, C]
+            rgb_gt = img_inputs[0][0].permute(0, 2, 3, 1).squeeze(0)
+            depth_gt = img_inputs[7][0].permute(0, 1, 2).squeeze(0)
+            losses["loss_rgb"] = F.mse_loss(
+                rgb_map, rgb_gt
+            )
+            # losses["loss_depth_render"] = F.mse_loss(
+            #     depth_map, depth_gt
+            # )
+            
+            vis = torch.cat([rgb_gt, rgb_map, depth_gt / depth.max()], dim=1).detach().cpu().numpy()
+            cv2.imwrite("./vis_save/" + str(time.time()) + 'vis.png', vis)
+            print("rgb_loss: ", losses["loss_rgb"].item())
+            
+            
+            # geom_norm = geom.clone()
+            # geom_norm[..., 0] = geom_norm[..., 0] / nx[0]
+            # geom_norm[..., 1] = geom_norm[..., 1] / nx[1]
+            # geom_norm[..., 2] = geom_norm[..., 2] / nx[2]
+            
+            # geom = geom.permute(1, 2, 0, 3).reshape(H * W, D, 3)
+            # rays_o, rays_t, valid_mask = self.find_first_and_last_nonzeros(geom)
+            # assert valid_mask.sum() != 0
+            
+            # rgb_pred = torch.zeros(H, W, 3).to(geom.device)
+            # rays_o, rays_t = rays_o[valid_mask], rays_t[valid_mask]
+            # rays_d = (rays_t - rays_o)
+            # num_rays = rays_o.shape[0]
+            # num_samples = 64
+            
+            # z_vals = torch.linspace(0, 1, num_samples).to(rays_o)
+            # z_vals = z_vals.unsqueeze(0).expand(num_rays, num_samples) # [num_rays, num_samples, 1] 
+            # samples = rays_o.unsqueeze(1) * (1 - z_vals.unsqueeze(-1)) + rays_t.unsqueeze(1) * z_vals.unsqueeze(-1)
+            
+            # C, X, Y, Z = img_voxel_feat.shape
+            # img_voxel_feat = img_voxel_feat.reshape(1, C, X, Y, Z)
+            # samples = samples.reshape(1, 1, num_rays, num_samples, 3)
+            # samples = samples * 2 - 1
+            # sample_feat = F.grid_sample(
+            #     img_voxel_feat, samples, align_corners=True
+            # ) # [1, C, 1, num_rays, num_samples]
+            # sample_feat = sample_feat.reshape(C, num_rays, num_samples).permute(1, 2, 0) # [num_rays, num_samples, C]
             
             # sigma = F.relu(self.sigma_head(sample_feat)).squeeze(-1) # [num_rays, num_samples, 1]
             # rgb = torch.sigmoid(self.rgb_head(sample_feat)) # [num_rays, num_samples, 3]
@@ -446,25 +488,24 @@ class MoEOccupancyScale_Test(BEVDepth):
             # rgb_map = torch.sum(weights[..., None] * rgb, -2)
             
             # rgb = torch.sigmoid(self.rgb_head(sample_feat)) # [num_rays, num_samples, 3]
-            rgb_map = torch.sigmoid(torch.sum(self.rgb_head(sample_feat), dim=-2))
-            rgb_pred[valid_mask.reshape(H, W)] = rgb_map
+            # rgb_map = torch.sigmoid(torch.sum(self.rgb_head(sample_feat), dim=-2))
+            # rgb_pred[valid_mask.reshape(H, W)] = rgb_map
                 
-            rgb_pred = rgb_pred.unsqueeze(0) # [1, H, W, 3]
-            rgb_pred = F.interpolate(
-                rgb_pred.permute(0, 3, 1, 2), scale_factor=16, mode='bilinear'
-            ).permute(0, 2, 3, 1)
-            losses["loss_rgb"] = F.mse_loss(
-                rgb_pred, img_inputs[0][0].permute(0, 2, 3, 1)
-            )
+            # rgb_pred = rgb_pred.unsqueeze(0) # [1, H, W, 3]
+            # rgb_pred = F.interpolate(
+            #     rgb_pred.permute(0, 3, 1, 2), scale_factor=16, mode='bilinear'
+            # ).permute(0, 2, 3, 1)
+            # losses["loss_rgb"] = F.mse_loss(
+            #     rgb_pred, img_inputs[0][0].permute(0, 2, 3, 1)
+            # )
             
-            gt_vis = img_inputs[0][0][0].permute(1, 2, 0).cpu().numpy()
-            pred_vis = rgb_pred[0].detach().cpu().numpy()
-            vis = np.concatenate((gt_vis, pred_vis), axis=1)
-            vis = (vis * 255).astype(np.uint8)
-            cv2.imwrite("./vis_save/" + str(time.time()) + 'vis.png', vis)
-            print("rgb_loss: ", losses["loss_rgb"].item())
+            # gt_vis = img_inputs[0][0][0].permute(1, 2, 0).cpu().numpy()
+            # pred_vis = rgb_pred[0].detach().cpu().numpy()
+            # vis = np.concatenate((gt_vis, pred_vis), axis=1)
+            # vis = (vis * 255).astype(np.uint8)
+            # cv2.imwrite("./vis_save/" + str(time.time()) + 'vis.png', vis)
+            # print("rgb_loss: ", losses["loss_rgb"].item())
             
-
             # C, X, Y, Z = img_voxel_feat.shape
             # D, H, W, _ = geom.shape
             # geom = geom.long()
@@ -488,39 +529,6 @@ class MoEOccupancyScale_Test(BEVDepth):
             # vis = (vis * 255).astype(np.uint8)
             # cv2.imwrite("./vis_save/" + str(time.time()) + 'vis.png', vis)
             # print("rgb_loss: ", losses["loss_rgb"].item())
-            
-            # for b in range(gemo.shape[0]):
-            #     geom_b = gemo[b, ...].long()            
-            #     color_feature = img_voxel_feat[..., geom_b[..., 1], geom_b[..., 0], geom_b[..., 2]]
-            #     color_feature = color_feature.permute(0, 2, 3, 4, 1).squeeze(0)
-            #     print(color_feature.shape)
-            #     color_2d = torch.sigmoid(self.rgb_head2(color_feature.sum(0)))
-                
-            #     rgb_volume = torch.sigmoid(self.rgb_head(volume[b]))
-
-            #     rgbs.append(color_2d)
-            #     rgb_volumes.append(rgb_volume)
-            # rgbs = torch.stack(rgbs)
-            # rgb_volumes = torch.stack(rgb_volumes)
-
-            # rgbs = F.interpolate(
-            #     rgbs.permute(0, 3, 1, 2), scale_factor=16
-            # ).permute(0, 2, 3, 1)
-            
-            # gt_vis = np.uint8(img_inputs[0][0][0].permute(1,2,0).cpu().numpy()* 255.0)
-            # volume_vis = np.uint8(rgb_volumes[0].detach().cpu().numpy()* 255.0)
-            # rgbs_vis = np.uint8(rgbs[0].detach().cpu().numpy()* 255.0)
-            # vis = np.concatenate((gt_vis, rgbs_vis, volume_vis), axis=1)
-            # cv2.imwrite("./vis_save/"+str(time.time())+'vis.png', vis)
-   
-            # losses["loss_color"] = F.mse_loss(
-            #     rgbs, img_inputs[0][0].permute(0, 2, 3, 1)
-            # )
-            # losses["loss_rgb"] = F.mse_loss(
-            #     rgb_volume, img_inputs[0][0].permute(0, 2, 3, 1)
-            # )
-
-            # print("color:", losses['loss_color'].item(), "rgb:", losses["loss_rgb"].item())
 
 
         if self.loss_norm:
