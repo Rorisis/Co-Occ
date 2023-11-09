@@ -460,13 +460,13 @@ class MoEOccupancyScale_Test(BEVDepth):
             geom = geom.long()
             color_feature = img_voxel_feat[:, geom[..., 0], geom[..., 1], geom[..., 2]] # [C, D, H, W]
             color_feature = color_feature.permute(2, 3, 1, 0) # [H, W, D, C]
-            rgbs_3d = torch.sigmoid(self.rgb_head(color_feature)) # [H, W, D, 3]
+            rgbs_3d = self.rgb_head(color_feature) # [H, W, D, 3]
             
             # sigma_3d = F.relu(self.sigma_head(color_feature)) # [H, W, D, 1]
             # sigma_dist = torch.softmax(sigma_3d, dim=-2)
             # rgbs = torch.sum(sigma_dist * rgbs_3d, dim=-2)
-            rgbs = torch.mean(rgbs_3d, dim=-2)
-            
+            rgbs = torch.sum(rgbs_3d, dim=-2)
+            rgbs = torch.sigmoid(rgbs)
             rgbs = rgbs.unsqueeze(0) # [1, H, W, 3]
             rgbs = F.interpolate(
                 rgbs.permute(0, 3, 1, 2), scale_factor=16, mode='bilinear'
