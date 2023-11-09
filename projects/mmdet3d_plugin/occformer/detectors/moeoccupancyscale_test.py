@@ -396,85 +396,87 @@ class MoEOccupancyScale_Test(BEVDepth):
                & (geom[..., 2] >= 0) & (geom[..., 2] < nx[2]) # [D, H, W, 3]
             geom[~inside_mask] *= 0
             
-            geom = geom.permute(1, 2, 0, 3).reshape(H * W, D, 3)
-            rays_o, rays_t, valid_mask = self.find_first_and_last_nonzeros(geom)
-            assert valid_mask.sum() != 0
+            # geom = geom.permute(1, 2, 0, 3).reshape(H * W, D, 3)
+            # rays_o, rays_t, valid_mask = self.find_first_and_last_nonzeros(geom)
+            # assert valid_mask.sum() != 0
             
-            rgb_pred = torch.zeros(H, W, 3).to(geom.device)
-            rays_o, rays_t = rays_o[valid_mask], rays_t[valid_mask]
-            rays_d = (rays_t - rays_o)
-            num_rays = rays_o.shape[0]
-            num_samples = 64
+            # rgb_pred = torch.zeros(H, W, 3).to(geom.device)
+            # rays_o, rays_t = rays_o[valid_mask], rays_t[valid_mask]
+            # rays_d = (rays_t - rays_o)
+            # num_rays = rays_o.shape[0]
+            # num_samples = 64
             
-            z_vals = torch.linspace(0, 1, num_samples).to(rays_o)
-            z_vals = z_vals.unsqueeze(0).expand(num_rays, num_samples) # [num_rays, num_samples, 1] 
-            samples = rays_o.unsqueeze(1) * (1 - z_vals.unsqueeze(-1)) + rays_t.unsqueeze(1) * z_vals.unsqueeze(-1)
+            # z_vals = torch.linspace(0, 1, num_samples).to(rays_o)
+            # z_vals = z_vals.unsqueeze(0).expand(num_rays, num_samples) # [num_rays, num_samples, 1] 
+            # samples = rays_o.unsqueeze(1) * (1 - z_vals.unsqueeze(-1)) + rays_t.unsqueeze(1) * z_vals.unsqueeze(-1)
             
-            C, X, Y, Z = img_voxel_feat.shape
-            img_voxel_feat = img_voxel_feat.reshape(1, C, X, Y, Z)
-            samples = samples.reshape(1, 1, num_rays, num_samples, 3)
-            sample_feat = F.grid_sample(
-                img_voxel_feat, samples, align_corners=True
-            ) # [1, C, 1, num_rays, num_samples]
-            sample_feat = sample_feat.reshape(C, num_rays, num_samples).permute(1, 2, 0) # [num_rays, num_samples, C]
-            
-            sigma = F.relu(self.sigma_head(sample_feat)).squeeze(-1) # [num_rays, num_samples, 1]
-            rgb = torch.sigmoid(self.rgb_head(sample_feat)) # [num_rays, num_samples, 3]
-            
-            dists = z_vals[..., 1:] - z_vals[..., :-1]
-            dists = torch.cat(
-                [dists, torch.Tensor([1e10]).expand(dists[...,:1].shape).to(dists.device)], 
-                dim=-1
-            )  # [N_rays, N_samples]
-
-            dists = dists * torch.norm(rays_d[..., None, :], dim=-1)
-            raw2alpha = lambda raw, dists, act_fn=F.relu: 1.-torch.exp(-act_fn(raw) * dists)
-            alpha = raw2alpha(sigma, dists)  # [N_rays, N_samples]
-            weights = alpha * torch.cumprod(
-                torch.cat(
-                    [torch.ones((alpha.shape[0], 1)).to(alpha.device), 1.-alpha + 1e-10], -1
-                ), dim=-1
-            )[:, :-1]
-            
-            rgb_map = torch.sum(weights[..., None] * rgb, -2)
-            rgb_pred[valid_mask.reshape(H, W)] = rgb_map
-                
-            rgb_pred = rgb_pred.unsqueeze(0) # [1, H, W, 3]
-            rgb_pred = F.interpolate(
-                rgb_pred.permute(0, 3, 1, 2), scale_factor=16, mode='bilinear'
-            ).permute(0, 2, 3, 1)
-            losses["loss_rgb"] = F.mse_loss(
-                rgb_pred, img_inputs[0][0].permute(0, 2, 3, 1)
-            )
-            
-            gt_vis = img_inputs[0][0][0].permute(1, 2, 0).cpu().numpy()
-            pred_vis = rgb_pred[0].detach().cpu().numpy()
-            vis = np.concatenate((gt_vis, pred_vis), axis=1)
-            vis = (vis * 255).astype(np.uint8)
-            cv2.imwrite("./vis_save/" + str(time.time()) + 'vis.png', vis)
-            print("rgb_loss: ", losses["loss_rgb"].item())
-            
-
             # C, X, Y, Z = img_voxel_feat.shape
-            # D, H, W, _ = geom.shape
-            # color_feature = img_voxel_feat[:, geom[..., 0], geom[..., 1], geom[..., 2]] # [C, D, H, W]
-            # color_feature = color_feature.permute(2, 3, 1, 0) # [H, W, D, C]
-            # rgbs_3d = self.rgb_head2(color_feature) # [H, W, D, 3]
-            # rgbs = torch.sigmoid(rgbs_3d.sum(dim=2))
-            # rgbs = rgbs.unsqueeze(0) # [1, H, W, 3]
-            # rgbs = F.interpolate(
-            #     rgbs.permute(0, 3, 1, 2), scale_factor=16, mode='bilinear'
+            # img_voxel_feat = img_voxel_feat.reshape(1, C, X, Y, Z)
+            # samples = samples.reshape(1, 1, num_rays, num_samples, 3)
+            # sample_feat = F.grid_sample(
+            #     img_voxel_feat, samples, align_corners=True
+            # ) # [1, C, 1, num_rays, num_samples]
+            # sample_feat = sample_feat.reshape(C, num_rays, num_samples).permute(1, 2, 0) # [num_rays, num_samples, C]
+            
+            # sigma = F.relu(self.sigma_head(sample_feat)).squeeze(-1) # [num_rays, num_samples, 1]
+            # rgb = torch.sigmoid(self.rgb_head(sample_feat)) # [num_rays, num_samples, 3]
+            
+            # dists = z_vals[..., 1:] - z_vals[..., :-1]
+            # dists = torch.cat(
+            #     [dists, torch.Tensor([1e10]).expand(dists[...,:1].shape).to(dists.device)], 
+            #     dim=-1
+            # )  # [N_rays, N_samples]
+
+            # dists = dists * torch.norm(rays_d[..., None, :], dim=-1)
+            # raw2alpha = lambda raw, dists, act_fn=F.relu: 1.-torch.exp(-act_fn(raw) * dists)
+            # alpha = raw2alpha(sigma, dists)  # [N_rays, N_samples]
+            # weights = alpha * torch.cumprod(
+            #     torch.cat(
+            #         [torch.ones((alpha.shape[0], 1)).to(alpha.device), 1.-alpha + 1e-10], -1
+            #     ), dim=-1
+            # )[:, :-1]
+            
+            # rgb_map = torch.sum(weights[..., None] * rgb, -2)
+            # rgb_pred[valid_mask.reshape(H, W)] = rgb_map
+                
+            # rgb_pred = rgb_pred.unsqueeze(0) # [1, H, W, 3]
+            # rgb_pred = F.interpolate(
+            #     rgb_pred.permute(0, 3, 1, 2), scale_factor=16, mode='bilinear'
             # ).permute(0, 2, 3, 1)
             # losses["loss_rgb"] = F.mse_loss(
-            #     rgbs, img_inputs[0][0].permute(0, 2, 3, 1)
+            #     rgb_pred, img_inputs[0][0].permute(0, 2, 3, 1)
             # )
             
             # gt_vis = img_inputs[0][0][0].permute(1, 2, 0).cpu().numpy()
-            # pred_vis = rgbs[0].detach().cpu().numpy()
+            # pred_vis = rgb_pred[0].detach().cpu().numpy()
             # vis = np.concatenate((gt_vis, pred_vis), axis=1)
             # vis = (vis * 255).astype(np.uint8)
             # cv2.imwrite("./vis_save/" + str(time.time()) + 'vis.png', vis)
             # print("rgb_loss: ", losses["loss_rgb"].item())
+            
+
+            C, X, Y, Z = img_voxel_feat.shape
+            D, H, W, _ = geom.shape
+            color_feature = img_voxel_feat[:, geom[..., 0], geom[..., 1], geom[..., 2]] # [C, D, H, W]
+            color_feature = color_feature.permute(2, 3, 1, 0) # [H, W, D, C]
+            rgbs_3d = torch.sigmoid(self.rgb_head(color_feature)) # [H, W, D, 3]
+            sigma_3d = F.relu(self.sigma_head(color_feature)) # [H, W, D, 1]
+            sigma_dist = torch.softmax(sigma_3d, dim=-2)
+            rgbs = torch.sum(sigma_dist * rgbs_3d, dim=-2)
+            rgbs = rgbs.unsqueeze(0) # [1, H, W, 3]
+            rgbs = F.interpolate(
+                rgbs.permute(0, 3, 1, 2), scale_factor=16, mode='bilinear'
+            ).permute(0, 2, 3, 1)
+            losses["loss_rgb"] = F.mse_loss(
+                rgbs, img_inputs[0][0].permute(0, 2, 3, 1)
+            )
+            
+            gt_vis = img_inputs[0][0][0].permute(1, 2, 0).cpu().numpy()
+            pred_vis = rgbs[0].detach().cpu().numpy()
+            vis = np.concatenate((gt_vis, pred_vis), axis=1)
+            vis = (vis * 255).astype(np.uint8)
+            cv2.imwrite("./vis_save/" + str(time.time()) + 'vis.png', vis)
+            print("rgb_loss: ", losses["loss_rgb"].item())
             
             # for b in range(gemo.shape[0]):
             #     geom_b = gemo[b, ...].long()            
