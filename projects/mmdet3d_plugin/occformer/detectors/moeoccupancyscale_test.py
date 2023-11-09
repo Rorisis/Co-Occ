@@ -113,7 +113,7 @@ class MoEOccupancyScale_Test(BEVDepth):
         self.test_rendering = test_rendering
 
         if use_rendering:
-            # self.sigma_head = MLP(input_dim=128, output_dim=1, net_depth=4, skip_layer=None)
+            self.sigma_head = MLP(input_dim=128, output_dim=1, net_depth=3, skip_layer=None)
             self.rgb_head = MLP(input_dim=128, output_dim=3, net_depth=4, skip_layer=None)
     
         coord_x, coord_y, coord_z = torch.meshgrid(
@@ -402,28 +402,29 @@ class MoEOccupancyScale_Test(BEVDepth):
             pts_feature = pts_feature.permute(1, 2, 3, 0) # [H, W, D, C]
             mask = inside_mask.permute(1, 2, 0) # [H, W, D]
             
-            rgb = self.rgb_head(pts_feature)
-            rgb[~mask] = -1e5
-            rgb_map = torch.sigmoid(rgb.sum(dim=-2)) 
-            
-            # rgb = torch.sigmoid(self.rgb_head(pts_feature)) # [H, W, D, 3]
+            # rgb = self.rgb_head(pts_feature)
             # rgb[~mask] = 0
-            # sigma = self.sigma_head(pts_feature).squeeze(-1) # [H, W, D]
-            # sigma[~mask] = 0
+            # rgb_map = torch.sigmoid(rgb.sum(dim=-2)) 
             
-            # dists = torch.norm(pts[:, :, 1:, :] - pts[:, :, :-1, :], dim=-1) # [H, W, D - 1]
-            # dists = torch.cat(
-            #     [dists, torch.Tensor([1e10]).expand(dists[...,:1].shape).to(dists.device)], 
-            #     dim=-1
-            # ) # [H, W, D]
-            # alpha = 1. - torch.exp(-F.relu(sigma * dists)) # [H, W, D]
-            # weights = alpha * torch.cumprod(
-            #     torch.cat(
-            #         [torch.ones(H, W, 1).to(alpha.device), 1.-alpha + 1e-10], -1
-            #     ), dim=-1
-            # )[:, :-1] # [H, W, D]
-            # rgb_map = torch.sum(weights.unsqueeze(-1) * rgb, dim=-2) # [H, W, 3]
-            # depth_map = torch.sum(weights * dists, dim=-1) # [H, W]
+            rgb = torch.sigmoid(self.rgb_head(pts_feature)) # [H, W, D, 3]
+            rgb[~mask] = 0
+            sigma = self.sigma_head(pts_feature).squeeze(-1) # [H, W, D]
+            sigma[~mask] = 0
+            sigma = F.relu(sigma)
+            
+            dists = torch.norm(pts[:, :, 1:, :] - pts[:, :, :-1, :], dim=-1) # [H, W, D - 1]
+            dists = torch.cat(
+                [dists, torch.Tensor([1e10]).expand(dists[...,:1].shape).to(dists.device)], 
+                dim=-1
+            ) # [H, W, D]
+            alpha = 1. - torch.exp(-F.relu(sigma * dists)) # [H, W, D]
+            weights = alpha * torch.cumprod(
+                torch.cat(
+                    [torch.ones(H, W, 1).to(alpha.device), 1.-alpha + 1e-10], -1
+                ), dim=-1
+            )[:, :-1] # [H, W, D]
+            rgb_map = torch.sum(weights.unsqueeze(-1) * rgb, dim=-2) # [H, W, 3]
+            depth_map = torch.sum(weights * dists, dim=-1) # [H, W]
             
             rgb_gt = img_inputs[0][0].permute(0, 2, 3, 1).squeeze(0)
             depth_gt = img_inputs[7][0].permute(0, 1, 2).squeeze(0)
@@ -438,7 +439,9 @@ class MoEOccupancyScale_Test(BEVDepth):
             #     depth_map, depth_gt
             # )
             
-            vis = torch.cat([rgb_gt, rgb_map, depth_gt.unsqueeze(-1).repeat(1, 1, 3) / depth.max()], dim=1).clamp(0, 1).detach().cpu().numpy()
+            vis = torch.cat(
+                [rgb_gt, rgb_map, depth_gt.unsqueeze(-1).repeat(1, 1, 3) / depth.max()], dim=1
+            ).clamp(0, 1).detach().cpu().numpy()
             vis = np.uint8(vis * 255.0)
             cv2.imwrite("./vis_save/" + str(time.time()) + 'vis.png', vis)
             print("rgb_loss: ", losses["loss_rgb"].item())
