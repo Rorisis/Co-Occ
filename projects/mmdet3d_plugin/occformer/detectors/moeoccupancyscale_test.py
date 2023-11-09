@@ -397,8 +397,9 @@ class MoEOccupancyScale_Test(BEVDepth):
                & (geom[..., 1] >= 0) & (geom[..., 1] < nx[1]) \
                & (geom[..., 2] >= 0) & (geom[..., 2] < nx[2]) # [D, H, W, 3]
             geom[~inside_mask] *= 0
+            
             geom = geom.permute(1, 2, 0, 3).reshape(H * W, D, 3)
-            rays_o, rays_t, valid_mask = self.find_first_and_last_nonzeros(gemo)
+            rays_o, rays_t, valid_mask = self.find_first_and_last_nonzeros(geom)
             assert valid_mask.sum() != 0
             
             rgb_pred = torch.zeros(H, W, 3).to(geom.device)
