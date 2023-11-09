@@ -113,48 +113,8 @@ class MoEOccupancyScale_Test(BEVDepth):
         self.test_rendering = test_rendering
 
         if use_rendering:
-            # self.density_encoder = builder.build_neck(density_encoder)
-            # self.density_neck = builder.build_neck(density_neck)
-
-                # self.color_encoder = builder.build_neck(color_encoder)
-            # layer1 = torch.nn.Linear(192, 192)
-            # layer2 = torch.nn.Linear(192, 192)
-            # layer3 = torch.nn.Linear(192, 3)
-            num_c = 192
-            # self.color_head = MLP(input_dim=128, output_dim=32, net_depth=4, skip_layer=None)
-            self.color_head2 = MLP(input_dim=128, output_dim=3, net_depth=4, skip_layer=None)
-            # self.color_head = torch.nn.Linear(128, 3)
-            # self.mlp = torch.nn.Sequential(layer1, torch.nn.ReLU(inplace=True), layer2, torch.nn.ReLU(inplace=True), layer3)
-            # self.color_head = torch.nn.Sequential(layer1, torch.nn.ReLU(inplace=True), layer2, torch.nn.ReLU(inplace=True), layer3)#torch.nn.Linear(256, 3)#MLP(input_dim=256, output_dim=3,net_depth=3,skip_layer=0)
-            # self.color_head = ResnetFC(
-            # d_in=128,
-            # d_out=3,
-            # n_blocks=3,
-            # d_hidden=512,
-            # d_latent=0)
-            # self.color_head = VanillaNeRFRadianceField(
-            # net_depth=4,  # The depth of the MLP.
-            # net_width=256,  # The width of the MLP.
-            # skip_layer=None,  # The layer to add skip layers to.
-            # feature_dim=128, # + RGB original img
-            # net_depth_condition=1,  # The depth of the second part of MLP.
-            # net_width_condition=128
-            # )
-            # self.color_head2 = torch.nn.Linear(3, 3)
-            # self.color_neck = builder.build_neck(color_neck)
-            # self.density_head = torch.nn.Linear(128, 1)
-            # self.density = LaplaceDensity(beta=0.01)
-            # self.sdf_conv = nn.Sequential(
-            #     nn.Conv3d(num_c, num_c, 3, 1, 1, bias=True),
-            #     nn.Softplus(beta=100),
-            #     nn.Conv3d(num_c, num_c, 3, 1, 1, bias=True),
-            #     nn.Softplus(beta=100),
-            #     nn.Conv3d(num_c, num_c + 1, 3, 1, 1, bias=True),
-            # )
-            # self.rgb_conv = nn.Sequential(
-            #     nn.Conv3d(num_c, 3, 3, 1, 1, bias=False),
-            #     nn.Sigmoid(),
-            # )
+            self.sigma_head = nn.Linear(128, 1)
+            self.rgb_head = MLP(input_dim=128, output_dim=3, net_depth=4, skip_layer=None)
     
         coord_x, coord_y, coord_z = torch.meshgrid(
             torch.arange(self.n_voxels[0]),
@@ -435,24 +395,48 @@ class MoEOccupancyScale_Test(BEVDepth):
             geom = ((geom - (bx - dx / 2.)) / dx).long()
             inside_mask = (geom[..., 0] >= 0) & (geom[..., 0] < nx[0]) \
                & (geom[..., 1] >= 0) & (geom[..., 1] < nx[1]) \
-               & (geom[..., 2] >= 0) & (geom[..., 2] < nx[2])
+               & (geom[..., 2] >= 0) & (geom[..., 2] < nx[2]) # [D, H, W, 3]
             geom[~inside_mask] *= 0
-
+            geom = geom.permute(1, 2, 0, 3).reshape(H * W, D, 3)
+            rays_o, rays_t, valid_mask = self.find_first_and_last_nonzeros(gemo)
+            assert valid_mask.sum() != 0
+            
+            rgb_pred = torch.zeros(H, W, 3).to(geom.device)
+            rays_o, rays_t = rays_o[valid_mask], rays_t[valid_mask]
+            rays_d = (rays_t - rays_o)
+            num_rays = rays_o.shape[0]
+            num_samples = 64
+            z_vals = torch.linspace(0, 1, num_samples).to(rays_o).unsqueeze(0).expand(num_rays, num_samples)
+            samples = rays_o * (1 - z_vals) + rays_t * z_vals # [num_rays, num_samples, 3]
+            
             C, X, Y, Z = img_voxel_feat.shape
-            D, H, W, _ = geom.shape
-            color_feature = img_voxel_feat[:, geom[..., 0], geom[..., 1], geom[..., 2]] # [C, D, H, W]
-            color_feature = color_feature.permute(2, 3, 1, 0) # [H, W, D, C]
-            rgbs_3d = self.color_head2(color_feature) # [H, W, D, 3]
-            # rgbs_3d = torch.sigmoid(rgbs_3d)
-            # weights = depth.reshape(H, W, D, 1)
-            # rgbs = (rgbs_3d * weights).sum(dim=2) # [H, W, 3]
-            rgbs = torch.sigmoid(rgbs_3d.sum(dim=2))
-            rgbs = rgbs.unsqueeze(0) # [1, H, W, 3]
-            rgbs = F.interpolate(
-                rgbs.permute(0, 3, 1, 2), scale_factor=16, mode='bilinear'
+            img_voxel_feat = img_voxel_feat.reshape(1, C, X, Y, Z)
+            samples = samples.reshape(1, 1, num_rays, num_samples, 3)
+            sample_feat = F.grid_sample(
+                img_voxel_feat, samples, align_corners=True
+            ) # [1, C, 1, num_rays, num_samples]
+            sample_feat = sample_feat.reshape(C, num_rays, num_samples).permute(1, 2, 0)
+            
+            sigma = F.relu(self.sigma_head(sample_feat)).squeeze(-1) # [num_rays, num_samples, 1]
+            rgb = torch.sigmoid(self.rgb_head(sample_feat)) # [num_rays, num_samples, 3]
+            
+            dists = z_vals[..., 1:] - z_vals[..., :-1]
+            dists = torch.cat([dists, torch.Tensor([1e10]).expand(dists[...,:1].shape)], -1)  # [N_rays, N_samples]
+
+            dists = dists * torch.norm(rays_d[..., None, :], dim=-1)
+            raw2alpha = lambda raw, dists, act_fn=F.relu: 1.-torch.exp(-act_fn(raw) * dists)
+            alpha = raw2alpha(sigma, dists)  # [N_rays, N_samples]
+            weights = alpha * torch.cumprod(torch.cat([torch.ones((alpha.shape[0], 1)), 1.-alpha + 1e-10], -1), -1)[:, :-1]
+            
+            rgb_map = torch.sum(weights[..., None] * rgb, -2)
+            rgb_pred[valid_mask] = rgb_map
+                
+            rgb_pred = rgb_pred.unsqueeze(0) # [1, H, W, 3]
+            rgb_pred = F.interpolate(
+                rgb_pred.permute(0, 3, 1, 2), scale_factor=16, mode='bilinear'
             ).permute(0, 2, 3, 1)
             losses["loss_rgb"] = F.mse_loss(
-                rgbs, img_inputs[0][0].permute(0, 2, 3, 1)
+                rgb_pred, img_inputs[0][0].permute(0, 2, 3, 1)
             )
             
             gt_vis = img_inputs[0][0][0].permute(1, 2, 0).cpu().numpy()
@@ -462,14 +446,36 @@ class MoEOccupancyScale_Test(BEVDepth):
             cv2.imwrite("./vis_save/" + str(time.time()) + 'vis.png', vis)
             print("rgb_loss: ", losses["loss_rgb"].item())
             
+
+            # C, X, Y, Z = img_voxel_feat.shape
+            # D, H, W, _ = geom.shape
+            # color_feature = img_voxel_feat[:, geom[..., 0], geom[..., 1], geom[..., 2]] # [C, D, H, W]
+            # color_feature = color_feature.permute(2, 3, 1, 0) # [H, W, D, C]
+            # rgbs_3d = self.rgb_head2(color_feature) # [H, W, D, 3]
+            # rgbs = torch.sigmoid(rgbs_3d.sum(dim=2))
+            # rgbs = rgbs.unsqueeze(0) # [1, H, W, 3]
+            # rgbs = F.interpolate(
+            #     rgbs.permute(0, 3, 1, 2), scale_factor=16, mode='bilinear'
+            # ).permute(0, 2, 3, 1)
+            # losses["loss_rgb"] = F.mse_loss(
+            #     rgbs, img_inputs[0][0].permute(0, 2, 3, 1)
+            # )
+            
+            # gt_vis = img_inputs[0][0][0].permute(1, 2, 0).cpu().numpy()
+            # pred_vis = rgbs[0].detach().cpu().numpy()
+            # vis = np.concatenate((gt_vis, pred_vis), axis=1)
+            # vis = (vis * 255).astype(np.uint8)
+            # cv2.imwrite("./vis_save/" + str(time.time()) + 'vis.png', vis)
+            # print("rgb_loss: ", losses["loss_rgb"].item())
+            
             # for b in range(gemo.shape[0]):
             #     geom_b = gemo[b, ...].long()            
             #     color_feature = img_voxel_feat[..., geom_b[..., 1], geom_b[..., 0], geom_b[..., 2]]
             #     color_feature = color_feature.permute(0, 2, 3, 4, 1).squeeze(0)
             #     print(color_feature.shape)
-            #     color_2d = torch.sigmoid(self.color_head2(color_feature.sum(0)))
+            #     color_2d = torch.sigmoid(self.rgb_head2(color_feature.sum(0)))
                 
-            #     rgb_volume = torch.sigmoid(self.color_head(volume[b]))
+            #     rgb_volume = torch.sigmoid(self.rgb_head(volume[b]))
 
             #     rgbs.append(color_2d)
             #     rgb_volumes.append(rgb_volume)
@@ -620,9 +626,9 @@ class MoEOccupancyScale_Test(BEVDepth):
                     density = F.grid_sample(density_.permute(0,1,4,3,2), norm_pts, mode='bilinear', padding_mode='zeros', align_corners=True).squeeze(0).squeeze(-1).permute(1,2,0)
                     color = F.grid_sample(rgb.permute(0,1,4,3,2), norm_pts, mode='bilinear', padding_mode='zeros', align_corners=True).squeeze(0).squeeze(-1).permute(1,2,0)
                     # print("color_features:", color_feature.shape)
-                    # mlp_out = self.color_head(color_feature)
+                    # mlp_out = self.rgb_head(color_feature)
                     # density = F.relu(self.density_head(density_feature))
-                    # color = torch.sigmoid(self.color_head(color_feature))
+                    # color = torch.sigmoid(self.rgb_head(color_feature))
                     
                     weights = self.get_weights(density, z_vals)
                     
@@ -637,7 +643,7 @@ class MoEOccupancyScale_Test(BEVDepth):
                     depth_2d = torch.clamp(depth_2d, z_vals.min(), z_vals.max())
                     rgbs.append(color_2d)
                     depths.append(depth_2d)
-                rgb_volume = torch.sigmoid(self.color_head(volume[b]))
+                rgb_volume = torch.sigmoid(self.rgb_head(volume[b]))
                 rgb_volumes.append(rgb_volume)
 
             rgbs = torch.cat(rgbs, dim=0).view(self.nerf_sample_view,H,W,3)
@@ -744,7 +750,29 @@ class MoEOccupancyScale_Test(BEVDepth):
         
         return output
     
-    
+    def find_first_and_last_nonzeros(self, tensor):
+        """
+        find first non zero value in a tensor along a D dim
+        tensor: [N, D, C]
+        """
+        tensor_01 = (tensor != 0).all(dim=-1).float()
+        
+        idx = torch.arange(tensor.shape[1], 0, -1).to(tensor.device)[None, :]
+        tmp = tensor_01 * idx
+        max_indices = torch.argmax(tmp, dim=1) # [N]
+        max_indices = torch.stack([torch.arange(tensor.shape[0]).to(tensor.device), max_indices], dim=-1)
+        first_nonzeros = tensor[max_indices[..., 0], max_indices[..., 1]]
+        
+        idx = torch.arange(tensor.shape[1]).to(tensor.device)[None, :]
+        tmp = tensor_01 * idx
+        max_indices = torch.argmax(tmp, dim=1) # [N]
+        max_indices = torch.stack([torch.arange(tensor.shape[0]).to(tensor.device), max_indices], dim=-1)
+        last_nonzeros = tensor[max_indices[..., 0], max_indices[..., 1]]
+        
+        last_nonzeros = torch.maximum(last_nonzeros, first_nonzeros + 1e-5)
+        valid_mask = (first_nonzeros != 0).all(dim=-1)
+        return first_nonzeros, last_nonzeros, valid_mask
+
 def fast_hist(pred, label, max_label=18):
     pred = copy.deepcopy(pred.flatten())
     label = copy.deepcopy(label.flatten())
