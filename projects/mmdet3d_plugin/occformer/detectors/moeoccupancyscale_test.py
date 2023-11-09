@@ -408,8 +408,9 @@ class MoEOccupancyScale_Test(BEVDepth):
             num_rays = rays_o.shape[0]
             num_samples = 64
             z_vals = torch.linspace(0, 1, num_samples).to(rays_o)
-            z_vals = z_vals.unsqueeze(0).expand(num_rays, num_samples).unsqueeze(-1) 
-            samples = rays_o * (1 - z_vals[..., None]) + rays_t * z_vals[..., None] # [num_rays, num_samples, 3]
+            z_vals = z_vals.unsqueeze(0).expand(num_rays, num_samples).unsqueeze(-1) # [num_rays, num_samples, 1] 
+            # samples = rays_o * (1 - z_vals[..., None]) + rays_t * z_vals[..., None] # [num_rays, num_samples, 3]
+            samples = rays_o.unsqueeze(1) * (1 - z_vals) + rays_t.unsqueeze(1) * z_vals
             
             C, X, Y, Z = img_voxel_feat.shape
             img_voxel_feat = img_voxel_feat.reshape(1, C, X, Y, Z)
