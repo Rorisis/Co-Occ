@@ -439,7 +439,7 @@ class MoEOccupancyScale_Test(BEVDepth):
             )[:, :-1]
             
             rgb_map = torch.sum(weights[..., None] * rgb, -2)
-            rgb_pred[valid_mask] = rgb_map
+            rgb_pred[valid_mask.reshape(H, W)] = rgb_map
                 
             rgb_pred = rgb_pred.unsqueeze(0) # [1, H, W, 3]
             rgb_pred = F.interpolate(
