@@ -290,7 +290,7 @@ class MoEOccupancyScale_Test(BEVDepth):
         #     t2 = time.time()
         #     self.time_stats['occ_encoder'].append(t2 - t1)
 
-        return (voxel_feats, img_feats, pts_feats, depth, geom, volume, img_voxel_feats)
+        return (voxel_feats, img_feats, pts_feats, depth, geom, volume, voxel_feats1)
     
     def get_weights(self, sigma, z_vals):
         sigma = sigma.squeeze(-1)
@@ -430,18 +430,22 @@ class MoEOccupancyScale_Test(BEVDepth):
             rgb_map = F.interpolate(
                 rgb_map.permute(2, 0, 1).unsqueeze(0), scale_factor=16, mode='bilinear'
             ).permute(0, 2, 3, 1).squeeze(0)
+            depth_map = F.interpolate(
+                depth_map.unsqueeze(0).unsqueeze(1), scale_factor=16, mode='bilinear'
+            ).squeeze(1).squeeze(0)
             losses["loss_rgb"] = F.mse_loss(
                 rgb_map, rgb_gt
             )
             # losses["loss_depth_render"] = F.mse_loss(
             #     depth_map, depth_gt
             # )
-            
+            # print(depth_map.shape, depth_gt.shape)
             rgb_vis = torch.cat([rgb_gt, rgb_map], dim=1)
             depth_map = (depth_map - depth_map.min()) / (depth_map.max() - depth_map.min() + 1e-8)
             depth_gt = (depth_gt - depth_gt.min()) / (depth_gt.max() - depth_gt.min() + 1e-8)
             depth_vis = torch.cat([depth_gt, depth_map], dim=1).unsqueeze(-1).repeat(1, 1, 3)
-            vis = torch.cat([rgb_vis, depth_vis], dim=2).detach().cpu().numpy()
+
+            vis = torch.cat([rgb_vis, depth_vis], dim=0).detach().cpu().numpy()
             vis = np.uint8(vis * 255.0)
             cv2.imwrite("./vis_save/" + str(time.time()) + 'vis.png', vis)
             print("rgb_loss: ", losses["loss_rgb"].item())
@@ -585,120 +589,75 @@ class MoEOccupancyScale_Test(BEVDepth):
             assert B == 1
             gemo = gemo.reshape(B*N, D, H, W, 3)
 
-            rays_o_all = gemo[:, 0, : , :, :]
-            rays_d_all = gemo[:, 1, : , :, :] - gemo[:, 0, : , :, :]
-            magnitude = torch.norm(rays_d_all, dim=-1, keepdim=True)  # calculate magnitude
-            rays_d_all = rays_d_all / magnitude
+            geom = gemo.squeeze(0) # [D, H, W, 3] [112, 24, 80, 3]
+            img_voxel_feat = img_voxel_feat.squeeze(0) # [C, X, Y, Z] [128, 128, 128, 16]
+            xbound, ybound, zbound = [0, 51.2, 0.4], [-25.6, 25.6, 0.4], [-2, 4.4, 0.4]
+            dx = torch.Tensor([row[2] for row in [xbound, ybound, zbound]]).to(geom.device)
+            bx = torch.Tensor([row[0] + row[2] / 2.0 for row in [xbound, ybound, zbound]]).to(geom.device)
+            nx = torch.Tensor([(row[1] - row[0]) / row[2] for row in [xbound, ybound, zbound]]).to(geom.device)
+            geom = ((geom - (bx - dx / 2.)) / dx)
+            inside_mask = (geom[..., 0] >= 0) & (geom[..., 0] < nx[0]) \
+               & (geom[..., 1] >= 0) & (geom[..., 1] < nx[1]) \
+               & (geom[..., 2] >= 0) & (geom[..., 2] < nx[2]) # [D, H, W, 3]
+            geom[~inside_mask] *= 0
+            
+            D, H, W, _ = geom.shape
+            pts = geom.long().permute(1, 2, 0, 3) # [H, W, D, 3]
+            pts_feature = img_voxel_feat[:, pts[..., 0], pts[..., 1], pts[..., 2]] # [C, H, W, D]
+            pts_feature = pts_feature.permute(1, 2, 3, 0) # [H, W, D, C]
+            mask = inside_mask.permute(1, 2, 0) # [H, W, D]
+            
+            # rgb = self.rgb_head(pts_feature)
+            # rgb[~mask] = 0
+            # rgb_map = torch.sigmoid(rgb.sum(dim=-2)) 
+            
+            
+            rgb = self.rgb_head(pts_feature)
+            rgb[~mask] = -1e5
+            rgb = torch.sigmoid(rgb) # [H, W, D, 3]
+            sigma = self.sigma_head(pts_feature).squeeze(-1) # [H, W, D]
+            sigma = F.relu(sigma)
+            
+            pts = pts.float()
+            dists = torch.norm(pts[:, :, 1:, :] - pts[:, :, :-1, :], dim=-1) # [H, W, D - 1]
+            dists = torch.cat(
+                [dists, torch.Tensor([1e10]).expand(dists[...,:1].shape).to(dists.device)], 
+                dim=-1
+            ) # [H, W, D]
+            alpha = 1. - torch.exp(-F.relu(sigma * dists)) # [H, W, D]
+            weights = alpha * torch.cumprod(
+                torch.cat(
+                    [torch.ones(H, W, 1).to(alpha.device), 1.-alpha + 1e-10], -1
+                ), dim=-1
+            )[:, :, :-1] # [H, W, D]
+            rgb_map = torch.sum(weights.unsqueeze(-1) * rgb, dim=-2) # [H, W, 3]
+            
+            z_vals = torch.cumsum(dists, dim=-1)
+            depth_map = torch.sum(weights * z_vals, dim=-1) # [H, W]
+            
+            rgb_gt = img[0][0].permute(0, 2, 3, 1).squeeze(0)
+            depth_gt = img[7][0].permute(0, 1, 2).squeeze(0)
+            rgb_map = F.interpolate(
+                rgb_map.permute(2, 0, 1).unsqueeze(0), scale_factor=16, mode='bilinear'
+            ).permute(0, 2, 3, 1).squeeze(0)
+            depth_map = F.interpolate(
+                depth_map.unsqueeze(0).unsqueeze(1), scale_factor=16, mode='bilinear'
+            ).squeeze(1).squeeze(0)
 
-            sdf_output = self.sdf_conv(voxel_feats[0])
-            sdf = sdf_output[:,:1]
-            feature_vectors = sdf_output[:,1:]
+            psnr = compute_psnr(rgb_map, rgb_gt, mask=None)
+            # losses["loss_depth_render"] = F.mse_loss(
+            #     depth_map, depth_gt
+            # )
+            print("psnr:", psnr)
 
-            rgb = self.rgb_conv(feature_vectors)
-            density_ = self.density(sdf)
-            volume = F.interpolate(volume.permute(0,3,1,2), scale_factor=16).permute(0,2,3,1)
+            rgb_vis = torch.cat([rgb_gt, rgb_map], dim=1)
+            depth_map = (depth_map - depth_map.min()) / (depth_map.max() - depth_map.min() + 1e-8)
+            depth_gt = (depth_gt - depth_gt.min()) / (depth_gt.max() - depth_gt.min() + 1e-8)
+            depth_vis = torch.cat([depth_gt, depth_map], dim=1).unsqueeze(-1).repeat(1, 1, 3)
 
-            rgbs_part = []
-            depths_part = []
-            rgbs = []
-            depths = []
-            rgb_volumes = []
-            for b in range(rays_o_all.shape[0]):
-                rays_d = rays_d_all[b].reshape(-1, 3) #N, H, W, 3
-                rays_o = rays_o_all[b].reshape(-1, 3)
-                # print("rays_o:", rays_o.shape, "rays_d:", rays_d.shape)
-                for i in range(0, rays_o.shape[0], self.N_rand):
-                    rays_o_chunck = rays_o[i: i+self.N_rand]
-                    rays_d_chunck = rays_d[i: i+self.N_rand]
-                    pts, z_vals = sample_along_camera_ray(ray_o=rays_o_chunck,   
-                                                    ray_d=rays_d_chunck,
-                                                    depth_range=self.near_far_range,
-                                                    N_samples=self.N_samples,
-                                                    inv_uniform=False,
-                                                    det=False)
-
-                    # xyz_min = torch.tensor(np.array([0, -25.6, -2])).to(ray_o.device)
-                    # xyz_max = torch.tensor(np.array([51.2, 25.6, 4.4])).to(ray_o.device)
-                    # xyz_range = (xyz_max - xyz_min).float()
-                    # radius = 39
-                    # scene_center = (xyz_min + xyz_max) * 0.5
-                    # scene_radius = torch.tensor(np.array([radius, radius, radius])).to(ray_o.device)
-                    # bg_len = (xyz_range[0]//2-radius)/radius
-                    # world_len = 256
-                    # step_size = 0.5
-
-                    # ray_o = (ray_o - scene_center) / scene_radius       # normalization
-                    # ray_d = ray_o / ray_d.norm(dim=-1, keepdim=True)
-                    # N_inner = int(2 / (2+2*bg_len) * world_len / step_size) + 1
-                    # N_outer = N_inner//15   # hardcode: 15
-                    # b_inner = torch.linspace(0, 2, N_inner+1)
-                    # b_outer = 2 / torch.linspace(1, 1/64, N_outer+1)
-                    # z_vals = torch.cat([
-                    #     (b_inner[1:] + b_inner[:-1]) * 0.5,
-                    #     (b_outer[1:] + b_outer[:-1]) * 0.5,
-                    # ]).to(ray_o)
-                    # ray_pts = ray_o[:,None,:] + ray_d[:,None,:] * z_vals[None,:,None]
-
-                    # norm = ray_pts.norm(dim=-1, keepdim=True)
-                    # inner_mask = (norm<=1)
-                    # norm_pts = torch.where(
-                    #     inner_mask,
-                    #     ray_pts,
-                    #     ray_pts / norm * ((1+bg_len) - bg_len/norm)
-                    # )
-
-                    # # reverse bda-aug 
-                    # bda = img_inputs[6][0]
-                    # norm_pts = bda[:3,:3].matmul(norm_pts.float().unsqueeze(-1)).squeeze(-1)
-
-                    aabb = torch.tensor([[0, -25.6, -2], [51.2, 25.6, 4.4]]).to(pts.device)
-
-                    pts = pts.reshape(1, pts.shape[0],pts.shape[1],1,3)
-
-                    aabbSize = aabb[1] - aabb[0]
-                    invgridSize = 1.0/aabbSize * 2
-                    norm_pts = (pts-aabb[0]) * invgridSize - 1
-                    # print(norm_pts.shape, norm_pts.max(), norm_pts.min())
-
-                    density = F.grid_sample(density_.permute(0,1,4,3,2), norm_pts, mode='bilinear', padding_mode='zeros', align_corners=True).squeeze(0).squeeze(-1).permute(1,2,0)
-                    color = F.grid_sample(rgb.permute(0,1,4,3,2), norm_pts, mode='bilinear', padding_mode='zeros', align_corners=True).squeeze(0).squeeze(-1).permute(1,2,0)
-                    # print("color_features:", color_feature.shape)
-                    # mlp_out = self.rgb_head(color_feature)
-                    # density = F.relu(self.density_head(density_feature))
-                    # color = torch.sigmoid(self.rgb_head(color_feature))
-                    
-                    weights = self.get_weights(density, z_vals)
-                    
-                    color_2d = torch.sum(weights.unsqueeze(2) * color, dim=1)
-                    # color_2d = torch.sigmoid(torch.sum(color, dim=1))
-                    
-
-                    if self.white_bkgd:
-                        color_2d = color_2d + (1. - torch.sum(weights, dim=-1, keepdim=True))
-
-                    depth_2d = torch.sum(weights * z_vals, dim=-1) / (torch.sum(weights, dim=-1) + 1e-8)
-                    depth_2d = torch.clamp(depth_2d, z_vals.min(), z_vals.max())
-                    rgbs.append(color_2d)
-                    depths.append(depth_2d)
-                rgb_volume = torch.sigmoid(self.rgb_head(volume[b]))
-                rgb_volumes.append(rgb_volume)
-
-            rgbs = torch.cat(rgbs, dim=0).view(self.nerf_sample_view,H,W,3)
-            depths = torch.cat(depths, dim=0).view(self.nerf_sample_view,H,W,1)
-            rgb_volumes = torch.stack(rgb_volumes, dim=0)
-
-            psnr_total = 0
-            for v in range(rgbs.shape[0]):
-                gt_img = img[0][0][v].permute(1,2,0)
-                # print("pred:", rgbs[v].var(), "gt:", img[-5][0][v].var())
-                depth_ = ((depths[v]-depths[v].min()) / (depths[v].max() - depths[v].min()+1e-8)).repeat(1, 1, 3)
-                img_to_save = torch.cat([rgbs[v], rgb_volumes[v], gt_img, depth_], dim=1).clip(0, 1)
-                img_to_save = np.uint8(img_to_save.cpu().numpy()* 255.0)
-                psnr = compute_psnr(rgbs[v], gt_img, mask=None)
-                psnr_total += psnr
-                cv2.imwrite("./img_"+str(v)+'.png', img_to_save)
-                # plt.imsave("./img_"+str(v)+'.png', img_to_save.cpu().numpy())
-            print("psnr:", psnr_total/rgbs.shape[0])
+            vis = torch.cat([rgb_vis, depth_vis], dim=0).detach().cpu().numpy()
+            vis = np.uint8(vis * 255.0)
+            cv2.imwrite("./vis_save/vis.png", vis)
     
         # evaluate nusc lidar-seg
         if output['output_points'] is not None and points_occ is not None:
