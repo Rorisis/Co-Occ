@@ -402,11 +402,6 @@ class MoEOccupancyScale_Test(BEVDepth):
             pts_feature = pts_feature.permute(1, 2, 3, 0) # [H, W, D, C]
             mask = inside_mask.permute(1, 2, 0) # [H, W, D]
             
-            # rgb = self.rgb_head(pts_feature)
-            # rgb[~mask] = 0
-            # rgb_map = torch.sigmoid(rgb.sum(dim=-2)) 
-            
-            
             rgb = self.rgb_head(pts_feature)
             rgb[~mask] = -1e5
             rgb = torch.sigmoid(rgb) # [H, W, D, 3]
@@ -426,14 +421,15 @@ class MoEOccupancyScale_Test(BEVDepth):
                 ), dim=-1
             )[:, :, :-1] # [H, W, D]
             rgb_map = torch.sum(weights.unsqueeze(-1) * rgb, dim=-2) # [H, W, 3]
-            depth_map = torch.sum(weights * dists, dim=-1) # [H, W]
+            
+            z_vals = torch.cumsum(dists, dim=-1)
+            depth_map = torch.sum(weights * z_vals, dim=-1) # [H, W]
             
             rgb_gt = img_inputs[0][0].permute(0, 2, 3, 1).squeeze(0)
             depth_gt = img_inputs[7][0].permute(0, 1, 2).squeeze(0)
             rgb_map = F.interpolate(
                 rgb_map.permute(2, 0, 1).unsqueeze(0), scale_factor=16, mode='bilinear'
             ).permute(0, 2, 3, 1).squeeze(0)
-            # print(rgb_map.shape, rgb_gt.shape, depth_gt.shape)
             losses["loss_rgb"] = F.mse_loss(
                 rgb_map, rgb_gt
             )
@@ -441,9 +437,14 @@ class MoEOccupancyScale_Test(BEVDepth):
             #     depth_map, depth_gt
             # )
             
-            vis = torch.cat(
-                [rgb_gt, rgb_map, depth_gt.unsqueeze(-1).repeat(1, 1, 3) / depth.max()], dim=1
-            ).clamp(0, 1).detach().cpu().numpy()
+            # vis = torch.cat(
+            #     [rgb_gt, rgb_map, depth_gt.unsqueeze(-1).repeat(1, 1, 3) / depth.max()], dim=1
+            # ).clamp(0, 1).detach().cpu().numpy()
+            # vis = np.uint8(vis * 255.0)
+            rgb_vis = torch.cat([rgb_gt, rgb_map], dim=1)
+            depth_vis = torch.cat([depth_gt, depth_map], dim=1).unsqueeze(-1).repeat(1, 1, 3)
+            depth_vis = (depth_vis - depth_vis.min()) / (depth_vis.max() - depth_vis.min() + 1e-8)
+            vis = torch.cat([rgb_vis, depth_vis], dim=2).detach().cpu().numpy()
             vis = np.uint8(vis * 255.0)
             cv2.imwrite("./vis_save/" + str(time.time()) + 'vis.png', vis)
             print("rgb_loss: ", losses["loss_rgb"].item())
