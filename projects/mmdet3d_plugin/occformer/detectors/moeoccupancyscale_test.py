@@ -437,13 +437,10 @@ class MoEOccupancyScale_Test(BEVDepth):
             #     depth_map, depth_gt
             # )
             
-            # vis = torch.cat(
-            #     [rgb_gt, rgb_map, depth_gt.unsqueeze(-1).repeat(1, 1, 3) / depth.max()], dim=1
-            # ).clamp(0, 1).detach().cpu().numpy()
-            # vis = np.uint8(vis * 255.0)
             rgb_vis = torch.cat([rgb_gt, rgb_map], dim=1)
+            depth_map = (depth_map - depth_map.min()) / (depth_map.max() - depth_map.min() + 1e-8)
+            depth_gt = (depth_gt - depth_gt.min()) / (depth_gt.max() - depth_gt.min() + 1e-8)
             depth_vis = torch.cat([depth_gt, depth_map], dim=1).unsqueeze(-1).repeat(1, 1, 3)
-            depth_vis = (depth_vis - depth_vis.min()) / (depth_vis.max() - depth_vis.min() + 1e-8)
             vis = torch.cat([rgb_vis, depth_vis], dim=2).detach().cpu().numpy()
             vis = np.uint8(vis * 255.0)
             cv2.imwrite("./vis_save/" + str(time.time()) + 'vis.png', vis)
