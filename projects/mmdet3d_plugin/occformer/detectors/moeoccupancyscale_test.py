@@ -403,7 +403,7 @@ class MoEOccupancyScale_Test(BEVDepth):
             mask = inside_mask.permute(1, 2, 0) # [H, W, D]
             
             rgb = self.rgb_head(pts_feature)
-            rgb[~mask] = -1e5
+            rgb[~mask] = 0
             rgb = torch.sigmoid(rgb) # [H, W, D, 3]
             sigma = self.sigma_head(pts_feature).squeeze(-1) # [H, W, D]
             sigma = F.relu(sigma)
@@ -423,7 +423,9 @@ class MoEOccupancyScale_Test(BEVDepth):
             rgb_map = torch.sum(weights.unsqueeze(-1) * rgb, dim=-2) # [H, W, 3]
             
             z_vals = torch.cumsum(dists, dim=-1)
-            depth_map = torch.sum(weights * z_vals, dim=-1) # [H, W]
+            # depth_map = torch.sum(weights * z_vals, dim=-1) # [H, W]
+            depth_map = torch.sum(weights * z_vals, dim=-1) / (torch.sum(weights, dim=-1) + 1e-8)
+            depth_map = torch.clamp(depth_map, z_vals.min(), z_vals.max())
             
             rgb_gt = img_inputs[0][0].permute(0, 2, 3, 1).squeeze(0)
             depth_gt = img_inputs[7][0].permute(0, 1, 2).squeeze(0)
@@ -574,7 +576,7 @@ class MoEOccupancyScale_Test(BEVDepth):
     def simple_test(self, img_metas, img=None, points=None, rescale=False, points_occ=None, 
             gt_occ=None, visible_mask=None, points_uv=None):
         
-        voxel_feats, img_feats, pts_feats, depth, gemo, volume = self.extract_feat(points, img=img, img_metas=img_metas)       
+        voxel_feats, img_feats, pts_feats, depth, gemo, volume, img_voxel_feat = self.extract_feat(points, img=img, img_metas=img_metas)       
         output = self.pts_bbox_head.simple_test(
             voxel_feats=voxel_feats,
             points=points_occ,
@@ -613,7 +615,7 @@ class MoEOccupancyScale_Test(BEVDepth):
             
             
             rgb = self.rgb_head(pts_feature)
-            rgb[~mask] = -1e5
+            rgb[~mask] = 0
             rgb = torch.sigmoid(rgb) # [H, W, D, 3]
             sigma = self.sigma_head(pts_feature).squeeze(-1) # [H, W, D]
             sigma = F.relu(sigma)
@@ -634,9 +636,7 @@ class MoEOccupancyScale_Test(BEVDepth):
             
             z_vals = torch.cumsum(dists, dim=-1)
             depth_map = torch.sum(weights * z_vals, dim=-1) # [H, W]
-            
             rgb_gt = img[0][0].permute(0, 2, 3, 1).squeeze(0)
-            depth_gt = img[7][0].permute(0, 1, 2).squeeze(0)
             rgb_map = F.interpolate(
                 rgb_map.permute(2, 0, 1).unsqueeze(0), scale_factor=16, mode='bilinear'
             ).permute(0, 2, 3, 1).squeeze(0)
@@ -649,13 +649,11 @@ class MoEOccupancyScale_Test(BEVDepth):
             #     depth_map, depth_gt
             # )
             print("psnr:", psnr)
-
-            rgb_vis = torch.cat([rgb_gt, rgb_map], dim=1)
-            depth_map = (depth_map - depth_map.min()) / (depth_map.max() - depth_map.min() + 1e-8)
-            depth_gt = (depth_gt - depth_gt.min()) / (depth_gt.max() - depth_gt.min() + 1e-8)
-            depth_vis = torch.cat([depth_gt, depth_map], dim=1).unsqueeze(-1).repeat(1, 1, 3)
-
-            vis = torch.cat([rgb_vis, depth_vis], dim=0).detach().cpu().numpy()
+            # print(depth_map.shape, rgb_gt.shape)
+            # rgb_vis = torch.cat([rgb_gt, rgb_map], dim=1)
+            depth_map = ((depth_map.unsqueeze(-1) - depth_map.unsqueeze(-1).min()) / (depth_map.unsqueeze(-1).max() - depth_map.unsqueeze(-1).min() + 1e-8)).repeat(1, 1, 3)
+            
+            vis = torch.cat([rgb_gt, rgb_map, depth_map], dim=1).detach().cpu().numpy()
             vis = np.uint8(vis * 255.0)
             cv2.imwrite("./vis_save/vis.png", vis)
     
