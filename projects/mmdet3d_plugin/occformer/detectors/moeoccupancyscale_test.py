@@ -422,7 +422,7 @@ class MoEOccupancyScale_Test(BEVDepth):
             )[:, :, :-1] # [H, W, D]
             rgb_map = torch.sum(weights.unsqueeze(-1) * rgb, dim=-2) # [H, W, 3]
             
-            z_vals = torch.linspace(0, D, D).reshape(1, 1, D)
+            z_vals = torch.linspace(0, D, D).reshape(1, 1, D).to(rgb_map.device)
             depth_map = torch.sum(weights * z_vals, dim=-1)
             # depthNet_pred = depth.permute(0, 2, 3, 1).squeeze(0).argmax(-1).float() # [H, W]
             depth_map = F.interpolate(
