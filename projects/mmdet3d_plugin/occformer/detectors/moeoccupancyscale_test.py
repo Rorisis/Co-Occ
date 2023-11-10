@@ -432,7 +432,10 @@ class MoEOccupancyScale_Test(BEVDepth):
             d_bound = [2., 58., 0.5]
             depth_gt = (depth_gt - (d_bound[0] - d_bound[2] / 2.)) / d_bound[2]
             depth_gt = depth_gt.clip(0, D)
-            losses["loss_depth_render"] = 1 / D * F.mse_loss(depth_map, depth_gt)
+            fg_mask = (depth_gt > 0)
+            losses["loss_depth_render"] = F.mse_loss(
+                depth_map[fg_mask] / D, depth_gt[fg_mask] / D
+            )
             
             rgb_gt = img_inputs[0][0].permute(0, 2, 3, 1).squeeze(0)
             rgb_map = F.interpolate(
