@@ -439,13 +439,6 @@ class MoEOccupancyScale_Test(BEVDepth):
             ).permute(0, 2, 3, 1).squeeze(0)
             losses["loss_rgb"] = F.mse_loss(rgb_map, rgb_gt)
             
-            depth_map = F.interpolate(
-                depth_map.unsqueeze(0).unsqueeze(1), scale_factor=16, mode='bilinear'
-            ).squeeze(1).squeeze(0)
-            losses["loss_depth_render"] = F.mse_loss(
-                depth_map, depth_gt
-            )
-            
             rgb_vis = torch.cat([rgb_gt, rgb_map], dim=1)
             depth_map = (depth_map - depth_map.min()) / (depth_map.max() - depth_map.min() + 1e-8)
             depth_gt = (depth_gt - depth_gt.min()) / (depth_gt.max() - depth_gt.min() + 1e-8)
