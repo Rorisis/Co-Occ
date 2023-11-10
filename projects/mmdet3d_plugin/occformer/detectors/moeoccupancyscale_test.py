@@ -429,7 +429,8 @@ class MoEOccupancyScale_Test(BEVDepth):
                 depth_map.unsqueeze(0).unsqueeze(1), scale_factor=16, mode='bilinear'
             ).squeeze(1).squeeze(0) # [16 * H, 16 * W]
             depth_gt = img_inputs[7][0] # [16 * H, 16 * W]
-            depth_gt = ((depth_gt - (bx - dx / 2.)) / dx)
+            d_bound = [2., 58., 0.5]
+            depth_gt = (depth_gt - (d_bound[0] - d_bound[2] / 2.)) / d_bound[2]
             depth_gt = depth_gt.clip(0, D)
             losses["loss_depth_render"] = 1 / D * F.mse_loss(depth_map, depth_gt)
             
