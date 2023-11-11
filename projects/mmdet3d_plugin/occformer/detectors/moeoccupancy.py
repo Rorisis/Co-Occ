@@ -38,7 +38,10 @@ class MoEOccpancy(BEVDepth):
         self.occ_encoder_backbone = builder.build_backbone(occ_encoder_backbone)
         self.occ_encoder_neck = builder.build_neck(occ_encoder_neck)
         self.occ_fuser = builder.build_fusion_layer(occ_fuser) if occ_fuser is not None else None
-            
+        
+        if use_rendering:
+            self.sigma_head = MLP(input_dim=128, output_dim=1, net_depth=3, skip_layer=None)
+            self.rgb_head = MLP(input_dim=128, output_dim=3, net_depth=4, skip_layer=None)
     
     def image_encoder(self, img):
         imgs = img
@@ -106,7 +109,7 @@ class MoEOccpancy(BEVDepth):
         mlp_input = self.img_view_transformer.get_mlp_input(rots, trans, intrins, post_rots, post_trans, bda)
         geo_inputs = [rots, trans, intrins, post_rots, post_trans, bda, mlp_input]
         
-        x, depth = self.img_view_transformer([x] + geo_inputs)
+        x, depth, geom, volume = self.img_view_transformer([x] + geo_inputs)
 
         if self.record_time:
             torch.cuda.synchronize()
@@ -117,7 +120,7 @@ class MoEOccpancy(BEVDepth):
         # if type(x) is not list:
         #     x = [x]
         
-        return x, depth, img_feats
+        return x, depth, img_feats, geom
 
     def extract_pts_feat(self, pts):
         if self.record_time:
@@ -149,21 +152,18 @@ class MoEOccpancy(BEVDepth):
             torch.cuda.synchronize()
             t0 = time.time()
 
-        print("img_voxels:", img_voxel_feats.shape)
-        print("pts_voxels:", pts_voxel_feats.shape)
         if self.occ_fuser is not None:
-            voxel_feats = self.occ_fuser(img_voxel_feats, pts_voxel_feats)
+            voxel_feats1 = self.occ_fuser(img_voxel_feats, pts_voxel_feats)
         else:
             assert (img_voxel_feats is None) or (pts_voxel_feats is None)
-            voxel_feats = img_voxel_feats if pts_voxel_feats is None else pts_voxel_feats
-        print("voxel_feat:", voxel_feats.shape)
+            voxel_feats1 = img_voxel_feats if pts_voxel_feats is None else pts_voxel_feats
 
         if self.record_time:
             torch.cuda.synchronize()
             t1 = time.time()
             self.time_stats['occ_fuser'].append(t1 - t0)
 
-        voxel_feats_enc = self.occ_encoder(voxel_feats)
+        voxel_feats_enc = self.occ_encoder(voxel_feats1)
         if type(voxel_feats_enc) is not list:
             voxel_feats_enc = [voxel_feats_enc]
 

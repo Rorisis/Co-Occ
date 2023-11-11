@@ -25,4 +25,4 @@ nvidia-smi
 # bash tools/dist_train.sh /hpc2hdd/home/jpan305/pytorch/MoEOccupancy/projects/configs/uniocc_nusc/multi_randomray.py 8 
 # bash tools/dist_train.sh /hpc2hdd/home/jpan305/pytorch/MoEOccupancy/projects/configs/uniocc_nusc/d_ray64downsample8.py 8
 # bash tools/dist_test.sh /hpc2hdd/home/jpan305/pytorch/MoEOccupancy/projects/configs/uniocc_nusc/cascade_voxel_nusc_multi.py /hpc2hdd/home/jpan305/pytorch/MoEOccupancy/work_dirs/cascade_voxel_nusc_multi/epoch_1.pth 8
-bash tools/dist_train.sh /hpc2hdd/home/jpan305/pytorch/MoEOccupancy/projects/configs/uniocc_kitti/scale_multi_kitti.py 8
+bash tools/dist_train.sh /hpc2hdd/home/jpan305/pytorch/MoEOccupancy/projects/configs/uniocc_kitti/scale_lidar_kitti.py 8
