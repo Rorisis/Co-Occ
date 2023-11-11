@@ -443,15 +443,15 @@ class MoEOccupancyScale_Test(BEVDepth):
             ).permute(0, 2, 3, 1).squeeze(0)
             losses["loss_rgb"] = F.mse_loss(rgb_map, rgb_gt)
             
-            rgb_vis = torch.cat([rgb_gt, rgb_map], dim=1)
-            depth_map = (depth_map - depth_map.min()) / (depth_map.max() - depth_map.min() + 1e-8)
-            depth_gt = (depth_gt - depth_gt.min()) / (depth_gt.max() - depth_gt.min() + 1e-8)
-            depth_vis = torch.cat([depth_gt, depth_map], dim=1).unsqueeze(-1).repeat(1, 1, 3)
+            # rgb_vis = torch.cat([rgb_gt, rgb_map], dim=1)
+            # depth_map = (depth_map - depth_map.min()) / (depth_map.max() - depth_map.min() + 1e-8)
+            # depth_gt = (depth_gt - depth_gt.min()) / (depth_gt.max() - depth_gt.min() + 1e-8)
+            # depth_vis = torch.cat([depth_gt, depth_map], dim=1).unsqueeze(-1).repeat(1, 1, 3)
 
-            vis = torch.cat([rgb_vis, depth_vis], dim=0).detach().cpu().numpy()
-            vis = np.uint8(vis * 255.0)
-            cv2.imwrite("./vis_save/" + str(time.time()) + 'vis.png', vis)
-            print("rgb_loss: ", losses["loss_rgb"].item())
+            # vis = torch.cat([rgb_vis, depth_vis], dim=0).detach().cpu().numpy()
+            # vis = np.uint8(vis * 255.0)
+            # cv2.imwrite("./vis_save/" + str(time.time()) + 'vis.png', vis)
+            # print("rgb_loss: ", losses["loss_rgb"].item())
 
 
         if self.loss_norm:
@@ -543,15 +543,16 @@ class MoEOccupancyScale_Test(BEVDepth):
             )[:, :, :-1] # [H, W, D]
             rgb_map = torch.sum(weights.unsqueeze(-1) * rgb, dim=-2) # [H, W, 3]
             
-            z_vals = torch.cumsum(dists, dim=-1)
-            depth_map = torch.sum(weights * z_vals, dim=-1) # [H, W]
+            z_vals = torch.linspace(0, D, D).reshape(1, 1, D).to(rgb_map.device)
+            depth_map = torch.sum(weights * z_vals, dim=-1)
+            # depthNet_pred = depth.permute(0, 2, 3, 1).squeeze(0).argmax(-1).float() # [H, W]
+            depth_map = F.interpolate(
+                depth_map.unsqueeze(0).unsqueeze(1), scale_factor=16, mode='bilinear'
+            ).squeeze(1).squeeze(0) # [16 * H, 16 * W]
             rgb_gt = img[0][0].permute(0, 2, 3, 1).squeeze(0)
             rgb_map = F.interpolate(
                 rgb_map.permute(2, 0, 1).unsqueeze(0), scale_factor=16, mode='bilinear'
             ).permute(0, 2, 3, 1).squeeze(0)
-            depth_map = F.interpolate(
-                depth_map.unsqueeze(0).unsqueeze(1), scale_factor=16, mode='bilinear'
-            ).squeeze(1).squeeze(0)
 
             psnr = compute_psnr(rgb_map, rgb_gt, mask=None)
             # losses["loss_depth_render"] = F.mse_loss(

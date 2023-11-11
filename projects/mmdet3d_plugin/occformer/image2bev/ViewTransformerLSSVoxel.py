@@ -139,7 +139,7 @@ class ViewTransformerLiftSplatShootVoxel(ViewTransformerLSSBEVDepth):
 
         # Splat
         geom = self.get_geometry(rots, trans, intrins, post_rots, post_trans, bda)
-        frustum = self.get_frustum(rots, trans, intrins, post_rots, post_trans, bda, self.scale)
+        # frustum = self.get_frustum(rots, trans, intrins, post_rots, post_trans, bda, self.scale)
         bev_feat = self.voxel_pooling(geom, volume)
 
 
