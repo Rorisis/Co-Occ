@@ -114,7 +114,7 @@ class MoEOccupancyScale(BEVDepth):
 
         if use_rendering:
             self.sigma_head = MLP(input_dim=128, output_dim=1, net_depth=3, skip_layer=None)
-            # self.rgb_head = MLP(input_dim=128, output_dim=3, net_depth=4, skip_layer=None)
+            self.rgb_head = MLP(input_dim=128, output_dim=3, net_depth=4, skip_layer=None)
             
             
         

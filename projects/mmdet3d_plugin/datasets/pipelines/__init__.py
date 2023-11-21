@@ -10,7 +10,7 @@ from .lidar2depth import CreateDepthFromLiDAR
 from .formating import OccDefaultFormatBundle3D
 from .loading_bevdet import LoadAnnotationsBEVDepth, LoadMultiViewImageFromFiles_BEVDet
 
-from .loading import LoadOccupancy
+from .loading import LoadOccupancy, LoadOccupancy2
 
 # from .multi_view import (MultiViewPipeline, RandomShiftOrigin, KittiSetOrigin,
 #                          KittiRandomFlip, SunRgbdSetOrigin, SunRgbdTotalLoadImageFromFile,

@@ -79,7 +79,7 @@ class OccNet(BEVDepth):
         mlp_input = self.img_view_transformer.get_mlp_input(rots, trans, intrins, post_rots, post_trans, bda)
         geo_inputs = [rots, trans, intrins, post_rots, post_trans, bda, mlp_input]
         
-        x, depth, geom = self.img_view_transformer([x] + geo_inputs)
+        x, depth, geom, volume = self.img_view_transformer([x] + geo_inputs)
 
         if self.record_time:
             torch.cuda.synchronize()

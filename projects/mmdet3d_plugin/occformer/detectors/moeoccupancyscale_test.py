@@ -204,31 +204,6 @@ class MoEOccupancyScale_Test(BEVDepth):
         
         return x, depth, img_feats, geom, volume
 
-    def extract_pts_feat(self, pts):
-        if self.record_time:
-            torch.cuda.synchronize()
-            t0 = time.time()
-        voxels, num_points, coors = self.voxelize(pts)
-        voxel_features = self.pts_voxel_encoder(voxels, num_points, coors)
-        batch_size = coors[-1, 0] + 1
-        pts_enc_feats = self.pts_middle_encoder(voxel_features, coors, batch_size)
-        x = pts_enc_feats['x']
-        # print(pts_enc_feats.shape)
-        if self.with_pts_backbone:
-            x = self.pts_backbone(x)
-        if self.with_pts_neck:
-            x = self.pts_neck(x)
-        
-
-        if self.record_time:
-            torch.cuda.synchronize()
-            t1 = time.time()
-            self.time_stats['pts_encoder'].append(t1 - t0)
-        
-        pts_feats = pts_enc_feats['pts_feats']
-
-        return x, pts_feats
-
     # def extract_pts_feat(self, pts):
     #     if self.record_time:
     #         torch.cuda.synchronize()
@@ -237,19 +212,44 @@ class MoEOccupancyScale_Test(BEVDepth):
     #     voxel_features = self.pts_voxel_encoder(voxels, num_points, coors)
     #     batch_size = coors[-1, 0] + 1
     #     pts_enc_feats = self.pts_middle_encoder(voxel_features, coors, batch_size)
+    #     x = pts_enc_feats['x']
+    #     # print(pts_enc_feats.shape)
     #     if self.with_pts_backbone:
-    #         x = self.pts_backbone(pts_enc_feats)
+    #         x = self.pts_backbone(x)
     #     if self.with_pts_neck:
     #         x = self.pts_neck(x)
+        
 
     #     if self.record_time:
     #         torch.cuda.synchronize()
     #         t1 = time.time()
     #         self.time_stats['pts_encoder'].append(t1 - t0)
         
-    #     pts_feats = [x]
+    #     pts_feats = pts_enc_feats['pts_feats']
 
-    #     return x.permute(0,1,4,3,2), pts_feats
+    #     return x, pts_feats
+
+    def extract_pts_feat(self, pts):
+        if self.record_time:
+            torch.cuda.synchronize()
+            t0 = time.time()
+        voxels, num_points, coors = self.voxelize(pts)
+        voxel_features = self.pts_voxel_encoder(voxels, num_points, coors)
+        batch_size = coors[-1, 0] + 1
+        pts_enc_feats = self.pts_middle_encoder(voxel_features, coors, batch_size)
+        if self.with_pts_backbone:
+            x = self.pts_backbone(pts_enc_feats)
+        if self.with_pts_neck:
+            x = self.pts_neck(x)
+
+        if self.record_time:
+            torch.cuda.synchronize()
+            t1 = time.time()
+            self.time_stats['pts_encoder'].append(t1 - t0)
+        
+        pts_feats = [x]
+
+        return x.permute(0,1,4,3,2), pts_feats
 
     def extract_feat(self, points, img, img_metas):
         """Extract features from images and points."""
@@ -553,7 +553,11 @@ class MoEOccupancyScale_Test(BEVDepth):
             rgb_map = F.interpolate(
                 rgb_map.permute(2, 0, 1).unsqueeze(0), scale_factor=16, mode='bilinear'
             ).permute(0, 2, 3, 1).squeeze(0)
-
+            depth_gt = img[7][0].squeeze(0) # [16 * H, 16 * W]
+            d_bound = [2., 58., 0.5]
+            depth_gt = (depth_gt - (d_bound[0] - d_bound[2] / 2.)) / d_bound[2]
+            depth_gt = depth_gt.clip(0, D)
+            
             psnr = compute_psnr(rgb_map, rgb_gt, mask=None)
             # losses["loss_depth_render"] = F.mse_loss(
             #     depth_map, depth_gt
@@ -562,10 +566,18 @@ class MoEOccupancyScale_Test(BEVDepth):
             # print(depth_map.shape, rgb_gt.shape)
             # rgb_vis = torch.cat([rgb_gt, rgb_map], dim=1)
             depth_map = ((depth_map.unsqueeze(-1) - depth_map.unsqueeze(-1).min()) / (depth_map.unsqueeze(-1).max() - depth_map.unsqueeze(-1).min() + 1e-8)).repeat(1, 1, 3)
-            
-            vis = torch.cat([rgb_gt, rgb_map, depth_map], dim=1).detach().cpu().numpy()
-            vis = np.uint8(vis * 255.0)
-            cv2.imwrite("./vis_save/vis.png", vis)
+            depth_gt = (depth_gt.unsqueeze(-1) - depth_gt.unsqueeze(-1).min()) / (depth_gt.unsqueeze(-1).max() - depth_gt.unsqueeze(-1).min() + 1e-8).repeat(1, 1, 3)
+            vis_depth_pred = np.uint8(depth_map.detach().cpu().numpy() * 255.0)
+            vis_depth_gt = np.uint8(depth_gt.detach().cpu().numpy() * 255.0)
+            vis_rgb_pred = np.uint8(rgb_map.detach().cpu().numpy() * 255.0)
+            vis_rgb_gt = np.uint8(rgb_gt.detach().cpu().numpy() * 255.0)
+            # vis = torch.cat([rgb_gt, rgb_map, depth_map], dim=1).detach().cpu().numpy()
+            # vis = np.uint8(vis * 255.0)
+  
+            cv2.imwrite("./vis_save/"+str(img_metas[0]['frame_id'])+"_vis_depth.png", vis_depth_pred)
+            cv2.imwrite("./vis_save/"+str(img_metas[0]['frame_id'])+"_vis_depth_gt.png", vis_depth_gt)
+            cv2.imwrite("./vis_save/"+str(img_metas[0]['frame_id'])+"_"+str(psnr)+"_vis_rgb.png", vis_rgb_pred)
+            cv2.imwrite("./vis_save/"+str(img_metas[0]['frame_id'])+"_vis_rgb_gt.png", vis_rgb_gt)
     
         # evaluate nusc lidar-seg
         if output['output_points'] is not None and points_occ is not None:

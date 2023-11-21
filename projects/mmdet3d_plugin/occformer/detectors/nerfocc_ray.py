@@ -234,6 +234,28 @@ class NeRFOcc_Ray(BEVDepth):
         pts_feats = pts_enc_feats['pts_feats']
         return pts_enc_feats['x'], pts_feats
 
+    # def extract_pts_feat(self, pts):
+    #     if self.record_time:
+    #         torch.cuda.synchronize()
+    #         t0 = time.time()
+    #     voxels, num_points, coors = self.voxelize(pts)
+    #     voxel_features = self.pts_voxel_encoder(voxels, num_points, coors)
+    #     batch_size = coors[-1, 0] + 1
+    #     pts_enc_feats = self.pts_middle_encoder(voxel_features, coors, batch_size)
+    #     if self.with_pts_backbone:
+    #         x = self.pts_backbone(pts_enc_feats)
+    #     if self.with_pts_neck:
+    #         x = self.pts_neck(x)
+
+    #     if self.record_time:
+    #         torch.cuda.synchronize()
+    #         t1 = time.time()
+    #         self.time_stats['pts_encoder'].append(t1 - t0)
+        
+    #     pts_feats = [x]
+
+    #     return x.permute(0,1,4,3,2), pts_feats
+
     def extract_feat(self, points, img, img_metas):
         """Extract features from images and points."""
         img_voxel_feats = None
@@ -378,79 +400,144 @@ class NeRFOcc_Ray(BEVDepth):
             rgbs = []
             depths = []
             gt_imgs = []
-            gt_depths = []
             weight = []
-            B, N, D, H, W, _ = gemo.shape
-            assert B == 1
-            gemo = gemo.reshape(B * N, D, H, W, 3)
-            # density_voxel = self.density_encoder(mid_voxel)
-            # if img_feats:
-            #     color_voxel = self.color_encoder(mid_voxel)
-            for i in range(gemo.shape[0]):
-                geom = gemo[i] # [D, H, W, 3] [112, 24, 80, 3]
-                voxel_feats = voxel_feats.squeeze(0) # [C, X, Y, Z] [128, 128, 128, 16]
-                xbound, ybound, zbound = [-50., 50., 1.], [-50., 50., 1.], [-5., 3., 1.0]
-                dx = torch.Tensor([row[2] for row in [xbound, ybound, zbound]]).to(geom.device)
-                bx = torch.Tensor([row[0] + row[2] / 2.0 for row in [xbound, ybound, zbound]]).to(geom.device)
-                nx = torch.Tensor([(row[1] - row[0]) / row[2] for row in [xbound, ybound, zbound]]).to(geom.device)
-                geom = ((geom - (bx - dx / 2.)) / dx)
-                inside_mask = (geom[..., 0] >= 0) & (geom[..., 0] < nx[0]) \
-                & (geom[..., 1] >= 0) & (geom[..., 1] < nx[1]) \
-                & (geom[..., 2] >= 0) & (geom[..., 2] < nx[2]) # [D, H, W, 3]
-                geom[~inside_mask] *= 0
+            if img_feats is not None:
+                B, N, D, H, W, _ = gemo.shape
+                assert B == 1
+                gemo = gemo.reshape(B * N, D, H, W, 3)
+                # density_voxel = self.density_encoder(mid_voxel)
+                # if img_feats:
+                #     color_voxel = self.color_encoder(mid_voxel)
                 
-                D, H, W, _ = geom.shape
-                pts = geom.long().permute(1, 2, 0, 3) # [H, W, D, 3]
-                pts_feature = voxel_feats[:, pts[..., 0], pts[..., 1], pts[..., 2]] # [C, H, W, D]
-                pts_feature = pts_feature.permute(1, 2, 3, 0) # [H, W, D, C]
-                mask = inside_mask.permute(1, 2, 0) # [H, W, D]
-                
-                rgb = self.rgb_head(pts_feature)
-                rgb[~mask] = 0
-                rgb = torch.sigmoid(rgb) # [H, W, D, 3]
-                sigma = self.sigma_head(pts_feature).squeeze(-1) # [H, W, D]
-                sigma = F.relu(sigma)
-                
-                pts = pts.float()
-                dists = torch.norm(pts[:, :, 1:, :] - pts[:, :, :-1, :], dim=-1) # [H, W, D - 1]
-                dists = torch.cat(
-                    [dists, torch.Tensor([1e10]).expand(dists[...,:1].shape).to(dists.device)], 
-                    dim=-1
-                ) # [H, W, D]
-                alpha = 1. - torch.exp(-F.relu(sigma * dists)) # [H, W, D]
-                weights = alpha * torch.cumprod(
-                    torch.cat(
-                        [torch.ones(H, W, 1).to(alpha.device), 1.-alpha + 1e-10], -1
-                    ), dim=-1
-                )[:, :, :-1] # [H, W, D]
-                rgb_map = torch.sum(weights.unsqueeze(-1) * rgb, dim=-2) # [H, W, 3]
-                
-                z_vals = torch.linspace(0, D, D).reshape(1, 1, D).to(rgb_map.device)
-                depth_map = torch.sum(weights * z_vals, dim=-1)
-                # depthNet_pred = depth.permute(0, 2, 3, 1).squeeze(0).argmax(-1).float() # [H, W]
-                depth_map = F.interpolate(
-                    depth_map.unsqueeze(0).unsqueeze(1), scale_factor=16, mode='bilinear'
-                ).squeeze(1).squeeze(0) # [16 * H, 16 * W]
-                rgb_map = F.interpolate(
-                rgb_map.permute(2, 0, 1).unsqueeze(0), scale_factor=16, mode='bilinear'
-                     ).permute(0, 2, 3, 1).squeeze(0)
-                rgbs.append(rgb_map)
-                depths.append(depth_map)
-            rgbs = torch.stack(rgbs) # [B, H, W, 3]
-            depths = torch.stack(depths)
+                for i in range(gemo.shape[0]):
+                    geom = gemo[i] # [D, H, W, 3] [112, 24, 80, 3]
+                    voxel_feats = voxel_feats.squeeze(0) # [C, X, Y, Z] [128, 128, 128, 16]
+                    # xbound, ybound, zbound = [-50., 50., 1.], [-50., 50., 1.], [-5., 3., 1.0]
+                    xbound, ybound, zbound = [-51.2, 51.2, 0.8], [-51.2, 51.2, 0.8], [-5., 3., 0.8]
+                    dx = torch.Tensor([row[2] for row in [xbound, ybound, zbound]]).to(geom.device)
+                    bx = torch.Tensor([row[0] + row[2] / 2.0 for row in [xbound, ybound, zbound]]).to(geom.device)
+                    nx = torch.Tensor([(row[1] - row[0]) / row[2] for row in [xbound, ybound, zbound]]).to(geom.device)
+                    geom = ((geom - (bx - dx / 2.)) / dx)
+                    inside_mask = (geom[..., 0] >= 0) & (geom[..., 0] < nx[0]) \
+                    & (geom[..., 1] >= 0) & (geom[..., 1] < nx[1]) \
+                    & (geom[..., 2] >= 0) & (geom[..., 2] < nx[2]) # [D, H, W, 3]
+                    geom[~inside_mask] *= 0
+                    
+                    D, H, W, _ = geom.shape
+                    pts = geom.long().permute(1, 2, 0, 3) # [H, W, D, 3]
+                    pts_feature = voxel_feats[:, pts[..., 0], pts[..., 1], pts[..., 2]] # [C, H, W, D]
+                    pts_feature = pts_feature.permute(1, 2, 3, 0) # [H, W, D, C]
+                    mask = inside_mask.permute(1, 2, 0) # [H, W, D]
+                    
+                    rgb = self.rgb_head(pts_feature)
+                    rgb[~mask] = 0
+                    rgb = torch.sigmoid(rgb) # [H, W, D, 3]
+                    sigma = self.sigma_head(pts_feature).squeeze(-1) # [H, W, D]
+                    sigma = F.relu(sigma)
+                    
+                    pts = pts.float()
+                    dists = torch.norm(pts[:, :, 1:, :] - pts[:, :, :-1, :], dim=-1) # [H, W, D - 1]
+                    dists = torch.cat(
+                        [dists, torch.Tensor([1e10]).expand(dists[...,:1].shape).to(dists.device)], 
+                        dim=-1
+                    ) # [H, W, D]
+                    alpha = 1. - torch.exp(-F.relu(sigma * dists)) # [H, W, D]
+                    weights = alpha * torch.cumprod(
+                        torch.cat(
+                            [torch.ones(H, W, 1).to(alpha.device), 1.-alpha + 1e-10], -1
+                        ), dim=-1
+                    )[:, :, :-1] # [H, W, D]
+                    rgb_map = torch.sum(weights.unsqueeze(-1) * rgb, dim=-2) # [H, W, 3]
+                    
+                    z_vals = torch.linspace(0, D, D).reshape(1, 1, D).to(rgb_map.device)
+                    depth_map = torch.sum(weights * z_vals, dim=-1)
+                    # depthNet_pred = depth.permute(0, 2, 3, 1).squeeze(0).argmax(-1).float() # [H, W]
+                    depth_map = F.interpolate(
+                        depth_map.unsqueeze(0).unsqueeze(1), scale_factor=16, mode='bilinear'
+                    ).squeeze(1).squeeze(0) # [16 * H, 16 * W]
+                    rgb_map = F.interpolate(
+                    rgb_map.permute(2, 0, 1).unsqueeze(0), scale_factor=16, mode='bilinear'
+                        ).permute(0, 2, 3, 1).squeeze(0)
+                    rgbs.append(rgb_map)
+                    depths.append(depth_map)
+                rgbs = torch.stack(rgbs) # [B, H, W, 3]
+                depths = torch.stack(depths)
 
-            depth_gt = img_inputs[7][0] # [16 * H, 16 * W] [B, H, W]
-            rgb_gt = img_inputs[0][0].permute(0, 2, 3, 1)
-            d_bound = [2., 58., 0.5]
-            depth_gt = (depth_gt - (d_bound[0] - d_bound[2] / 2.)) / d_bound[2]
-            depth_gt = depth_gt.clip(0, D)
-            fg_mask = (depth_gt > 0)
-            losses["loss_depth_render"] = F.mse_loss(
-                depths[fg_mask] / D, depth_gt[fg_mask] / D
-            )
+                depth_gt = img_inputs[7][0] # [16 * H, 16 * W] [B, H, W]
+                rgb_gt = img_inputs[0][0].permute(0, 2, 3, 1)
+                d_bound = [2., 58., 0.5]
+                depth_gt = (depth_gt - (d_bound[0] - d_bound[2] / 2.)) / d_bound[2]
+                depth_gt = depth_gt.clip(0, D)
+                fg_mask = (depth_gt > 0)
+                losses["loss_depth_render"] = F.mse_loss(
+                    depths[fg_mask] / D, depth_gt[fg_mask] / D
+                )
+                
+                losses["loss_rgb"] = F.mse_loss(rgbs, rgb_gt)
             
-            losses["loss_rgb"] = F.mse_loss(rgbs, rgb_gt)
-            
+            else:
+                gemo = get_frustum(gt_depths[0], gt_depths[1], gt_depths[2], gt_depths[3], gt_depths[4], gt_depths[5], gt_depths[-1], 16)
+                B, N, D, H, W, _ = gemo.shape
+                assert B == 1
+                gemo = gemo.reshape(B * N, D, H, W, 3)
+                for i in range(gemo.shape[0]):
+                    geom = gemo[i] # [D, H, W, 3] [112, 24, 80, 3]
+                    voxel_feats = voxel_feats.squeeze(0) # [C, X, Y, Z] [128, 128, 128, 16]
+                    xbound, ybound, zbound = [-50., 50., 1.], [-50., 50., 1.], [-5., 3., 1.0]
+                    dx = torch.Tensor([row[2] for row in [xbound, ybound, zbound]]).to(geom.device)
+                    bx = torch.Tensor([row[0] + row[2] / 2.0 for row in [xbound, ybound, zbound]]).to(geom.device)
+                    nx = torch.Tensor([(row[1] - row[0]) / row[2] for row in [xbound, ybound, zbound]]).to(geom.device)
+                    geom = ((geom - (bx - dx / 2.)) / dx)
+                    inside_mask = (geom[..., 0] >= 0) & (geom[..., 0] < nx[0]) \
+                    & (geom[..., 1] >= 0) & (geom[..., 1] < nx[1]) \
+                    & (geom[..., 2] >= 0) & (geom[..., 2] < nx[2]) # [D, H, W, 3]
+                    geom[~inside_mask] *= 0
+                    
+                    D, H, W, _ = geom.shape
+                    pts = geom.long().permute(1, 2, 0, 3) # [H, W, D, 3]
+                    pts_feature = voxel_feats[:, pts[..., 0], pts[..., 1], pts[..., 2]] # [C, H, W, D]
+                    pts_feature = pts_feature.permute(1, 2, 3, 0) # [H, W, D, C]
+                    mask = inside_mask.permute(1, 2, 0) # [H, W, D]
+                    
+                    sigma = self.sigma_head(pts_feature).squeeze(-1) # [H, W, D]
+                    sigma = F.relu(sigma)
+                    
+                    pts = pts.float()
+                    dists = torch.norm(pts[:, :, 1:, :] - pts[:, :, :-1, :], dim=-1) # [H, W, D - 1]
+                    dists = torch.cat(
+                        [dists, torch.Tensor([1e10]).expand(dists[...,:1].shape).to(dists.device)], 
+                        dim=-1
+                    ) # [H, W, D]
+                    alpha = 1. - torch.exp(-F.relu(sigma * dists)) # [H, W, D]
+                    weights = alpha * torch.cumprod(
+                        torch.cat(
+                            [torch.ones(H, W, 1).to(alpha.device), 1.-alpha + 1e-10], -1
+                        ), dim=-1
+                    )[:, :, :-1] # [H, W, D]
+         
+                    z_vals = torch.linspace(0, D, D).reshape(1, 1, D).to(alpha.device)
+                    depth_map = torch.sum(weights * z_vals, dim=-1)
+                    # depthNet_pred = depth.permute(0, 2, 3, 1).squeeze(0).argmax(-1).float() # [H, W]
+                    depth_map = F.interpolate(
+                        depth_map.unsqueeze(0).unsqueeze(1), scale_factor=16, mode='bilinear'
+                    ).squeeze(1).squeeze(0) # [16 * H, 16 * W]
+              
+                    depths.append(depth_map)
+ 
+                depths = torch.stack(depths)
+
+                depth_gt = gt_depths[6][0] # [16 * H, 16 * W] [B, H, W]
+
+                d_bound = [2., 58., 0.5]
+                depth_gt = (depth_gt - (d_bound[0] - d_bound[2] / 2.)) / d_bound[2]
+                depth_gt = depth_gt.clip(0, D)
+                fg_mask = (depth_gt > 0)
+                losses["loss_depth_render"] = F.mse_loss(
+                    depths[fg_mask] / D, depth_gt[fg_mask] / D
+                )
+                
+        
+
     
         
         def logging_latencies():

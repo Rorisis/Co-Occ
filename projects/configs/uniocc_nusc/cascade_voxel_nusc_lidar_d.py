@@ -8,15 +8,16 @@ plugin = True
 plugin_dir = "projects/mmdet3d_plugin/"
 img_norm_cfg = dict(mean=[123.675, 116.28, 103.53], std=[58.395, 57.12, 57.375], to_rgb=True)
 occ_path = "./data/nuscenes_occ"
+# load_from = 'ckpts/r101_dcn_fcos3d_pretrain.pth'
 
-class_names = [
-    'car', 'truck', 'construction_vehicle', 'bus', 'trailer', 'barrier',
-    'motorcycle', 'bicycle', 'pedestrian', 'traffic_cone'
-]
-# class_names = ['empty', 'barrier', 'bicycle', 'bus', 'car', 
-#     'construction_vehicle', 'motorcycle', 'pedestrian', 
-#     'traffic_cone', 'trailer', 'truck', 'driveable_surface', 
-#     'other_flat', 'sidewalk', 'terrain', 'manmade', 'vegetation']
+# class_names = [
+#     'car', 'truck', 'construction_vehicle', 'bus', 'trailer', 'barrier',
+#     'motorcycle', 'bicycle', 'pedestrian', 'traffic_cone'
+# ]
+class_names = ['empty', 'barrier', 'bicycle', 'bus', 'car', 
+    'construction_vehicle', 'motorcycle', 'pedestrian', 
+    'traffic_cone', 'trailer', 'truck', 'driveable_surface', 
+    'other_flat', 'sidewalk', 'terrain', 'manmade', 'vegetation']
 num_class = len(class_names)
 
 point_cloud_range = [-50, -50, -5.0, 50, 50, 3.0]
@@ -29,13 +30,6 @@ voxel_y = (point_cloud_range[4] - point_cloud_range[1]) / occ_size[1]
 voxel_z = (point_cloud_range[5] - point_cloud_range[2]) / occ_size[2]
 voxel_size = [voxel_x, voxel_y, voxel_z] # (0.4, 0.4, 0.25)
 pts_voxel_size = [0.125, 0.125, 0.125]
-scale = 16
-grid_config = {
-    'xbound': [point_cloud_range[0], point_cloud_range[3], voxel_x * lss_downsample[0]],
-    'ybound': [point_cloud_range[1], point_cloud_range[4], voxel_y * lss_downsample[1]],
-    'zbound': [point_cloud_range[2], point_cloud_range[5], voxel_z * lss_downsample[2]],
-    'dbound': [2.0, 58.0, 0.5],
-}
 
 data_config={
     'cams': ['CAM_FRONT_LEFT', 'CAM_FRONT', 'CAM_FRONT_RIGHT',
@@ -51,8 +45,15 @@ data_config={
     'crop_h': (0.0, 0.0),
     'resize_test': 0.00,
 }
+scale = 4
+grid_config = {
+    'xbound': [point_cloud_range[0], point_cloud_range[3], voxel_x * lss_downsample[0]],
+    'ybound': [point_cloud_range[1], point_cloud_range[4], voxel_y * lss_downsample[1]],
+    'zbound': [point_cloud_range[2], point_cloud_range[5], voxel_z * lss_downsample[2]],
+    'dbound': [2.0, 58.0, 0.5],
+}
 
-numC_Trans = 256
+numC_Trans = 128
 voxel_channels = [128, 256, 512, 1024]
 voxel_channels_half = [64, 128, 256, 512]
 voxel_num_layer = [2, 2, 2, 2]
@@ -68,12 +69,12 @@ num_cls = 17  # 0 free, 1-16 obj
 visible_mask = False
 
 cascade_ratio = 2
-sample_from_voxel = True
+sample_from_voxel = False
 sample_from_img = False
 
 
 model = dict(
-    type='NeRFOcc_L',
+    type='NeRFOcc_Ray',
     loss_norm=True,
     voxel_size = voxel_size,
     n_voxels = occ_size,
@@ -87,7 +88,7 @@ model = dict(
     squeeze_scale=4,
     scale=scale,
     nerf_density=True,
-    use_rendering=False,
+    use_rendering=True,
     test_rendering=False,
     loss_voxel_ce_weight=1.0,
     loss_voxel_sem_scal_weight=1.0,
@@ -100,45 +101,33 @@ model = dict(
         max_voxels=(90000, 120000)),
     pts_voxel_encoder=dict(type='HardSimpleVFE', num_features=5),
     pts_middle_encoder=dict(
-        type='SparseLiDAREnc8x',
-        input_channel=4,
-        base_channel=16,
-        out_channel=numC_Trans,
-        norm_cfg=dict(type='SyncBN', requires_grad=True),
-        sparse_shape_xyz=[800, 800, 64],  # hardcode, xy size follow centerpoint
-        ),
-    # pts_middle_encoder=dict(
-    #     type='SparseEncoder1',
-    #     in_channels=4,
-    #     sparse_shape=[200, 200, 17],
-    #     output_channels=128,
-    #     order=('conv', 'norm', 'act'),
-    #     encoder_channels=((16, 16, 32), (32, 32, 64), (64, 64, 128), (128, 128)),
-    #     encoder_paddings=((0, 0, 1), (0, 0, 1), (0, 0, [0, 1, 1]), (0, 0)),
-    #     block_type='basicblock'),
-    # pts_backbone=dict(
-    #     type='SECOND',
-    #     in_channels=256,
-    #     out_channels=[128, 256],
-    #     layer_nums=[5, 5],
-    #     layer_strides=[1, 2],
-    #     norm_cfg=dict(type='BN', eps=0.001, momentum=0.01),
-    #     conv_cfg=dict(type='Conv2d', bias=False)),
-    # pts_neck=dict(
-    #     type='SECONDFPN',
-    #     in_channels=[128, 256],
-    #     out_channels=[256, 256],
-    #     upsample_strides=[1, 2],
-    #     norm_cfg=dict(type='BN', eps=0.001, momentum=0.01),
-    #     upsample_cfg=dict(type='deconv', bias=False),
-    #     use_conv_for_no_stride=True),
-    density_encoder=dict(
-        type='FPN3D_Render',
-        with_cp=True,
-        in_channels=voxel_channels,
-        out_channels=voxel_out_channel,
-        norm_cfg=dict(type='SyncBN', requires_grad=True),
-    ),
+        type='SparseEncoderHD',
+        in_channels=4,
+        sparse_shape=[65, 800, 800],
+        output_channels=128,
+        order=('conv', 'norm', 'act'),
+        encoder_channels=((16, 16, 32), (32, 32, 64), (64, 64, 128), (128, 128)),
+        encoder_paddings=((0, 0, 1), (0, 0, 1), (0, 0, [0, 1, 1]), (0, 0)),
+        block_type='basicblock',
+        fp16_enabled=False), # not enable FP16 here
+    pts_backbone=dict(
+        type='SECOND3D',
+        in_channels=[128, 128, 128],
+        out_channels=[128, 256, 512],
+        layer_nums=[5, 5, 5],
+        layer_strides=[1, 2, 4],
+        is_cascade=False,
+        norm_cfg=dict(type='BN3d', eps=1e-3, momentum=0.01),
+        conv_cfg=dict(type='Conv3d', kernel=(1,3,3), bias=False)),
+    pts_neck=dict(
+        type='SECOND3DFPN',
+        in_channels=[128, 256, 512],
+        out_channels=[128, 128, 128],
+        upsample_strides=[1, 2, 4],
+        norm_cfg=dict(type='BN3d', eps=1e-3, momentum=0.01),
+        upsample_cfg=dict(type='deconv3d', bias=False),
+        extra_conv=dict(type='Conv3d', num_conv=3, bias=False),
+        use_conv_for_no_stride=True),
     semantic_encoder=dict(
         type='CustomResNet3D',
         depth=18,
@@ -204,10 +193,11 @@ train_pipeline = [
     # dict(type='LoadNuscOccupancyAnnotations', is_train=True, grid_size=occ_size, 
     #         point_cloud_range=point_cloud_range, bda_aug_conf=bda_aug_conf,
     #         cls_metas=nusc_class_metas),
+    dict(type='CreateDepthFromLiDAR', dataset='nusc'),
     dict(type='LoadOccupancy', is_train=True, to_float32=True, use_semantic=True, occ_path=occ_path, grid_size=occ_size, use_vel=False,
         unoccupied=empty_idx, pc_range=point_cloud_range, cal_visible=visible_mask, bda_aug_conf=bda_aug_conf, cls_metas=nusc_class_metas),
     dict(type='OccDefaultFormatBundle3D', class_names=class_names),
-    dict(type='Collect3D', keys=['gt_depths','gt_occ', 'points', 'points_occ'],
+    dict(type='Collect3D', keys=['gt_depths', 'gt_occ', 'points', 'points_occ'],
             meta_keys=['pc_range', 'occ_size']),
 ]
 
