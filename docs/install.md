@@ -1,13 +1,13 @@
 # Step-by-step installation instructions
 
-OccFormer is developed based on the official BEVFormer codebase and the installation follows similar steps.
+Co-Occ is developed based on the official BEVFormer codebase and the installation follows similar steps.
 
 **a. Create a conda virtual environment and activate**
 
 python 3.8 may not be supported.
 ```shell
-conda create -n occformer python=3.7 -y
-conda activate occformer
+conda create -n coocc python=3.7 -y
+conda activate coocc
 ```
 
 **b. Install PyTorch and torchvision following the [official instructions](https://pytorch.org/get-started/previous-versions/)**

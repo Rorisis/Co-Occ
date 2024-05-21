@@ -5,7 +5,8 @@ import cv2
 from PIL import Image
 from tqdm import tqdm
 from mayavi import mlab
-from visualize_nusc_release import draw_nusc_occupancy
+from visualize_nusc import draw_nusc_occupancy
+from nuscenes.nuscenes import NuScenes
 
 import mayavi
 mlab.options.offscreen = True
@@ -38,8 +39,12 @@ if __name__ == "__main__":
 	parser.add_argument('--scene-name', default=None)
 	args = parser.parse_args()
 	
-	point_cloud_range = [-51.2, -51.2, -5.0, 51.2, 51.2, 3.0]
-	occ_size = [256, 256, 32]
+	# nusc = NuScenes(version='v1.0-trainval',
+    #             dataroot='./data/nuscenes',
+    #             verbose=True)
+
+	point_cloud_range = [-50, -50, -5.0, 50, 50, 3.0]
+	occ_size = [200, 200, 16]
 	voxel_x = (point_cloud_range[3] - point_cloud_range[0]) / occ_size[0]
 	voxel_y = (point_cloud_range[4] - point_cloud_range[1]) / occ_size[1]
 	voxel_z = (point_cloud_range[5] - point_cloud_range[2]) / occ_size[2]
@@ -83,6 +88,19 @@ if __name__ == "__main__":
 
 			sample_cat_file = os.path.join(scene_save_folder, '{}_cat_vis.png'.format(timestamp))
 			sample_img_files.append(sample_cat_file)
+
+			# print(timestamp)
+			# my_sample = nusc.get('sample', timestamp)
+			# lidar_data = nusc.get('sample_data', my_sample['data']['LIDAR_TOP'])
+			# lidar_path, boxes, _ = nusc.get_sample_data(lidar_data['token'])
+			# # print(lidar_path)
+
+			# visual_path = os.path.join('./data/nuscenes_occ/samples', lidar_path.split('/')[-1]+'.npy')
+
+			# fov_voxels = np.load(visual_path)
+			# fov_voxels[..., 3][fov_voxels[..., 3] == 0] = 255
+			# voxel = np.zeros(np.array(occ_size))
+			# voxel[fov_voxels[:, 0].astype(np.int), fov_voxels[:, 1].astype(np.int), fov_voxels[:, 2].astype(np.int)] = fov_voxels[:, 3]
 
 			if os.path.exists(sample_cat_file):
 				continue

@@ -19,7 +19,7 @@ from mmdet3d.datasets import build_dataset
 from projects.mmdet3d_plugin.datasets.builder import build_dataloader
 from mmdet3d.models import build_model
 from mmdet.apis import set_random_seed
-from projects.mmdet3d_plugin.occformer.apis.test import custom_single_gpu_test, custom_multi_gpu_test
+from projects.mmdet3d_plugin.coocc.apis.test import custom_single_gpu_test, custom_multi_gpu_test
 
 from mmdet.datasets import replace_ImageToTensor
 import time

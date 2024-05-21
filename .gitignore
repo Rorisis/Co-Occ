@@ -16,3 +16,6 @@ files/*
 *.err
 *.out
 /test_save/
+/projects/configs/coocc_kitti
+work_dirs
+slurm

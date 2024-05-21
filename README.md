@@ -1,74 +1,57 @@
-# OccFormer: Dual-path Transformer for Vision-based 3D Semantic Occupancy Prediction
+# Co-Occ: Coupling Explicit Feature Fusion with Volume Rendering Regularization for Multi-Modal 3D Semantic Occupancy Prediction
+
+### [Project Page](https://rorisis.github.io/Co-Occ_project-page/) | [Paper](https://ieeexplore.ieee.org/document/10517470) | [Arxiv](https://arxiv.org/abs/2404.04561) 
+<br/>
+
+## Introduction
+3D semantic occupancy prediction is a pivotal task in the field of autonomous driving. Recent approaches have made great advances in 3D semantic occupancy predictions on a single modality. However, multi-modal semantic occupancy prediction approaches have encountered difficulties in dealing with the modality heterogeneity, modality misalignment, and insufficient modality interactions that arise during the fusion of different modalities data, which may result in the loss of important geometric and semantic information. This letter presents a novel multi-modal, i.e., LiDAR-camera 3D semantic occupancy prediction framework, dubbed Co-Occ, which couples explicit LiDAR-camera feature fusion with implicit volume rendering regularization. The key insight is that volume rendering in the feature space can proficiently bridge the gap between 3D LiDAR sweeps and 2D images while serving as a physical regularization to enhance LiDAR-camera fused volumetric representation. Specifically, we first propose a Geometric- and Semantic-aware Fusion (GSFusion) module to explicitly enhance LiDAR features by incorporating neighboring camera features through a K-nearest neighbors (KNN) search. Then, we employ volume rendering to project the fused feature back to the image planes for reconstructing color and depth maps. These maps are then supervised by input images from the camera and depth estimations derived from LiDAR, respectively. Extensive experiments on the popular nuScenes and SemanticKITTI benchmarks verify the effectiveness of our Co-Occ for 3D semantic occupancy prediction.
+
+![framework](./assets/framework.jpg)
 
 ## News
 
-- **[2023/04/20]** Update more pretrained weights.
-- **[2023/04/12]** Paper is on [Arxiv](https://arxiv.org/abs/2304.05316).
-- **[2023/04/11]** Code and demo release.
-
-## Introduction
-The vision-based perception for autonomous driving has undergone a transformation from the bird-eye-view (BEV) representations to the 3D semantic occupancy. Compared with the BEV planes, the 3D semantic occupancy further provides structural information along the vertical direction. This paper presents OccFormer, a dual-path transformer network to effectively process the 3D volume for semantic occupancy prediction. OccFormer achieves a long-range, dynamic, and efficient encoding of the camera-generated 3D voxel features. It is obtained by decomposing the heavy 3D processing into the local and global transformer pathways along the horizontal plane. For the occupancy decoder, we adapt the vanilla Mask2Former for 3D semantic occupancy by proposing preserve-pooling and class-guided sampling, which notably mitigate the sparsity and class imbalance. Experimental results demonstrate that OccFormer significantly outperforms existing methods for semantic scene completion on SemanticKITTI dataset and for LiDAR semantic segmentation on nuScenes dataset.
-
-![framework](./assets/framework.jpg)
+- **[2024/05/21]** Codes release.
 
 ## Demo
 
 ### nuScenes:
-![demo](./assets/nusc_snippet.gif)
-![legend](./assets/nusc_legend.png)
-
-### SemanticKITTI:
-![demo](./assets/kitti_snippet.gif)
-
-## Benchmark Results
-LiDAR Segmentation on nuScenes test set:
-![nusc_test](./assets/nusc_test.jpg)
-Semantic Scene Completion on SemanticKITTI test set:
-![kitti_test](./assets/kitti_test.jpg)
+![demo](./assets/demo.gif)
 
 ## Getting Started
 
 [1] Check [installation](docs/install.md) for installation. Our code is mainly based on mmdetection3d.
 
-[2] Check [data_preparation](docs/prepare_dataset.md) for preparing SemanticKITTI and nuScenes datasets.
+[2] Check [data_preparation](docs/prepare_dataset.md) for preparing nuScenes datasets.
 
 [3] Check [train_and_eval](docs/train_and_eval.md) for training and evaluation.
 
 [4] Check [predict_and_visualize](docs/predict_and_visualize.md) for prediction and visualization.
 
-[5] Check [test_submission](docs/test_submission.md) for preparing the test submission to [SemanticKITTI SSC](https://codalab.lisn.upsaclay.fr/competitions/7170) and [nuScenes LiDAR Segmentation](https://www.nuscenes.org/lidar-segmentation?externalData=all&mapData=all&modalities=Any).
 
-## Model Zoo
+## Model Weights
+We provide the [pretrained weights](https://drive.google.com/drive/folders/1-C68XFHSseRTd1V54mNc3pLzDGFfsnY1) on nuScenes datasets with occupancy labels (resolution 200x200x16 with voxel size 0.5m) from [here](https://github.com/weiyithu/SurroundOcc/blob/main/docs/data.md), reproduced with the released codebase.
+| Modality | Backbone | Model Weights|
+|:----:|:----:|:----:|
+| [Camera-only](projects/configs/coocc_nusc/coocc_cam_r101_896x1600.py) | ResNet101 | [nusc_cam_r101_896x1600.pth](https://drive.google.com/drive/folders/1-C68XFHSseRTd1V54mNc3pLzDGFfsnY1) | 
+| [LiDAR-only](/projects/configs/coocc_nusc/coocc_lidar.py) | - | [nusc_lidar.pth](https://drive.google.com/drive/folders/1-C68XFHSseRTd1V54mNc3pLzDGFfsnY1) |
+| [LiDAR-camera](projects/configs/coocc_nusc/coocc_multi_r101_896x1600.py) | ResNet101 | [nusc_multi_r101_896x1600.pth](https://drive.google.com/drive/folders/1-C68XFHSseRTd1V54mNc3pLzDGFfsnY1) |
+| [LiDAR-camera](projects/configs/coocc_nusc/coocc_multi_r50_256x704.py) | ResNet50 | [nusc_multi_r50_256x704.pth](https://drive.google.com/drive/folders/1-C68XFHSseRTd1V54mNc3pLzDGFfsnY1) | 
 
-We provide the pretrained weights on SemanticKITTI and nuScenes datasets, reproduced with the released codebase.
-
-| Dataset | Backbone | SC IoU | SSC mIoU | LiDARSeg mIoU | Model Weights | Training Logs |
-|:----:|:----:|:----:|:----:|:----:|:----:|:----:|
-| [SemanticKITTI](projects/configs/occformer_kitti/occformer_kitti.py) | EfficientNetB7 | 36.42(val), 34.46(test) | 13.50(val), 12.37(test) | - | [Link](https://github.com/zhangyp15/OccFormer/releases/download/assets/occformer_kitti.pth) | [Link](https://github.com/zhangyp15/OccFormer/releases/download/assets/occformer_kitti.log)
-| [nuScenes](projects/configs/occformer_nusc/occformer_nusc_r50_256x704.py) | R50 | - | - | 68.1 | [Link](https://github.com/zhangyp15/OccFormer/releases/download/assets/occformer_nusc_r50.pth) | [Link](https://github.com/zhangyp15/OccFormer/releases/download/assets/occformer_nusc_r50.log)
-| [nuScenes](projects/configs/occformer_nusc/occformer_nusc_r101_896x1600.py) | R101-DCN | - | - | 70.0 | [Link](https://github.com/zhangyp15/OccFormer/releases/download/assets/occformer_nusc_r101.pth) | [Link](https://github.com/zhangyp15/OccFormer/releases/download/assets/occformer_nusc_r101.log)
-
-For SemanticKITTI dataset, the validation performance may fluctuate around 13.2 ~ 13.6 (SSC mIoU) considering the limited training samples. 
-
-## Related Projects
-
-[TPVFormer](https://github.com/wzzheng/TPVFormer): Tri-perspective view (TPV) representation for 3D semantic occupancy.
-
-[OpenOccupancy](https://github.com/JeffWang987/OpenOccupancy): A large scale benchmark extending nuScenes for surrounding semantic occupancy perception.
 
 ## Acknowledgement
 
-This project is developed based on the following open-sourced projects: [MonoScene](https://github.com/astra-vision/MonoScene), [BEVDet](https://github.com/HuangJunJie2017/BEVDet), [BEVFormer](https://github.com/fundamentalvision/BEVFormer), [Mask2Former](https://github.com/facebookresearch/Mask2Former). Thanks for their excellent work.
+This project is developed based on the following open-sourced projects: [OccFormer](https://github.com/zhangyp15/OccFormer/tree/main), [SurroundOcc](https://github.com/weiyithu/SurroundOcc), [OpenOccupancy](https://github.com/JeffWang987/OpenOccupancy/tree/main), [MonoScene](https://github.com/astra-vision/MonoScene), [BEVDet](https://github.com/HuangJunJie2017/BEVDet), [BEVFormer](https://github.com/fundamentalvision/BEVFormer). Thanks for their excellent work.
 
 ## Citation
 
 If you find this project helpful, please consider giving this repo a star or citing the following paper:
 ```
-@article{zhang2023occformer,
-  title={OccFormer: Dual-path Transformer for Vision-based 3D Semantic Occupancy Prediction},
-  author={Zhang, Yunpeng and Zhu, Zheng and Du, Dalong},
-  journal={arXiv preprint arXiv:2304.05316},
-  year={2023}
+@article{pan2024co,
+  title={Co-Occ: Coupling Explicit Feature Fusion With Volume Rendering Regularization for Multi-Modal 3D Semantic Occupancy Prediction},
+  author={Pan, Jingyi and Wang, Zipeng and Wang, Lin},
+  journal={IEEE Robotics and Automation Letters},
+  year={2024},
+  publisher={IEEE}
 }
 ```
-# MoEOccupancy
+

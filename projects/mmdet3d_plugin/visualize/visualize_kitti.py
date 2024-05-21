@@ -255,7 +255,7 @@ def main_draw():
 		occ_file = os.path.join(assets_path, '{}_occ'.format(sample_id))
 		result_file = os.path.join(save_path, '{}_vis.png'.format(sample_id))
 
-		if os.path.exists(result_file):
+		if os.path.exists(occ_file+'.png'):
 			continue
 
 		# load occformer outputs
@@ -266,30 +266,31 @@ def main_draw():
 		occformer_pred = occformer_data['output_voxel'].reshape(256, 256, 32)
 		input_image = occformer_data['raw_img'][..., [2, 1, 0]] # BGR to RGB
 
+		occformer_pred = np.load(os.path.join('./data/SemanticKITTI/labels/08', str(sample_id) +'_1_1.npy'))
 		# draw occformer predictions
 		occformer_img = draw(occformer_pred, None, vox_origin, fov_mask, 
 			img_size=(1220, 370), f=707.0912, voxel_size=0.2, d=7, save_name=occ_file, video_view=True)
 
-		# cat the input image and the occupancy predictions
-		occformer_img = Image.open(occformer_img)
-		occ_raw_w, occ_raw_h = occformer_img.size
-		top_crop = 300
-		bottom_crop = 200
-		occformer_img = occformer_img.crop([0, top_crop, occ_raw_w, occ_raw_h - bottom_crop])
+		# # cat the input image and the occupancy predictions
+		# occformer_img = Image.open(occformer_img)
+		# occ_raw_w, occ_raw_h = occformer_img.size
+		# top_crop = 300
+		# bottom_crop = 200
+		# occformer_img = occformer_img.crop([0, top_crop, occ_raw_w, occ_raw_h - bottom_crop])
 
-		occ_raw_w, occ_raw_h = occformer_img.size
-		occ_h = int(resize_img_size[0] / occ_raw_w * occ_raw_h)
-		occ_img_size = [resize_img_size[0], occ_h]
-		occformer_img = occformer_img.resize(occ_img_size, Image.BILINEAR)
-		input_image = Image.fromarray(input_image).resize(resize_img_size, Image.BILINEAR)
+		# occ_raw_w, occ_raw_h = occformer_img.size
+		# occ_h = int(resize_img_size[0] / occ_raw_w * occ_raw_h)
+		# occ_img_size = [resize_img_size[0], occ_h]
+		# occformer_img = occformer_img.resize(occ_img_size, Image.BILINEAR)
+		# input_image = Image.fromarray(input_image).resize(resize_img_size, Image.BILINEAR)
 
-		# 竖向排布
-		output_w = resize_img_size[0]
-		output_h = resize_img_size[1] + spacing + occ_img_size[1]
-		result = Image.new(input_image.mode, (output_w, output_h), (255, 255, 255))
-		result.paste(input_image, box=(0, 0))
-		result.paste(occformer_img, box=(0, resize_img_size[1] + spacing))
-		result.save(result_file)
+		# # 竖向排布
+		# output_w = resize_img_size[0]
+		# output_h = resize_img_size[1] + spacing + occ_img_size[1]
+		# result = Image.new(input_image.mode, (output_w, output_h), (255, 255, 255))
+		# result.paste(input_image, box=(0, 0))
+		# result.paste(occformer_img, box=(0, resize_img_size[1] + spacing))
+		# result.save(result_file)
 
 		print('finish processing {}'.format(sample_id))
 	
