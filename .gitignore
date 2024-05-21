@@ -2,7 +2,6 @@
 work_dirs/*
 ckpts/*
 __pycache__
-*.png
 *.pyc
 /visual/*
 /data
