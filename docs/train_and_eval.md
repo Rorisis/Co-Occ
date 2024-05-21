@@ -2,7 +2,7 @@
 
 For most of our experiments, we train the model with 8 RTX A40 GPUs with 46G or 8 RTX A800 GPUs with 80G memory. Therefore, you may need similar hardwares to reproduce the training results.
 
-Before start training, download the corresponding pretrained backbones from the [release page](https://github.com/Rorisis/Co-Occ/releases/tag/pretrained) and put them under the folder `ckpts/`. The weights include [R50](https://github.com/Rorisis/Co-Occ/releases/tag/pretrained/resnet50-0676ba61.pth) & [R101-DCN](https://github.com/Rorisis/Co-Occ/releases/tag/pretrained/resnet101-5d3b4d8f.pth) for nuScenes.
+Before start training, download the corresponding pretrained backbones from the [release page](https://github.com/Rorisis/Co-Occ/releases/tag/pretrained) and put them under the folder `ckpts/`. The weights include [R50](https://github.com/Rorisis/Co-Occ/releases/tag/pretrained/resnet50-0676ba61.pth) & [R101](https://github.com/Rorisis/Co-Occ/releases/tag/pretrained/resnet101-5d3b4d8f.pth) for nuScenes.
 
 ## Training
 ```bash
