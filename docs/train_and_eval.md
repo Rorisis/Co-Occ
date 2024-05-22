@@ -1,4 +1,4 @@
-# Getting started with OccFormer
+# Getting started with Co-Occ
 
 For most of our experiments, we train the model with 8 RTX A40 GPUs with 46G or 8 RTX A800 GPUs with 80G memory. Therefore, you may need similar hardwares to reproduce the training results.
 
