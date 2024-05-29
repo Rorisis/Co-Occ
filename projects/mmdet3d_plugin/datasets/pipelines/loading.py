@@ -124,9 +124,12 @@ class LoadOccupancy(object):
         results['gt_occ'] = voxel
         # results['points_occ'] = torch.from_numpy(lidarseg).float()
 
-        imgs, rots, trans, intrins, post_rots, post_trans, gt_depths, sensor2sensors, denorm_imgs, intrin_nerf, c2ws, img_size = results['img_inputs']
-        results['img_inputs'] = (imgs, rots, trans, intrins, post_rots, post_trans, bda_rot, gt_depths, sensor2sensors, denorm_imgs, aabb, intrin_nerf, c2ws, img_size)
-        results['gt_depths'] = rots, trans, intrins, post_rots, post_trans, bda_rot, gt_depths, img_size
+        if 'img_inputs' in results:
+            imgs, rots, trans, intrins, post_rots, post_trans, gt_depths, sensor2sensors, denorm_imgs, intrin_nerf, c2ws, img_size = results['img_inputs']
+            results['img_inputs'] = (imgs, rots, trans, intrins, post_rots, post_trans, bda_rot, gt_depths, sensor2sensors, denorm_imgs, aabb, intrin_nerf, c2ws, img_size)
+        elif 'gt_depths' in results: 
+            imgs, rots, trans, intrins, post_rots, post_trans, sensor2sensors, gt_depths, img_size = results['gt_depths']
+            results['gt_depths'] = rots, trans, intrins, post_rots, post_trans, bda_rot, gt_depths, img_size
 
         return results
 

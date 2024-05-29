@@ -110,7 +110,6 @@ class COOCC_Ray_L(BEVDepth):
 
         if use_rendering:
             self.sigma_head = MLP(input_dim=128, output_dim=1, net_depth=1, skip_layer=None)
-            self.rgb_head = MLP(input_dim=128, output_dim=3, net_depth=3, skip_layer=None)
             
         coord_x, coord_y, coord_z = torch.meshgrid(torch.arange(self.n_voxels[0]),torch.arange(self.n_voxels[1]), torch.arange(self.n_voxels[2]))
         self.sample_coordinates = torch.stack([coord_x, coord_y, coord_z], dim=0)
@@ -505,7 +504,7 @@ class COOCC_Ray_L(BEVDepth):
  
                 depths = torch.stack(depths)
 
-                depth_gt = gt_depths[6][0] # [16 * H, 16 * W] [B, H, W]
+                depth_gt = gt_depths[-2][0] # [16 * H, 16 * W] [B, H, W]
 
                 d_bound = [2., 58., 0.5]
                 depth_gt = (depth_gt - (d_bound[0] - d_bound[2] / 2.)) / d_bound[2]
