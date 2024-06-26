@@ -36,6 +36,7 @@ We provide the [pretrained weights](https://drive.google.com/drive/folders/1-C68
 | [LiDAR-camera](projects/configs/coocc_nusc/coocc_multi_r101_896x1600.py) | ResNet101 | [nusc_multi_r101_896x1600.pth](https://drive.google.com/drive/folders/1-C68XFHSseRTd1V54mNc3pLzDGFfsnY1) |
 | [LiDAR-camera](projects/configs/coocc_nusc/coocc_multi_r50_256x704.py) | ResNet50 | [nusc_multi_r50_256x704.pth](https://drive.google.com/drive/folders/1-C68XFHSseRTd1V54mNc3pLzDGFfsnY1) | 
 
+For nuscenes-openoccupancy benchmark, we provide the [pretrained weight](https://pan.baidu.com/s/1FxJSdpiZxveUcHDfLJ4-QA?pwd=cooc) (password: cooc) with this [config file](https://github.com/Rorisis/Co-Occ/blob/main/projects/configs/coocc_nusc/coocc_multi_r101_openoccupancy.py).
 
 ## Acknowledgement
 
